@@ -84,7 +84,7 @@ func (s *server) ensureAnonCSRFCookie(w http.ResponseWriter, r *http.Request) st
 func (s *server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return s.withUserOptional(func(w http.ResponseWriter, r *http.Request) {
 		if userFrom(r.Context()) == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, s.url("/login"), http.StatusSeeOther)
 			return
 		}
 		next(w, r)

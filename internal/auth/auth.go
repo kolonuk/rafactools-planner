@@ -105,8 +105,8 @@ func (s *Service) ClaimSquadron(email, password, squadronName string) (userID in
 	if !ok {
 		return 0, "", ErrEmailDomainNotAllowed
 	}
-	if len(password) < 10 {
-		return 0, "", errors.New("password must be at least 10 characters")
+	if len(password) < 12 {
+		return 0, "", errors.New("password must be at least 12 characters")
 	}
 	squadronName = strings.TrimSpace(squadronName)
 	if squadronName == "" {
@@ -246,8 +246,8 @@ func (s *Service) AcceptInvite(token, password string) (userID int64, squadronID
 	if err != nil {
 		return 0, 0, err
 	}
-	if len(password) < 10 {
-		return 0, 0, errors.New("password must be at least 10 characters")
+	if len(password) < 12 {
+		return 0, 0, errors.New("password must be at least 12 characters")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

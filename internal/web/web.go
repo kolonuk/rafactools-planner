@@ -5,6 +5,7 @@ package web
 
 import (
 	"context"
+	"crypto/subtle"
 	"embed"
 	"fmt"
 	"html/template"
@@ -12,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/config"
@@ -84,6 +86,12 @@ const (
 func NewRouter(d *Deps) http.Handler {
 	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath)}
 
+	// 20 attempts per 5 minutes per IP on the endpoints worth scripting an
+	// attack against (credential stuffing on login, mass squadron-claim
+	// spam, invite-token guessing). Generous enough not to lock out a
+	// fumbling human, tight enough to blunt automation.
+	authLimiter := newIPLimiter(20, 5*time.Minute)
+
 	mux := http.NewServeMux()
 
 	staticSub, err := fs.Sub(staticFS, "static")
@@ -95,14 +103,14 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /health", s.health)
 
 	mux.HandleFunc("GET /claim", s.withUserOptional(s.claimForm))
-	mux.HandleFunc("POST /claim", s.withUserOptional(s.claimSubmit))
+	mux.HandleFunc("POST /claim", authLimiter.rateLimited(s.withUserOptional(s.claimSubmit)))
 	mux.HandleFunc("GET /check-email", s.withUserOptional(s.checkEmail))
 	mux.HandleFunc("GET /verify", s.withUserOptional(s.verify))
 	mux.HandleFunc("GET /login", s.withUserOptional(s.loginForm))
-	mux.HandleFunc("POST /login", s.withUserOptional(s.loginSubmit))
+	mux.HandleFunc("POST /login", authLimiter.rateLimited(s.withUserOptional(s.loginSubmit)))
 	mux.HandleFunc("POST /logout", s.requireAuth(s.logout))
 	mux.HandleFunc("GET /invite/{token}", s.withUserOptional(s.inviteForm))
-	mux.HandleFunc("POST /invite/{token}", s.withUserOptional(s.inviteSubmit))
+	mux.HandleFunc("POST /invite/{token}", authLimiter.rateLimited(s.withUserOptional(s.inviteSubmit)))
 
 	mux.HandleFunc("GET /", s.requireAuth(s.dashboard))
 
@@ -125,7 +133,43 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries", s.requireEditor(s.reqEntryAdd))
 	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries/{entryID}/delete", s.requireEditor(s.reqEntryDelete))
 
-	return mux
+	return s.securityHeaders(maxBody(1<<20, mux)) // 1MB — every form here is tiny; no uploads exist
+}
+
+// maxBody caps request bodies so a POST can't exhaust memory/disk parsing an
+// oversized form — there's nothing in this app (no file uploads) that
+// legitimately needs more than a tiny form payload.
+func maxBody(limit int64, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// securityHeaders sets a conservative baseline on every response. There's no
+// first-party JS and no third-party requests anywhere in this app (see
+// layout.html's comment on why Google Fonts was dropped), so the CSP can be
+// this strict without breaking anything.
+func (s *server) securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=(), usb=()")
+		h.Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; img-src 'self' data:; "+
+			"script-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+		if !strings.HasPrefix(r.URL.Path, s.Cfg.BasePath+"/static/") {
+			h.Set("Cache-Control", "no-store")
+		}
+		// Only when the operator has told us we're reached over TLS
+		// (COOKIE_SECURE, which defaults true) — sending this over plain
+		// HTTP would be a lie the browser then enforces incorrectly.
+		if s.Auth.CookieSecure() {
+			h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *server) health(w http.ResponseWriter, r *http.Request) {
@@ -187,7 +231,7 @@ func (s *server) checkCSRF(r *http.Request) bool {
 		return s.Auth.ValidCSRF(tok, submitted)
 	}
 	c, err := r.Cookie(anonCSRFCookieName)
-	return err == nil && c.Value != "" && c.Value == submitted
+	return err == nil && c.Value != "" && subtle.ConstantTimeCompare([]byte(c.Value), []byte(submitted)) == 1
 }
 
 func userFrom(ctx context.Context) *auth.User {

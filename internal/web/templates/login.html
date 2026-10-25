@@ -1,6 +1,6 @@
 {{define "content"}}
 <h1>Log in</h1>
-<form method="post" action="/login" class="card">
+<form method="post" action="{{url "/login"}}" class="card">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
   <label>Email
     <input type="email" name="email" required autofocus>
@@ -10,5 +10,5 @@
   </label>
   <button type="submit">Log in</button>
 </form>
-<p class="muted">New squadron? <a href="/claim">Claim it</a>. Invited by a squadron member? Use the link from their email.</p>
+<p class="muted">New squadron? <a href="{{url "/claim"}}">Claim it</a>. Invited by a squadron member? Use the link from their email.</p>
 {{end}}

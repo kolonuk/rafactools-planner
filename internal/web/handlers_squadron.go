@@ -97,7 +97,7 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not save.")
 		return
 	}
-	http.Redirect(w, r, "/squadron", http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }
 
 func (s *server) inviteCreate(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +123,7 @@ func (s *server) inviteCreate(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Invite created, but the email failed to send.")
 		return
 	}
-	http.Redirect(w, r, "/squadron", http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }
 
 func (s *server) inviteRevoke(w http.ResponseWriter, r *http.Request) {
@@ -133,5 +133,5 @@ func (s *server) inviteRevoke(w http.ResponseWriter, r *http.Request) {
 	}
 	u := userFrom(r.Context())
 	_ = s.Auth.RevokeInvite(u.SquadronID, r.PathValue("token"))
-	http.Redirect(w, r, "/squadron", http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }

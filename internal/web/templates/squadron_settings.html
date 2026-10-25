@@ -3,7 +3,7 @@
 
 <section class="card">
   <h2>Details</h2>
-  <form method="post" action="/squadron" class="stacked-form">
+  <form method="post" action="{{url "/squadron"}}" class="stacked-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <label>Name
       <input type="text" name="name" value="{{.Squadron.Name}}">
@@ -50,7 +50,7 @@
       <tr>
         <td>{{.Email}}</td><td>{{.Role}}</td><td>{{.ExpiresAt}}</td>
         <td>
-          <form method="post" action="/squadron/invites/{{.Token}}/revoke" class="inline">
+          <form method="post" action="{{url "/squadron/invites/" .Token "/revoke"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
             <button type="submit" class="link-button">Revoke</button>
           </form>
@@ -62,7 +62,7 @@
   {{else}}<p class="muted">None pending.</p>{{end}}
 
   <h3>Invite someone</h3>
-  <form method="post" action="/squadron/invites" class="inline-form">
+  <form method="post" action="{{url "/squadron/invites"}}" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <label>Email <input type="email" name="email" required></label>
     <label>Role

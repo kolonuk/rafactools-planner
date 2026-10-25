@@ -12,8 +12,8 @@
         <td>{{.MonthName}} {{.Year}}</td>
         <td>{{.Status}}</td>
         <td>
-          <a href="/programmes/{{.ID}}">Edit</a>
-          · <a href="/programmes/{{.ID}}/pdf">PDF</a>
+          <a href="{{url "/programmes/" .ID}}">Edit</a>
+          · <a href="{{url "/programmes/" .ID "/pdf"}}">PDF</a>
         </td>
       </tr>
     {{end}}
@@ -27,7 +27,7 @@
 {{if .CanEdit}}
 <section class="card">
   <h2>New month</h2>
-  <form method="post" action="/programmes" class="inline-form">
+  <form method="post" action="{{url "/programmes"}}" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <label>Month
       <select name="month">
