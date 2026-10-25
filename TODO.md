@@ -68,10 +68,15 @@ because the LAN path is plain HTTP).
 
 ## PDF layout fidelity
 
-Tracked in detail in `.claude/skills/pdf-fidelity/SKILL.md`. Short version:
-multi-week closure banners and cross-week weekend events aren't true rowspans
-yet, and row height doesn't grow for long wrapped Notes text. Re-check against
-`examples/pdfs/` after any change to `internal/pdfgen`.
+Single portrait page, with every row height computed from actual wrapped
+line counts (no more fixed-height/landscape/multi-page — that was the v1
+approach and produced both a 2-page export and a real text-overlap bug,
+both now fixed). Remaining gaps tracked in detail in
+`.claude/skills/pdf-fidelity/SKILL.md`: multi-week closure banners and
+cross-week weekend events aren't true rowspans yet, and `SplitText`'s
+word-wrap breaks long words mid-word in the narrow Weekends column (no
+hyphenation). Re-check against `examples/pdfs/` after any change to
+`internal/pdfgen`.
 
 ## Smaller gaps
 

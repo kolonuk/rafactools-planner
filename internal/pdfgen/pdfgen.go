@@ -1,21 +1,29 @@
-// Package pdfgen renders a month's FullProgramme as a PDF matching the
-// squadron's existing paper format: a landscape grid of Date/Day/Half/
-// Activity-Instructor/classification columns, a Notes column, a split
+// Package pdfgen renders a month's FullProgramme as a single portrait A4
+// page matching the squadron's existing paper format: a grid of Date/Day/
+// Half/Activity-Instructor/classification columns, a Notes column, a split
 // Saturday/Sunday Weekends column, a uniform-key legend, and a footer
 // requirement tracker.
 //
 // This is a best-effort v1 layout modelled on a real squadron's paper
 // programme, not a pixel-perfect clone — see TODO.md "PDF layout fidelity"
-// for known gaps
-// (multi-week closure banners are drawn per-date rather than as one merged
-// rowspan, and long-running weekend events aren't visually spanned across
-// weeks).
+// for known gaps (multi-week closure banners are drawn per-date rather than
+// as one merged rowspan, and long-running weekend events aren't visually
+// spanned across weeks).
+//
+// Row heights are computed from wrapped line counts (via Fpdf.SplitText)
+// before anything is drawn, not fixed — a cell's content decides how tall
+// its row is, and every other cell in that row is drawn to match. Each row
+// is drawn in two passes: first every cell's border+fill for the row's full
+// height (so the grid lines stay a clean rectangle regardless of which cell
+// actually needed the extra height), then the (possibly wrapped) text is
+// overlaid without its own border, top-aligned within that cell.
 package pdfgen
 
 import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-pdf/fpdf"
@@ -24,21 +32,24 @@ import (
 )
 
 const (
-	lineH      = 5.0  // mm per text line within a row
-	headerH    = 7.0  // mm for the grid header row
-	titleBandH = 24.0 // mm for the logo/title band
+	lineH   = 3.6 // mm per wrapped text line within a grid row
+	headerH = 6.0 // mm for the grid header row
+	cellPad = 1.0 // mm horizontal inset used when estimating wrap width
 )
 
 var monthNames = []string{"", "January", "February", "March", "April", "May", "June",
 	"July", "August", "September", "October", "November", "December"}
 
+// columns are tuned for portrait A4's ~194mm usable width — notably
+// narrower than a landscape layout's fixed columns would be, which is why
+// text wrapping (not single-line truncation/overflow) matters here.
 type columns struct {
 	date, day, half, label, notes, weekendSat, weekendSun float64
 	classification                                        []float64
 }
 
 func newColumns(usableWidth float64, numClassifications int) columns {
-	c := columns{date: 9, day: 9, half: 7, label: 24, notes: 42, weekendSat: 19, weekendSun: 19}
+	c := columns{date: 7, day: 6, half: 5, label: 12, notes: 24, weekendSat: 13, weekendSun: 13}
 	fixed := c.date + c.day + c.half + c.label + c.notes + c.weekendSat + c.weekendSun
 	remaining := usableWidth - fixed
 	if numClassifications < 1 {
@@ -52,19 +63,15 @@ func newColumns(usableWidth float64, numClassifications int) columns {
 	return c
 }
 
-func (c columns) total() float64 {
-	t := c.date + c.day + c.half + c.label + c.notes + c.weekendSat + c.weekendSun
-	for _, w := range c.classification {
-		t += w
-	}
-	return t
-}
-
-// Render builds the PDF and returns its bytes.
+// Render builds the PDF and returns its bytes. The whole month is forced
+// onto one portrait page: rows are packed as tight as wrapped content
+// allows rather than left at a fixed height, and there is deliberately no
+// page-break fallback — a month that still doesn't fit is a layout bug to
+// fix here (tighter columns/fonts), not a second page to add.
 func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error) {
-	pdf := fpdf.New("L", "mm", "A4", "")
+	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(8, 8, 8)
-	pdf.SetAutoPageBreak(true, 8)
+	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
 
 	pageW, _ := pdf.GetPageSize()
@@ -112,26 +119,26 @@ func drawProtectiveMarking(pdf *fpdf.Fpdf, sq *programme.Squadron, usableWidth f
 	if sq.ProtectiveMarking == "" {
 		return
 	}
-	pdf.SetFont("Helvetica", "", 7)
-	pdf.CellFormat(usableWidth, 4, sq.ProtectiveMarking, "0", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "", 6)
+	pdf.CellFormat(usableWidth, 3, sq.ProtectiveMarking, "0", 1, "C", false, 0, "")
 }
 
 func drawTitleBand(pdf *fpdf.Fpdf, sq *programme.Squadron, fp *programme.FullProgramme, usableWidth float64) {
-	pdf.SetFont("Helvetica", "B", 18)
-	pdf.CellFormat(usableWidth, 10, sq.Name, "0", 1, "C", false, 0, "")
-	pdf.SetFont("Helvetica", "", 11)
-	pdf.CellFormat(usableWidth, 6, sq.Subtitle, "0", 1, "C", false, 0, "")
-	pdf.SetFont("Helvetica", "BU", 13)
-	pdf.CellFormat(usableWidth, 8, fmt.Sprintf("%s %d", monthNames[fp.Month], fp.Year), "0", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "B", 14)
+	pdf.CellFormat(usableWidth, 7, sq.Name, "0", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.CellFormat(usableWidth, 4.5, sq.Subtitle, "0", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "BU", 11)
+	pdf.CellFormat(usableWidth, 6, fmt.Sprintf("%s %d", monthNames[fp.Month], fp.Year), "0", 1, "C", false, 0, "")
 }
 
 func drawGridHeader(pdf *fpdf.Fpdf, cols columns, classifications []string) {
-	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFont("Helvetica", "B", 7)
 	pdf.SetFillColor(230, 230, 230)
 	pdf.CellFormat(cols.date, headerH, "Date", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(cols.day, headerH, "Day", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(cols.half, headerH, "Half", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(cols.label, headerH, "Activity/Instructor", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(cols.label, headerH, "Activity", "1", 0, "C", true, 0, "")
 	for i, name := range classifications {
 		pdf.CellFormat(cols.classification[i], headerH, name, "1", 0, "C", true, 0, "")
 	}
@@ -171,151 +178,25 @@ func nextDate(d string) string {
 	return t.AddDate(0, 0, 1).Format("2006-01-02")
 }
 
-func rowHeightForDay(d programme.Day) float64 {
-	if !d.IsParade {
-		return lineH
-	}
-	return lineH * float64(2*d.Halves) // activity+instructor per half
+// segment is one merged run of adjacent classification columns sharing the
+// same text (see mergeSegments), carrying its on-page x/width alongside so
+// the two-pass border-then-text drawing can reuse the same geometry.
+type segment struct {
+	x, w float64
+	text string
 }
 
-func drawWeek(pdf *fpdf.Fpdf, cols columns, sq *programme.Squadron, w week,
-	weekendByDate map[string][]string, closureByDate map[string]programme.Closure,
-	colourByKey map[string]programme.UniformColour) {
-
-	// Must run before capturing startY: if this week doesn't fit and
-	// AddPage() fires, Y resets to the new page's top margin — capturing
-	// startY first would leave it stuck at the old page's (now meaningless)
-	// Y, producing a negative-height weekend cell drawn in the wrong place.
-	pageBreakGuard(pdf, cols, sq.Classifications, w)
-	startY := pdf.GetY()
-
-	for _, d := range w.days {
-		drawDayRow(pdf, cols, sq, d, closureByDate, colourByKey)
-	}
-	endY := pdf.GetY()
-
-	drawWeekendCell(pdf, cols, startY, endY, w.days, weekendByDate)
-}
-
-// pageBreakGuard starts a new page — and re-draws the grid header on it, so
-// a page break never leaves a page of rows with no column headings — if this
-// week won't fit in the remaining space, so a week is never split mid-row
-// across pages.
-func pageBreakGuard(pdf *fpdf.Fpdf, cols columns, classifications []string, w week) {
-	total := 0.0
-	for _, d := range w.days {
-		total += rowHeightForDay(d)
-	}
-	_, pageH := pdf.GetPageSize()
-	_, _, _, bottom := pdf.GetMargins()
-	if pdf.GetY()+total > pageH-bottom {
-		pdf.AddPage()
-		drawGridHeader(pdf, cols, classifications)
-	}
-}
-
-func drawDayRow(pdf *fpdf.Fpdf, cols columns, sq *programme.Squadron, d programme.Day,
-	closureByDate map[string]programme.Closure, colourByKey map[string]programme.UniformColour) {
-
-	h := rowHeightForDay(d)
-	x, y := pdf.GetX(), pdf.GetY()
-
-	if c, closed := closureByDate[d.Date]; closed {
-		drawClosureRow(pdf, cols, d, c, h)
-		return
-	}
-
-	dateNum := dateDay(d.Date)
-	fillColour := colourByKey[d.UniformKey]
-	hasFill := d.UniformKey != ""
-
-	pdf.SetFont("Helvetica", "B", 8)
-	if hasFill {
-		r, g, b := hexToRGB(fillColour.Hex)
-		pdf.SetFillColor(r, g, b)
-	}
-	pdf.CellFormat(cols.date, h, dateNum, "1", 0, "C", hasFill, 0, "")
-	pdf.CellFormat(cols.day, h, d.DayLabel, "1", 0, "C", hasFill, 0, "")
-
-	if !d.IsParade {
-		pdf.SetFont("Helvetica", "", 8)
-		blankW := cols.half + cols.label + sum(cols.classification)
-		pdf.CellFormat(blankW, h, "", "1", 0, "C", false, 0, "")
-		pdf.CellFormat(cols.notes, h, d.Notes, "1", 0, "L", false, 0, "")
-		pdf.SetXY(x, y+h)
-		return
-	}
-
-	// Parade night: one sub-row per half, each with an Activity and an
-	// Instructor line, classification columns merged where adjacent text
-	// matches (this is how the source PDFs show one shared activity without
-	// a separate "merged" flag — see migrations/0001_init.sql).
-	subH := lineH
-	halfColX := x + cols.date + cols.day
-	curY := y
-	for half := 1; half <= d.Halves; half++ {
-		for _, rt := range []string{"activity", "instructor"} {
-			row, _ := d.RowByHalfType(half, rt)
-			pdf.SetXY(halfColX, curY)
-			if rt == "activity" {
-				pdf.SetFont("Helvetica", "B", 7)
-				pdf.CellFormat(cols.half, subH, fmt.Sprintf("%d", half), "1", 0, "C", false, 0, "")
-			} else {
-				pdf.SetFont("Helvetica", "", 7)
-				pdf.CellFormat(cols.half, subH, "", "1", 0, "C", false, 0, "")
-			}
-			labelText := "Activity"
-			if rt == "instructor" {
-				labelText = "Instructor"
-			}
-			pdf.SetFont("Helvetica", "B", 7)
-			pdf.CellFormat(cols.label, subH, labelText, "1", 0, "L", false, 0, "")
-
-			drawMergedClassificationCells(pdf, cols.classification, row.Texts, subH, rt == "instructor")
-			curY += subH // CellFormat's ln=0 only moves X, never Y — advance by hand
-		}
-	}
-
-	// Notes spans the whole day (all halves).
-	pdf.SetXY(halfColX+cols.half+cols.label+sum(cols.classification), y)
-	pdf.SetFont("Helvetica", "", 7)
-	pdf.CellFormat(cols.notes, h, d.Notes, "1", 0, "L", false, 0, "")
-
-	pdf.SetXY(x, y+h)
-}
-
-func drawClosureRow(pdf *fpdf.Fpdf, cols columns, d programme.Day, c programme.Closure, h float64) {
-	x, y := pdf.GetX(), pdf.GetY()
-	pdf.SetFillColor(201, 201, 201)
-	pdf.SetFont("Helvetica", "B", 8)
-	pdf.CellFormat(cols.date, h, dateDay(d.Date), "1", 0, "C", true, 0, "")
-	pdf.CellFormat(cols.day, h, d.DayLabel, "1", 0, "C", true, 0, "")
-
-	bodyW := cols.half + cols.label + sum(cols.classification) + cols.notes
-	if d.Date == c.StartDate {
-		pdf.SetFont("Helvetica", "B", 10)
-		pdf.SetXY(x+cols.date+cols.day, y)
-		pdf.MultiCell(bodyW, h, c.Message, "1", "C", true)
-	} else {
-		pdf.CellFormat(bodyW, h, "", "1", 0, "C", true, 0, "")
-	}
-	pdf.SetXY(x, y+h)
-}
-
-// drawMergedClassificationCells merges adjacent columns with identical text
-// into a single wide cell, mirroring how the source PDFs collapse shared
-// activities across classifications.
-func drawMergedClassificationCells(pdf *fpdf.Fpdf, widths []float64, texts []string, h float64, bold bool) {
+// mergeSegments collapses adjacent columns with identical text into one
+// wide segment, mirroring how the source PDFs show a single shared activity
+// across some or all classifications without a separate "merged" flag (see
+// migrations/0001_init.sql).
+func mergeSegments(startX float64, widths []float64, texts []string) []segment {
 	n := len(widths)
 	for len(texts) < n {
 		texts = append(texts, "")
 	}
-	fontStyle := ""
-	if bold {
-		fontStyle = "B"
-	}
-	pdf.SetFont("Helvetica", fontStyle, 7)
-
+	var segs []segment
+	x := startX
 	i := 0
 	for i < n {
 		j := i
@@ -324,8 +205,286 @@ func drawMergedClassificationCells(pdf *fpdf.Fpdf, widths []float64, texts []str
 			j++
 			w += widths[j]
 		}
-		pdf.CellFormat(w, h, texts[i], "1", 0, "C", false, 0, "")
+		segs = append(segs, segment{x: x, w: w, text: texts[i]})
+		x += w
 		i = j + 1
+	}
+	return segs
+}
+
+// wrapLineCount returns how many lines text needs at the current font
+// within width w (minimum 1, so an empty cell still gets one line's worth
+// of height).
+func wrapLineCount(pdf *fpdf.Fpdf, text string, w float64) int {
+	if strings.TrimSpace(text) == "" {
+		return 1
+	}
+	lines := pdf.SplitText(text, w-2*cellPad)
+	if len(lines) < 1 {
+		return 1
+	}
+	return len(lines)
+}
+
+// subRow is one Activity or Instructor line within a parade night's half,
+// pre-measured so its drawn height matches whatever it actually needs.
+type subRow struct {
+	half     int
+	rowType  string // "activity" | "instructor"
+	segments []segment
+	height   float64
+}
+
+// dayLayout is a day's fully pre-measured geometry: every subRow's height
+// and the day's total, computed once and reused for both the page-fit check
+// (pageBreakGuard) and the actual drawing (drawDayRow) so they can never
+// disagree.
+type dayLayout struct {
+	total      float64
+	subRows    []subRow // parade days only
+	closure    *programme.Closure
+	closureLns int
+}
+
+func computeDayLayout(pdf *fpdf.Fpdf, cols columns, d programme.Day, closureByDate map[string]programme.Closure, startX float64) dayLayout {
+	if c, closed := closureByDate[d.Date]; closed {
+		pdf.SetFont("Helvetica", "B", 9)
+		lines := strings.Split(c.Message, "\n")
+		maxLines := 0
+		bodyW := cols.half + cols.label + sum(cols.classification) + cols.notes
+		for _, l := range lines {
+			maxLines += wrapLineCount(pdf, l, bodyW)
+		}
+		if maxLines < 1 {
+			maxLines = 1
+		}
+		h := float64(maxLines) * 5.0
+		return dayLayout{total: h, closure: &c, closureLns: maxLines}
+	}
+
+	pdf.SetFont("Helvetica", "", 6.5)
+	notesLines := wrapLineCount(pdf, d.Notes, cols.notes)
+
+	if !d.IsParade {
+		h := float64(notesLines) * lineH
+		if h < lineH {
+			h = lineH
+		}
+		return dayLayout{total: h}
+	}
+
+	classX := startX + cols.half + cols.label
+	var subRows []subRow
+	total := 0.0
+	for half := 1; half <= d.Halves; half++ {
+		for _, rt := range []string{"activity", "instructor"} {
+			row, _ := d.RowByHalfType(half, rt)
+			bold := rt == "activity"
+			style := ""
+			if bold {
+				style = "B"
+			}
+			pdf.SetFont("Helvetica", style, 6.5)
+			segs := mergeSegments(classX, cols.classification, row.Texts)
+			maxLines := 1
+			for _, s := range segs {
+				if n := wrapLineCount(pdf, s.text, s.w); n > maxLines {
+					maxLines = n
+				}
+			}
+			h := float64(maxLines) * lineH
+			subRows = append(subRows, subRow{half: half, rowType: rt, segments: segs, height: h})
+			total += h
+		}
+	}
+
+	notesHeight := float64(notesLines) * lineH
+	if notesHeight > total {
+		scale := notesHeight / total
+		for i := range subRows {
+			subRows[i].height *= scale
+		}
+		total = notesHeight
+	}
+	return dayLayout{total: total, subRows: subRows}
+}
+
+func drawWeek(pdf *fpdf.Fpdf, cols columns, _ *programme.Squadron, w week,
+	weekendByDate map[string][]string, closureByDate map[string]programme.Closure,
+	colourByKey map[string]programme.UniformColour) {
+
+	left, _, _, _ := pdf.GetMargins()
+	startY := pdf.GetY()
+
+	// Pre-measure every day in the week before drawing any of it: the
+	// Weekends column spans the whole week in one merged cell, so if its
+	// Sat/Sun note text needs more vertical room than the days' own content
+	// would otherwise get, every day in the week must grow to match —
+	// otherwise the note text overflows past the week block's bottom edge
+	// and collides with whatever comes next (this is exactly the bug a
+	// narrower portrait Weekends column made newly visible: the same text
+	// needs more wrapped lines in a narrower cell).
+	layouts := make([]dayLayout, len(w.days))
+	daysTotal := 0.0
+	for i, d := range w.days {
+		layouts[i] = computeDayLayout(pdf, cols, d, closureByDate, left+cols.date+cols.day)
+		daysTotal += layouts[i].total
+	}
+	if need := weekendRequiredHeight(pdf, cols, w.days, weekendByDate); need > daysTotal && daysTotal > 0 {
+		scale := need / daysTotal
+		for i := range layouts {
+			layouts[i].total *= scale
+			for j := range layouts[i].subRows {
+				layouts[i].subRows[j].height *= scale
+			}
+		}
+	}
+
+	for i, d := range w.days {
+		drawDayRow(pdf, cols, left, d, layouts[i], colourByKey)
+	}
+	endY := pdf.GetY()
+
+	drawWeekendCell(pdf, cols, startY, endY, w.days, weekendByDate)
+}
+
+// weekendRequiredHeight is how tall the Weekends column's merged cell needs
+// to be to fit its Saturday/Sunday note text, mirroring the font/line-height
+// drawWeekendCell actually draws with.
+func weekendRequiredHeight(pdf *fpdf.Fpdf, cols columns, days []programme.Day, weekendByDate map[string][]string) float64 {
+	const weekendLineH = 2.6
+	const headerAllowance = 3.0
+	pdf.SetFont("Helvetica", "", 5.5)
+
+	need := 0.0
+	for _, d := range days {
+		t, err := time.Parse("2006-01-02", d.Date)
+		if err != nil || (t.Weekday() != time.Saturday && t.Weekday() != time.Sunday) {
+			continue
+		}
+		w := cols.weekendSat
+		if t.Weekday() == time.Sunday {
+			w = cols.weekendSun
+		}
+		text := joinLines(weekendByDate[d.Date])
+		lines := wrapLineCount(pdf, text, w)
+		if h := headerAllowance + float64(lines)*weekendLineH; h > need {
+			need = h
+		}
+	}
+	return need
+}
+
+func drawDayRow(pdf *fpdf.Fpdf, cols columns, left float64, d programme.Day,
+	layout dayLayout, colourByKey map[string]programme.UniformColour) {
+
+	y := pdf.GetY()
+	h := layout.total
+
+	if layout.closure != nil {
+		drawClosureRow(pdf, cols, left, y, d, *layout.closure, h)
+		pdf.SetXY(left, y+h)
+		return
+	}
+
+	dateNum := dateDay(d.Date)
+	fillColour := colourByKey[d.UniformKey]
+	hasFill := d.UniformKey != ""
+
+	// Pass 1: borders/fill for the whole row, using the pre-measured height
+	// so the grid stays a clean rectangle regardless of which cell actually
+	// needed the extra lines.
+	pdf.SetFont("Helvetica", "B", 7)
+	if hasFill {
+		r, g, b := hexToRGB(fillColour.Hex)
+		pdf.SetFillColor(r, g, b)
+	}
+	pdf.SetXY(left, y)
+	pdf.CellFormat(cols.date, h, "", "1", 0, "C", hasFill, 0, "")
+	pdf.CellFormat(cols.day, h, "", "1", 0, "C", hasFill, 0, "")
+
+	notesX := left + cols.date + cols.day + cols.half + cols.label + sum(cols.classification)
+
+	if !d.IsParade {
+		blankW := cols.half + cols.label + sum(cols.classification)
+		pdf.CellFormat(blankW, h, "", "1", 0, "C", false, 0, "")
+		pdf.CellFormat(cols.notes, h, "", "1", 0, "L", false, 0, "")
+	} else {
+		halfColX := left + cols.date + cols.day
+		curY := y
+		for _, sr := range layout.subRows {
+			pdf.SetXY(halfColX, curY)
+			pdf.CellFormat(cols.half, sr.height, "", "1", 0, "C", false, 0, "")
+			pdf.CellFormat(cols.label, sr.height, "", "1", 0, "L", false, 0, "")
+			for _, s := range sr.segments {
+				pdf.SetXY(s.x, curY)
+				pdf.CellFormat(s.w, sr.height, "", "1", 0, "C", false, 0, "")
+			}
+			curY += sr.height
+		}
+		pdf.SetXY(notesX, y)
+		pdf.CellFormat(cols.notes, h, "", "1", 0, "L", false, 0, "")
+	}
+
+	// Pass 2: overlay text without a border, top-aligned within whatever
+	// height pass 1 gave the cell. Date/Day are centered vertically since
+	// they're always exactly one line regardless of the row's full height.
+	pdf.SetFont("Helvetica", "B", 7)
+	pdf.SetXY(left, y+(h-lineH)/2)
+	pdf.CellFormat(cols.date, lineH, dateNum, "0", 0, "C", false, 0, "")
+	pdf.CellFormat(cols.day, lineH, d.DayLabel, "0", 0, "C", false, 0, "")
+
+	if d.IsParade {
+		halfColX := left + cols.date + cols.day
+		curY := y
+		for _, sr := range layout.subRows {
+			labelText := "Activity"
+			if sr.rowType == "instructor" {
+				labelText = "Instructor"
+			}
+			style := ""
+			if sr.rowType == "activity" {
+				style = "B"
+			}
+			pdf.SetFont("Helvetica", "B", 6)
+			pdf.SetXY(halfColX, curY+(sr.height-lineH)/2)
+			halfText := ""
+			if sr.rowType == "activity" {
+				halfText = fmt.Sprintf("%d", sr.half)
+			}
+			pdf.CellFormat(cols.half, lineH, halfText, "0", 0, "C", false, 0, "")
+			pdf.CellFormat(cols.label, lineH, labelText, "0", 0, "L", false, 0, "")
+
+			pdf.SetFont("Helvetica", style, 6.5)
+			for _, s := range sr.segments {
+				pdf.SetXY(s.x, curY)
+				pdf.MultiCell(s.w, lineH, s.text, "0", "C", false)
+			}
+			curY += sr.height
+		}
+	}
+
+	pdf.SetFont("Helvetica", "", 6.5)
+	pdf.SetXY(notesX, y)
+	pdf.MultiCell(cols.notes, lineH, d.Notes, "0", "L", false)
+
+	pdf.SetXY(left, y+h)
+}
+
+func drawClosureRow(pdf *fpdf.Fpdf, cols columns, left, y float64, d programme.Day, c programme.Closure, h float64) {
+	pdf.SetFillColor(201, 201, 201)
+	pdf.SetFont("Helvetica", "B", 7)
+	pdf.SetXY(left, y)
+	pdf.CellFormat(cols.date, h, dateDay(d.Date), "1", 0, "C", true, 0, "")
+	pdf.CellFormat(cols.day, h, d.DayLabel, "1", 0, "C", true, 0, "")
+
+	bodyW := cols.half + cols.label + sum(cols.classification) + cols.notes
+	if d.Date == c.StartDate {
+		pdf.SetFont("Helvetica", "B", 9)
+		pdf.SetXY(left+cols.date+cols.day, y)
+		pdf.MultiCell(bodyW, h, c.Message, "1", "C", true)
+	} else {
+		pdf.CellFormat(bodyW, h, "", "1", 0, "C", true, 0, "")
 	}
 }
 
@@ -347,37 +506,50 @@ func drawWeekendCell(pdf *fpdf.Fpdf, cols columns, startY, endY float64, days []
 		}
 	}
 
-	pdf.SetFont("Helvetica", "B", 6)
+	// Border for the full merged cell first (CellFormat vertically centers
+	// single-line text within whatever height it's given — drawing "SAT" at
+	// the full week height h would center it in the MIDDLE of the cell,
+	// where a long wrapped note starting from the top would run straight
+	// into it on a short week). So: draw the outline at full height with no
+	// text, then the "SAT"/"SUN" label in its own small fixed-height slice
+	// at the top, then the note text below that — never spanning the full h.
+	const headerAllowance = 3.0
 	pdf.SetXY(x, startY)
-	pdf.CellFormat(cols.weekendSat, h, "SAT", "1", 0, "C", false, 0, "")
+	pdf.CellFormat(cols.weekendSat, h, "", "1", 0, "C", false, 0, "")
 	pdf.SetXY(x+cols.weekendSat, startY)
-	pdf.CellFormat(cols.weekendSun, h, "SUN", "1", 0, "C", false, 0, "")
+	pdf.CellFormat(cols.weekendSun, h, "", "1", 0, "C", false, 0, "")
 
-	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetFont("Helvetica", "B", 5.5)
+	pdf.SetXY(x, startY)
+	pdf.CellFormat(cols.weekendSat, headerAllowance, "SAT", "0", 0, "C", false, 0, "")
+	pdf.SetXY(x+cols.weekendSat, startY)
+	pdf.CellFormat(cols.weekendSun, headerAllowance, "SUN", "0", 0, "C", false, 0, "")
+
+	pdf.SetFont("Helvetica", "", 5.5)
 	if sat != nil {
-		pdf.SetXY(x, startY+4)
-		pdf.MultiCell(cols.weekendSat, 3.2, joinLines(weekendByDate[sat.Date]), "0", "C", false)
+		pdf.SetXY(x, startY+headerAllowance)
+		pdf.MultiCell(cols.weekendSat, 2.6, joinLines(weekendByDate[sat.Date]), "0", "C", false)
 	}
 	if sun != nil {
-		pdf.SetXY(x+cols.weekendSat, startY+4)
-		pdf.MultiCell(cols.weekendSun, 3.2, joinLines(weekendByDate[sun.Date]), "0", "C", false)
+		pdf.SetXY(x+cols.weekendSat, startY+headerAllowance)
+		pdf.MultiCell(cols.weekendSun, 2.6, joinLines(weekendByDate[sun.Date]), "0", "C", false)
 	}
 
 	pdf.SetXY(pdf.GetX(), endY)
 }
 
 func drawUniformKey(pdf *fpdf.Fpdf, sq *programme.Squadron, usableWidth float64) {
-	pdf.Ln(3)
-	pdf.SetFont("Helvetica", "B", 8)
+	pdf.Ln(2)
+	pdf.SetFont("Helvetica", "B", 7)
 	labelW := usableWidth * 0.14
-	pdf.CellFormat(labelW, 7, "Uniform Key", "1", 0, "C", false, 0, "")
+	pdf.CellFormat(labelW, 6, "Uniform Key", "1", 0, "C", false, 0, "")
 
 	swatchLabelW := (usableWidth - labelW) / float64(len(sq.UniformColours))
-	pdf.SetFont("Helvetica", "", 7)
+	pdf.SetFont("Helvetica", "", 6)
 	for _, uc := range sq.UniformColours {
 		r, g, b := hexToRGB(uc.Hex)
 		pdf.SetFillColor(r, g, b)
-		pdf.CellFormat(swatchLabelW, 7, uc.Label, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(swatchLabelW, 6, uc.Label, "1", 0, "C", true, 0, "")
 	}
 	pdf.Ln(-1)
 }
@@ -386,9 +558,9 @@ func drawRequirementsFooter(pdf *fpdf.Fpdf, cats []programme.ReqCategory, usable
 	if len(cats) == 0 {
 		return
 	}
-	pdf.Ln(4)
-	pdf.SetFont("Helvetica", "B", 9)
-	pdf.CellFormat(usableWidth, 6, "NOTES", "1", 1, "C", false, 0, "")
+	pdf.Ln(3)
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.CellFormat(usableWidth, 5, "NOTES", "1", 1, "C", false, 0, "")
 
 	w := usableWidth / float64(len(cats))
 	startY := pdf.GetY()
@@ -398,22 +570,22 @@ func drawRequirementsFooter(pdf *fpdf.Fpdf, cats []programme.ReqCategory, usable
 	for i, cat := range cats {
 		x := x0 + float64(i)*w
 		pdf.SetXY(x, startY)
-		pdf.SetFont("Helvetica", "B", 7)
+		pdf.SetFont("Helvetica", "B", 6)
 		title := cat.Name
 		if cat.DueLabel != "" {
 			title += "\n" + cat.DueLabel
 		}
-		pdf.MultiCell(w, 3.5, title, "1", "C", false)
+		pdf.MultiCell(w, 2.8, title, "1", "C", false)
 		y := pdf.GetY()
 
-		pdf.SetFont("Helvetica", "", 7)
+		pdf.SetFont("Helvetica", "", 6)
 		for _, e := range cat.Entries {
 			line := e.CadetName
 			if e.Note != "" {
 				line += " " + e.Note
 			}
 			pdf.SetXY(x, y)
-			pdf.MultiCell(w, 3.5, line, "0", "C", false)
+			pdf.MultiCell(w, 2.8, line, "0", "C", false)
 			y = pdf.GetY()
 		}
 		if y > maxY {
