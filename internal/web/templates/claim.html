@@ -1,0 +1,19 @@
+{{define "content"}}
+<h1>Claim your squadron</h1>
+<p class="muted">The first signup for a squadron creates it. Use your <code>snco.&lt;number&gt;@{{.ClaimDomain}}</code>
+  or <code>oc.&lt;number&gt;@{{.ClaimDomain}}</code> address — that's where the squadron number comes from.
+  Already have an account? <a href="/login">Log in</a>.</p>
+<form method="post" action="/claim" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label>Squadron display name
+    <input type="text" name="squadron_name" placeholder="2491 (Lyneham) Squadron">
+  </label>
+  <label>Email
+    <input type="email" name="email" required placeholder="snco.2491@{{.ClaimDomain}}">
+  </label>
+  <label>Password
+    <input type="password" name="password" required minlength="10">
+  </label>
+  <button type="submit">Claim squadron</button>
+</form>
+{{end}}

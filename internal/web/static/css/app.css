@@ -1,0 +1,192 @@
+/* Material Design 3 tokens — light (default) and dark (via prefers-color-scheme).
+   Hand-rolled CSS rather than a component library: this app is plain
+   server-rendered forms (see internal/web), so there's no JS framework to
+   hang Material Web Components off without adding one just for styling. */
+:root {
+  --md-primary: #415f91;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #d6e3ff;
+  --md-on-primary-container: #284777;
+  --md-surface: #f9f9ff;
+  --md-surface-dim: #d9d9e0;
+  --md-surface-container: #eeedf4;
+  --md-surface-container-high: #e3e2e9;
+  --md-on-surface: #1a1b20;
+  --md-on-surface-variant: #45464f;
+  --md-outline: #767680;
+  --md-outline-variant: #c6c6d0;
+  --md-error: #ba1a1a;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #410002;
+  --md-success-container: #c4eed0;
+  --md-on-success-container: #06210f;
+  --md-elevation-1: 0 1px 2px 0 rgba(0,0,0,0.15), 0 1px 3px 1px rgba(0,0,0,0.08);
+  --md-elevation-2: 0 1px 2px 0 rgba(0,0,0,0.18), 0 2px 6px 2px rgba(0,0,0,0.10);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-primary: #aac7ff;
+    --md-on-primary: #0a305f;
+    --md-primary-container: #284777;
+    --md-on-primary-container: #d6e3ff;
+    --md-surface: #111318;
+    --md-surface-dim: #111318;
+    --md-surface-container: #1d2024;
+    --md-surface-container-high: #272a2f;
+    --md-on-surface: #e2e2e9;
+    --md-on-surface-variant: #c6c6d0;
+    --md-outline: #90909a;
+    --md-outline-variant: #45464f;
+    --md-error: #ffb4ab;
+    --md-error-container: #93000a;
+    --md-on-error-container: #ffdad6;
+    --md-success-container: #0c3b1e;
+    --md-on-success-container: #c4eed0;
+    --md-elevation-1: 0 1px 3px 0 rgba(0,0,0,0.5), 0 1px 4px 1px rgba(0,0,0,0.3);
+    --md-elevation-2: 0 1px 3px 0 rgba(0,0,0,0.6), 0 2px 8px 2px rgba(0,0,0,0.35);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Roboto", system-ui, sans-serif;
+  margin: 0;
+  background: var(--md-surface-dim);
+  color: var(--md-on-surface);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+  box-shadow: var(--md-elevation-1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar .brand {
+  color: var(--md-primary);
+  font-weight: 600;
+  font-size: 1.15rem;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.topbar nav { display: flex; align-items: center; gap: 16px; }
+.topbar a { color: var(--md-on-surface-variant); text-decoration: none; }
+.topbar a:hover { color: var(--md-primary); }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+
+h1 { margin-top: 0; font-weight: 500; color: var(--md-on-surface); }
+h2 { font-weight: 500; font-size: 1.1rem; color: var(--md-on-surface); }
+h3 { font-weight: 500; font-size: 0.95rem; }
+
+.card {
+  background: var(--md-surface-container);
+  border-radius: 16px;
+  box-shadow: var(--md-elevation-1);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.muted { color: var(--md-on-surface-variant); font-size: 0.9em; }
+
+.flash {
+  background: var(--md-success-container);
+  color: var(--md-on-success-container);
+  padding: 10px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.error {
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+  padding: 10px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+label { display: block; margin-bottom: 14px; font-size: 0.85em; color: var(--md-on-surface-variant); }
+
+input[type=text], input[type=email], input[type=password], input[type=number],
+input[type=date], select, textarea {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 12px;
+  margin-top: 5px;
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline);
+  border-radius: 8px;
+  color: var(--md-on-surface);
+  font-size: 0.95em;
+  font-family: inherit;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--md-primary);
+  outline-offset: -1px;
+  border-color: var(--md-primary);
+}
+
+.inline-form { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.inline-form label { margin-bottom: 0; }
+form.inline { display: inline; }
+
+button {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  border: none;
+  padding: 10px 24px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  box-shadow: var(--md-elevation-1);
+}
+button:hover { box-shadow: var(--md-elevation-2); filter: brightness(1.05); }
+button:active { filter: brightness(0.95); }
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--md-error);
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.85em;
+  box-shadow: none;
+  font-weight: 400;
+}
+.link-button:hover { box-shadow: none; filter: none; opacity: 0.8; }
+
+table.list, table.grid { border-collapse: collapse; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 8px; overflow: hidden; }
+table.list th, table.list td, table.grid th, table.grid td {
+  border: 1px solid var(--md-outline-variant);
+  padding: 7px 9px;
+  font-size: 0.85em;
+  text-align: left;
+  vertical-align: top;
+}
+table.list th, table.grid th { background: var(--md-surface-container-high); font-weight: 500; }
+table.grid input[type=text], table.grid select { max-width: none; font-size: 0.85em; padding: 4px 6px; }
+table.grid textarea { max-width: none; font-size: 0.85em; width: 160px; }
+
+.row-label { font-weight: 600; white-space: nowrap; color: var(--md-on-surface-variant); }
+.checkbox-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.checkbox-row .checkbox { display: inline-flex; align-items: center; gap: 5px; font-size: 0.9em; color: var(--md-on-surface); }
+
+code {
+  background: var(--md-surface-container-high);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+a { color: var(--md-primary); }

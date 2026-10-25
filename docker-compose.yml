@@ -1,0 +1,30 @@
+# Local dev only. test/prod run as a service in the dadock stack (a separate
+# repo) — see TODO.md "Three real environments" and README.md "Deployment".
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SESSION_KEY: dev-only-session-key-change-me-32bytes-min
+      CLAIM_DOMAIN: rafac.mod.gov.uk
+      COOKIE_SECURE: "false" # plain http on localhost
+      BASE_URL: http://localhost:8080
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      MAIL_FROM: no-reply@rafactools-planner.local
+    volumes:
+      - app-data:/data
+    depends_on:
+      - mailpit
+
+  # Catches outgoing mail locally instead of sending it — open
+  # http://localhost:8025 to read the verification/invite emails.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP
+
+volumes:
+  app-data:

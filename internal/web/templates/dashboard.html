@@ -1,0 +1,44 @@
+{{define "content"}}
+<h1>{{.Squadron.Name}}</h1>
+
+<section class="card">
+  <h2>Training programmes</h2>
+  {{if .Programmes}}
+  <table class="list">
+    <thead><tr><th>Month</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {{range .Programmes}}
+      <tr>
+        <td>{{.MonthName}} {{.Year}}</td>
+        <td>{{.Status}}</td>
+        <td>
+          <a href="/programmes/{{.ID}}">Edit</a>
+          · <a href="/programmes/{{.ID}}/pdf">PDF</a>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No programmes yet — create the first one below.</p>
+  {{end}}
+</section>
+
+{{if .CanEdit}}
+<section class="card">
+  <h2>New month</h2>
+  <form method="post" action="/programmes" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Month
+      <select name="month">
+        {{range .MonthOptions}}<option value="{{.Value}}" {{if .Selected}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </label>
+    <label>Year
+      <input type="number" name="year" value="{{.DefaultYear}}" min="2000" max="2100">
+    </label>
+    <button type="submit">Create</button>
+  </form>
+</section>
+{{end}}
+{{end}}

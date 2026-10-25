@@ -1,0 +1,78 @@
+{{define "content"}}
+<h1>Squadron settings</h1>
+
+<section class="card">
+  <h2>Details</h2>
+  <form method="post" action="/squadron" class="stacked-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Name
+      <input type="text" name="name" value="{{.Squadron.Name}}">
+    </label>
+    <label>Subtitle
+      <input type="text" name="subtitle" value="{{.Squadron.Subtitle}}">
+    </label>
+    <label>Protective marking (blank to disable)
+      <input type="text" name="protective_marking" value="{{.Squadron.ProtectiveMarking}}" placeholder="OFFICIAL - Public">
+    </label>
+    <label>Classifications, in progression order, one per line
+      <textarea name="classifications" rows="5">{{.ClassificationsText}}</textarea>
+    </label>
+    <label>Parade weekdays
+      <span class="checkbox-row">
+        {{range .WeekdayOptions}}
+          <label class="checkbox"><input type="checkbox" name="parade_weekdays" value="{{.Value}}" {{if .Checked}}checked{{end}}> {{.Label}}</label>
+        {{end}}
+      </span>
+    </label>
+    <button type="submit">Save</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Members</h2>
+  <table class="list">
+    <thead><tr><th>Email</th><th>Role</th></tr></thead>
+    <tbody>
+    {{range .Members}}
+      <tr><td>{{.Email}}</td><td>{{.Role}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Pending invites</h2>
+  {{if .Invites}}
+  <table class="list">
+    <thead><tr><th>Email</th><th>Role</th><th>Expires</th><th></th></tr></thead>
+    <tbody>
+    {{range .Invites}}
+      <tr>
+        <td>{{.Email}}</td><td>{{.Role}}</td><td>{{.ExpiresAt}}</td>
+        <td>
+          <form method="post" action="/squadron/invites/{{.Token}}/revoke" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button">Revoke</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">None pending.</p>{{end}}
+
+  <h3>Invite someone</h3>
+  <form method="post" action="/squadron/invites" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Email <input type="email" name="email" required></label>
+    <label>Role
+      <select name="role">
+        <option value="editor">Editor</option>
+        <option value="viewer">Viewer</option>
+        <option value="owner">Owner</option>
+      </select>
+    </label>
+    <button type="submit">Send invite</button>
+  </form>
+</section>
+{{end}}
