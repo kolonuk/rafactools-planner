@@ -5,14 +5,17 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
 	Port         string
 	DBPath       string
 	BaseURL      string // public URL used in verification/invite emails, e.g. https://cadets.example.org
+	BasePath     string // path component of BaseURL (e.g. "/rafactools"), derived — see Load
 	SessionKey   string // HMAC secret for CSRF tokens; also seeds cookie signing
 	CookieSecure bool
 	ClaimDomain  string // email domain allowed to claim a squadron, e.g. "rafac.mod.gov.uk"
@@ -41,6 +44,19 @@ func Load() (Config, error) {
 	if c.SessionKey == "" {
 		return c, fmt.Errorf("SESSION_KEY must be set (random 32+ byte string used to sign CSRF tokens)")
 	}
+
+	// When this app is reverse-proxied under a path prefix (e.g. dadock's
+	// Traefik PathPrefix(`/rafactools`) + stripprefix — the app itself always
+	// sees unprefixed paths, but any URL IT generates for the browser to
+	// re-request (a link, a form action, a redirect) must include the prefix
+	// or Traefik routes it to the wrong service. BASE_URL is already the one
+	// place that prefix has to be configured correctly (for email links), so
+	// BasePath is derived from it instead of needing its own env var.
+	parsedBase, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return c, fmt.Errorf("BASE_URL: %w", err)
+	}
+	c.BasePath = strings.TrimSuffix(parsedBase.Path, "/")
 
 	port := getenv("SMTP_PORT", "587")
 	p, err := strconv.Atoi(port)

@@ -6,10 +6,12 @@ package web
 import (
 	"context"
 	"embed"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/config"
@@ -45,12 +47,29 @@ var pageNames = []string{
 	"dashboard", "squadron_settings", "programme_edit",
 }
 
-func loadPages() map[string]*template.Template {
+// urlFunc builds the "url" template function: it joins basePath with the
+// stringified concatenation of its arguments, e.g. {{url "/programmes/" .ID}}.
+// Every internal href/form-action in the templates must go through this (or
+// the equivalent server.url helper for redirects) instead of a bare "/path"
+// literal — see the comment on config.Config.BasePath for why.
+func urlFunc(basePath string) func(...any) string {
+	return func(parts ...any) string {
+		var b strings.Builder
+		b.WriteString(basePath)
+		for _, p := range parts {
+			fmt.Fprint(&b, p)
+		}
+		return b.String()
+	}
+}
+
+func loadPages(basePath string) map[string]*template.Template {
+	funcs := template.FuncMap{"url": urlFunc(basePath)}
 	pages := make(map[string]*template.Template, len(pageNames)+1)
 	for _, name := range pageNames {
-		pages[name] = template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/"+name+".html"))
+		pages[name] = template.Must(template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+name+".html"))
 	}
-	pages["error"] = template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/error.html"))
+	pages["error"] = template.Must(template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/error.html"))
 	return pages
 }
 
@@ -63,7 +82,7 @@ const (
 )
 
 func NewRouter(d *Deps) http.Handler {
-	s := &server{Deps: d, pages: loadPages()}
+	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath)}
 
 	mux := http.NewServeMux()
 
@@ -142,6 +161,13 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, page, title stri
 func (s *server) renderError(w http.ResponseWriter, r *http.Request, status int, title, message string) {
 	w.WriteHeader(status)
 	s.render(w, r, "error", title, map[string]any{"Error": message})
+}
+
+// url prefixes an internal path with BasePath for use in redirects — the Go
+// equivalent of the "url" template func (urlFunc). Every http.Redirect
+// target in this package must go through this; see config.Config.BasePath.
+func (s *server) url(path string) string {
+	return s.Cfg.BasePath + path
 }
 
 // csrfFor returns the token to embed in a page's forms: HMAC-derived from

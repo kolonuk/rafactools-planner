@@ -1,18 +1,28 @@
 ---
 name: pdf-fidelity
-description: Use when changing internal/pdfgen, or when asked to improve/fix the exported PDF's layout, to compare the generated output against the real squadron examples rather than guessing from the code alone.
+description: Use when changing internal/pdfgen, or when asked to improve/fix the exported PDF's layout, to compare the generated output against the example PDFs rather than guessing from the code alone.
 ---
 
 # Checking PDF layout fidelity
 
 `internal/pdfgen` is a best-effort recreation of a real paper format, not a
-spec implemented from scratch. `examples/pdfs/` holds the real squadron
-programmes it was built from (ten real months plus a couple of blank
-templates, spanning two template generations — see the difference in
-classification columns below). Read some of them (the `Read` tool extracts
-both text and a rendered image from a PDF) before changing layout code, and
-re-render after, to compare against them directly rather than trusting the
-code to be right.
+spec implemented from scratch. The real squadron programmes it was modelled
+on are **not** in this repo or its git history — they carried real cadets'
+and staff's names, so they were deliberately kept out (see `git log` for the
+history-rewrite commit if you need the full story). `examples/pdfs/` instead
+holds synthetic reconstructions with fabricated names/squadron/dates but the
+same layout patterns (merged classification cells, closures, weekend notes,
+the footer requirement tracker, and both the 4- and 5-classification
+template variants) — generate/regenerate them with `go run ./cmd/genexamples`
+(see `cmd/genexamples/main.go` to add a new pattern). Read some of them (the
+`Read` tool extracts both text and a rendered image from a PDF) before
+changing layout code, and re-render after, to compare against them directly
+rather than trusting the code to be right.
+
+**If you're ever handed a real example PDF again** (the user uploading one to
+discuss a layout bug, say): look at it, describe what you learn in prose or
+reflect it in a *synthetic* `cmd/genexamples` fixture, but don't commit the
+real file itself into `examples/pdfs/` or anywhere else in this repo.
 
 ## How to render and inspect a generated PDF
 
