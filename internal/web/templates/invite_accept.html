@@ -1,0 +1,11 @@
+{{define "content"}}
+<h1>Join {{.SquadronName}}</h1>
+<p class="muted">Invited as <strong>{{.Email}}</strong> ({{.Role}}). Set a password to finish.</p>
+<form method="post" action="/invite/{{.Token}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label>Password
+    <input type="password" name="password" required minlength="10">
+  </label>
+  <button type="submit">Create account</button>
+</form>
+{{end}}
