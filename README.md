@@ -32,9 +32,13 @@ a spreadsheet one person maintains.
 - **Email**: SMTP (`internal/mail`) for the claim-verification and invite
   emails. With no SMTP configured, links are logged to stdout instead — fine
   for dev, never acceptable for test/prod (see TODO.md).
-- **PDF export**: `internal/pdfgen`, using `github.com/go-pdf/fpdf`. Built
-  from, and best effort-matched against, the real examples in
-  `examples/pdfs/` — see `.claude/skills/pdf-fidelity` before touching it.
+- **PDF export**: `internal/pdfgen`, using `github.com/go-pdf/fpdf`. Modelled
+  on a real squadron's paper programme, but matched against the *synthetic*
+  examples in `examples/pdfs/` (fabricated data, same layout patterns —
+  regenerate with `go run ./cmd/genexamples`; the real examples this was
+  built from are deliberately not in this repo or its history, since they
+  carried real cadets'/staff's names) — see `.claude/skills/pdf-fidelity`
+  before touching it.
 - **Frontend**: server-rendered HTML forms (`internal/web/templates`), no JS
   framework. Styled with a hand-rolled Material Design 3 theme
   (`internal/web/static/css/app.css`) that follows the system light/dark
@@ -73,6 +77,7 @@ it in GitHub once the repo exists there.
 
 ```
 cmd/server/          entrypoint
+cmd/genexamples/     regenerates examples/pdfs/ from fabricated data
 internal/
   auth/               claim/invite/login/session/CSRF
   config/             env var loading
@@ -82,7 +87,7 @@ internal/
   pdfgen/             PDF rendering
   web/                routes, handlers, templates, static assets
 migrations/           (embedded under internal/db/migrations)
-examples/pdfs/        real example programmes this was built from
+examples/pdfs/        synthetic example programmes (see cmd/genexamples)
 .claude/skills/       lint and pdf-fidelity skills for working in this repo
 ```
 

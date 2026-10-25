@@ -4,8 +4,9 @@
 // Saturday/Sunday Weekends column, a uniform-key legend, and a footer
 // requirement tracker.
 //
-// This is a best-effort v1 layout built from ten real example months, not a
-// pixel-perfect clone — see TODO.md "PDF layout fidelity" for known gaps
+// This is a best-effort v1 layout modelled on a real squadron's paper
+// programme, not a pixel-perfect clone — see TODO.md "PDF layout fidelity"
+// for known gaps
 // (multi-week closure banners are drawn per-date rather than as one merged
 // rowspan, and long-running weekend events aren't visually spanned across
 // weeks).
@@ -181,8 +182,12 @@ func drawWeek(pdf *fpdf.Fpdf, cols columns, sq *programme.Squadron, w week,
 	weekendByDate map[string][]string, closureByDate map[string]programme.Closure,
 	colourByKey map[string]programme.UniformColour) {
 
+	// Must run before capturing startY: if this week doesn't fit and
+	// AddPage() fires, Y resets to the new page's top margin — capturing
+	// startY first would leave it stuck at the old page's (now meaningless)
+	// Y, producing a negative-height weekend cell drawn in the wrong place.
+	pageBreakGuard(pdf, cols, sq.Classifications, w)
 	startY := pdf.GetY()
-	pageBreakGuard(pdf, w)
 
 	for _, d := range w.days {
 		drawDayRow(pdf, cols, sq, d, closureByDate, colourByKey)
@@ -192,9 +197,11 @@ func drawWeek(pdf *fpdf.Fpdf, cols columns, sq *programme.Squadron, w week,
 	drawWeekendCell(pdf, cols, startY, endY, w.days, weekendByDate)
 }
 
-// pageBreakGuard forces a new page (repeating the header) if this week won't
-// fit in the remaining space, so a week is never split across pages.
-func pageBreakGuard(pdf *fpdf.Fpdf, w week) {
+// pageBreakGuard starts a new page — and re-draws the grid header on it, so
+// a page break never leaves a page of rows with no column headings — if this
+// week won't fit in the remaining space, so a week is never split mid-row
+// across pages.
+func pageBreakGuard(pdf *fpdf.Fpdf, cols columns, classifications []string, w week) {
 	total := 0.0
 	for _, d := range w.days {
 		total += rowHeightForDay(d)
@@ -203,6 +210,7 @@ func pageBreakGuard(pdf *fpdf.Fpdf, w week) {
 	_, _, _, bottom := pdf.GetMargins()
 	if pdf.GetY()+total > pageH-bottom {
 		pdf.AddPage()
+		drawGridHeader(pdf, cols, classifications)
 	}
 }
 
