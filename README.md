@@ -66,8 +66,14 @@ Trivy filesystem scan, CodeQL). Every push to any of them also runs
 **Only `main`** additionally dispatches `kolonuk/dadock`'s `"1. Deploy docker
 stack"` workflow (via the `DADOCK_DEPLOY_TOKEN` repo secret — same pattern as
 `sbcwaste.top`/`johnwood.dev`) so the running dadock stack picks up the new
-image. There's no separate `dev`/`test` *host* yet — see TODO.md "Three real
-environments" for what that actually needs.
+image. The dadock side is wired (`rafactools` service, homepage dashboard
+entry, `RAFACTOOLS_SESSION_KEY` secret slot — see that repo's
+`docker-compose.yml`/`config/homepage/services.yaml`/`config/env.template`),
+serving at `http://<dadock HOST_IP>/rafactools/` (LAN-only, no TLS — no
+domain yet). **Still needed before a push to `main` actually reaches it**:
+setting `DADOCK_DEPLOY_TOKEN` here and `RAFACTOOLS_SESSION_KEY` on the
+dadock repo — see TODO.md. There's no separate `dev`/`test` *host* yet — see
+TODO.md "Three real environments" for what that needs.
 
 GitHub branch protection (require the CI workflow to pass before merging to
 `test`/`main`) is **not** configured by this repo — that's a repo setting, do

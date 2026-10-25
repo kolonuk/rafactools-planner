@@ -9,43 +9,62 @@
   stdout (`internal/mail`). Fine for dev; pick a real relay (a transactional
   provider, or an existing dadock-reachable SMTP relay if one exists) for
   test/prod and set `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`/`MAIL_FROM` there.
-- [ ] **`SESSION_KEY` as a real secret.** Must be a random 32+ byte value set
-  per environment (dev/test/prod each need their own), not committed
-  anywhere. Rotating it logs every session out.
+- [x] **`SESSION_KEY` as a real secret (prod).** `dadock/config/env.template`
+  has `RAFACTOOLS_SESSION_KEY`; **pending**: the actual secret value needs
+  setting — `gh secret set RAFACTOOLS_SESSION_KEY --repo kolonuk/dadock --body "$(openssl rand -hex 32)"`
+  (this needed a human to run — it writes a secret, which the agent that did
+  the rest of this wiring was blocked from doing itself).
 - [ ] **GitHub branch protection.** Require `CI` to pass before merging into
   `test`/`main`. Not something this repo's files can configure — a GitHub
   repo setting once the repo exists there.
-- [ ] **`DADOCK_DEPLOY_TOKEN` secret.** Set on this repo (fine-grained PAT,
-  `Actions:write` on `kolonuk/dadock` only) so pushes to `main` actually
-  trigger a redeploy. Without it, `deploy.yml` pushes the image to GHCR and
-  stops, printing a reminder.
+- [ ] **`DADOCK_DEPLOY_TOKEN` secret — still needed.** A fine-grained PAT,
+  `Actions:write` on `kolonuk/dadock` only, set as a secret **on this repo**
+  (`gh secret set DADOCK_DEPLOY_TOKEN --repo kolonuk/rafactools-planner`).
+  dadock's side (compose service, homepage entry, `RAFACTOOLS_SESSION_KEY`
+  slot) is already wired and pushed — this token is the one missing piece
+  stopping a push to `main` from actually reaching the running stack. Create
+  it at github.com/settings/personal-access-tokens/new (fine-grained,
+  repository access limited to `kolonuk/dadock`, permission `Actions: write`),
+  or reuse the same PAT already used as `sbcwaste.top`'s/`johnwood.dev`'s
+  `DADOCK_DEPLOY_TOKEN` if you still have that value. Until this is set,
+  `deploy.yml` pushes the image to GHCR and stops, printing a reminder.
+- [ ] **Trigger the first real deploy.** Once the token above is set, either
+  push to `main` again or `gh workflow run "1. Deploy docker stack" --repo
+  kolonuk/dadock` to pick up the service for the first time (it needs
+  `docker compose up -d` to actually run — the compose/homepage/env.template
+  changes landing in git don't do that by themselves).
 
 ## Three real environments
 
-Right now there's one real deployment target (prod, on dadock) and `dev`/
-`test` pushes only get as far as a tagged image in GHCR — nothing pulls and
-runs them. To make `dev`/`test` real:
+One real deployment target exists now: prod, wired into dadock (see
+`dadock`'s `docker-compose.yml` `rafactools` service, `config/homepage/
+services.yaml`, `config/env.template`, `scripts/bootstrap.sh` — all pushed).
+It's LAN-only (`http://<dadock-host>/rafactools/`, no TLS, no public domain)
+since there's no domain yet — see below. `dev`/`test` pushes still only get
+as far as a tagged image in GHCR (`dev-<sha>`/`test-<sha>`) — nothing pulls
+and runs them. To make those real too:
 
-- Decide where they run. Options: separate containers in the same dadock
-  compose stack on different ports/subdomains (cheapest, matches how dadock
-  already runs things), or genuinely separate hosts.
-- Add the corresponding service block + Pangolin blueprint entry in the
-  `dadock` repo (**a separate, shared-infra repo — don't push there without
-  checking first**, even though its own convention is "always push, no PRs").
+- Decide where they run. Options: more containers in the same dadock compose
+  stack on different paths (cheapest, matches the pattern just added for
+  prod — copy the `rafactools` service, rename, pick a different
+  `PathPrefix`), or genuinely separate hosts.
 - Add a second/third `trigger-dadock-deploy`-style job in `deploy.yml` for
   the `dev`/`test` branches once those targets exist.
-- Each environment needs its own `SESSION_KEY`, `SQLITE` data volume, and
-  (once it exists) its own subdomain — see "No domain yet" below.
+- Each one needs its own `SESSION_KEY` secret and its own data directory —
+  don't point two environments at the same SQLite file.
 
 ## No domain yet
 
-`BASE_URL` currently points at `http://localhost:8080` wherever it's deployed
-— verification/invite links will be wrong on any host other than the
-operator's own machine until this is set to a real reachable URL per
-environment. Once a domain exists: set `BASE_URL`, put it behind TLS (dadock's
-existing Pangolin/Caddy setup presumably handles this — see
-`dadock-vps-invariants` conventions), and set `COOKIE_SECURE=true` (already
-the default — just don't override it to false outside dev).
+Local dev (`docker-compose.yml` at this repo's root) and the CI smoke test
+both use `http://localhost:8080`, which is fine since nothing else needs to
+reach them. **Prod's `BASE_URL`** is `http://<dadock HOST_IP>/rafactools`
+(set in dadock's compose) — real but LAN-only and unencrypted, since there's
+no domain yet. Once a domain exists: get it behind TLS (dadock's Traefik
+already serves everything over `websecure` with a self-signed cert as a
+fallback — a real domain + Pangolin tunnel replaces that), update
+`BASE_URL` to the real `https://` address in dadock's compose, and flip
+`COOKIE_SECURE` to `"true"` there (it's `"false"` right now specifically
+because the LAN path is plain HTTP).
 
 ## PDF layout fidelity
 
@@ -62,9 +81,6 @@ yet, and row height doesn't grow for long wrapped Notes text. Re-check against
 - [ ] `AddHalf` only grows a parade night from 1 half to 2 — there's no UI to
   shrink it back, or to cancel a parade night that already has rows without
   leaving orphaned empty rows in the DB (harmless, just untidy).
-- [ ] No rate limiting on `/login` or `/claim` — fine at current scale
-  (a handful of squadrons), worth adding (even a simple in-memory per-IP
-  limiter) before this is internet-reachable at any real scale.
 - [ ] No squadron crest/logo image in the PDF header — `pdfgen.go` renders
   text only. The real programmes have the RAFAC roundel + squadron crest;
   adding per-squadron logo upload + embedding is follow-up work.
@@ -76,11 +92,11 @@ yet, and row height doesn't grow for long wrapped Notes text. Re-check against
   delete/revoke buttons, colour-contrast check on the uniform-key swatches)
   beyond what the Material color tokens give for free.
 
-## Where to drop new example PDFs
+## Example PDFs
 
-`examples/pdfs/` — already has ten real months plus two blank templates
-across both the 4-classification and 5-classification ("Master" added)
-template generations. More examples (especially ones showing a layout
-variant not yet covered — different closure shapes, more than 2 halves,
-different weekend-note spanning) are useful for `.claude/skills/pdf-fidelity`
-work.
+`examples/pdfs/` holds synthetic PDFs generated by `cmd/genexamples` —
+fabricated squadron/cadet/staff data, real layout patterns. If you're ever
+handed a *real* squadron programme again to diagnose a layout issue, don't
+commit it — see `.claude/skills/pdf-fidelity` for what to do instead (the
+real examples this was originally built from carried real cadets'/staff's
+names and were deliberately scrubbed from this repo and its git history).
