@@ -1,5 +1,5 @@
 {{define "content"}}
 <h1>Check your email</h1>
-<p>We've sent a confirmation link to <strong>{{.Email}}</strong>. Click it to activate your account, then <a href="/login">log in</a>.</p>
+<p>We've sent a confirmation link to <strong>{{.Email}}</strong>. Click it to activate your account, then <a href="{{url "/login"}}">log in</a>.</p>
 <p class="muted">Link expires in 24 hours. Didn't get it? Check spam, or ask your squadron's SMTP settings were configured — see TODO.md.</p>
 {{end}}

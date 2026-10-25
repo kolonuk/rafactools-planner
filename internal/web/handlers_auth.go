@@ -34,7 +34,7 @@ func (s *server) claimSubmit(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Claim your squadron", "Account created, but the confirmation email failed to send. Contact an admin.")
 		return
 	}
-	http.Redirect(w, r, "/check-email?email="+email, http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/check-email?email="+email), http.StatusSeeOther)
 }
 
 func (s *server) checkEmail(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +47,7 @@ func (s *server) verify(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadRequest, "Verify email", "That link is invalid or has expired.")
 		return
 	}
-	http.Redirect(w, r, "/login?verified=1", http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/login?verified=1"), http.StatusSeeOther)
 }
 
 func (s *server) loginForm(w http.ResponseWriter, r *http.Request) {
@@ -79,17 +79,17 @@ func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setSessionCookie(w, token, expiresAt)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
 }
 
 func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 	if !s.checkCSRF(r) {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
 		return
 	}
 	_ = s.Auth.DeleteSession(s.sessionToken(r))
 	s.setSessionCookie(w, "", time.Time{})
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/login"), http.StatusSeeOther)
 }
 
 func (s *server) inviteForm(w http.ResponseWriter, r *http.Request) {
@@ -126,5 +126,5 @@ func (s *server) inviteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setSessionCookie(w, sessToken, expiresAt)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
 }

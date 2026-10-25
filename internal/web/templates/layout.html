@@ -6,19 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>{{.Title}} · RAFACTools Planner</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css">
+  <!-- No Google Fonts / other third-party requests: every page load would
+       otherwise leak the visitor's IP to a third party on a tool used by
+       MOD-adjacent staff. The CSS font stack below uses each OS's own
+       Roboto/Segoe UI/San Francisco instead — see internal/web/static/css/app.css. -->
+  <link rel="stylesheet" href="{{url "/static/css/app.css"}}">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/">RAFACTools Planner</a>
+    <a class="brand" href="{{url "/"}}">RAFACTools Planner</a>
     {{if .User}}
       <nav>
         <span class="muted">{{.User.Email}} ({{.User.Role}})</span>
-        {{if eq .User.Role "owner"}}<a href="/squadron">Squadron settings</a>{{end}}
-        <form method="post" action="/logout" class="inline">
+        {{if eq .User.Role "owner"}}<a href="{{url "/squadron"}}">Squadron settings</a>{{end}}
+        <form method="post" action="{{url "/logout"}}" class="inline">
           <input type="hidden" name="csrf" value="{{.CSRF}}">
           <button type="submit" class="link-button">Log out</button>
         </form>

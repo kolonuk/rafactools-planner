@@ -1,6 +1,7 @@
 package web
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -81,7 +82,7 @@ func (s *server) programmeCreate(w http.ResponseWriter, r *http.Request) {
 		s.renderDashboard(w, r, err.Error())
 		return
 	}
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(p.ID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(p.ID, 10)), http.StatusSeeOther)
 }
 
 // --- Programme edit --------------------------------------------------------
@@ -216,10 +217,11 @@ func (s *server) programmeSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.Store.SaveDaysAndRows(u.SquadronID, id, days); err != nil {
-		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not save: "+err.Error())
+		log.Printf("save programme %d: %v", id, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not save — try again, and if it keeps happening ask an admin to check the server logs.")
 		return
 	}
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) dayAddHalf(w http.ResponseWriter, r *http.Request) {
@@ -243,7 +245,7 @@ func (s *server) dayAddHalf(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add half.")
 		return
 	}
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(progID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(progID, 10)), http.StatusSeeOther)
 }
 
 func (s *server) programmePDF(w http.ResponseWriter, r *http.Request) {
@@ -253,7 +255,8 @@ func (s *server) programmePDF(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := pdfgen.Render(sq, fp)
 	if err != nil {
-		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not render PDF: "+err.Error())
+		log.Printf("render pdf for programme %d: %v", fp.ID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not render the PDF — try again, and if it keeps happening ask an admin to check the server logs.")
 		return
 	}
 	filename := monthNames[fp.Month] + "_" + strconv.Itoa(fp.Year) + "_Programme.pdf"
@@ -283,7 +286,7 @@ func (s *server) closureAdd(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add closure.")
 		return
 	}
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) closureDelete(w http.ResponseWriter, r *http.Request) {
@@ -299,7 +302,7 @@ func (s *server) closureDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.DeleteClosure(id, closureID)
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) weekendNoteAdd(w http.ResponseWriter, r *http.Request) {
@@ -321,7 +324,7 @@ func (s *server) weekendNoteAdd(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add note.")
 		return
 	}
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) weekendNoteDelete(w http.ResponseWriter, r *http.Request) {
@@ -337,7 +340,7 @@ func (s *server) weekendNoteDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.DeleteWeekendNote(id, noteID)
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) reqCategoryAdd(w http.ResponseWriter, r *http.Request) {
@@ -359,7 +362,7 @@ func (s *server) reqCategoryAdd(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add category.")
 		return
 	}
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) reqCategoryDelete(w http.ResponseWriter, r *http.Request) {
@@ -375,7 +378,7 @@ func (s *server) reqCategoryDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.DeleteRequirementCategory(id, catID)
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) reqEntryAdd(w http.ResponseWriter, r *http.Request) {
@@ -394,7 +397,7 @@ func (s *server) reqEntryAdd(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add entry.")
 		return
 	}
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
 func (s *server) reqEntryDelete(w http.ResponseWriter, r *http.Request) {
@@ -411,5 +414,5 @@ func (s *server) reqEntryDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.DeleteRequirementEntry(catID, entryID)
-	http.Redirect(w, r, "/programmes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }

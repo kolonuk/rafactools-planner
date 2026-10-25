@@ -1,9 +1,9 @@
 {{define "content"}}
 <h1>{{.MonthName}} {{.Year}}</h1>
-<p><a href="/">&larr; Dashboard</a> · <a href="/programmes/{{.ProgrammeID}}/pdf">Export PDF</a></p>
+<p><a href="{{url "/"}}">&larr; Dashboard</a> · <a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a></p>
 
 {{if .CanEdit}}
-<form method="post" action="/programmes/{{.ProgrammeID}}" class="grid-form">
+<form method="post" action="{{url "/programmes/" .ProgrammeID}}" class="grid-form">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
   <table class="grid">
     <thead>
@@ -43,7 +43,7 @@
         <tr>
           <td></td><td></td><td></td><td></td>
           <td colspan="{{$.LabelClassColsCount}}">
-            <form method="post" action="/programmes/{{$.ProgrammeID}}/days/{{.ID}}/add-half" class="inline">
+            <form method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/add-half"}}" class="inline">
               <input type="hidden" name="csrf" value="{{$.CSRF}}">
               <button type="submit" class="link-button">+ Add a second half to this night</button>
             </form>
@@ -83,7 +83,7 @@
         <td>{{.StartDate}}</td><td>{{.EndDate}}</td><td>{{.Message}}</td>
         <td>
           {{if $.CanEdit}}
-          <form method="post" action="/programmes/{{$.ProgrammeID}}/closures/{{.ID}}/delete" class="inline">
+          <form method="post" action="{{url "/programmes/" $.ProgrammeID "/closures/" .ID "/delete"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
             <button type="submit" class="link-button">Delete</button>
           </form>
@@ -94,7 +94,7 @@
     </tbody>
   </table>
   {{if .CanEdit}}
-  <form method="post" action="/programmes/{{.ProgrammeID}}/closures" class="inline-form">
+  <form method="post" action="{{url "/programmes/" .ProgrammeID "/closures"}}" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <label>From <input type="date" name="start_date" required></label>
     <label>To <input type="date" name="end_date" required></label>
@@ -114,7 +114,7 @@
         <td>{{.Date}}</td><td>{{.Text}}</td>
         <td>
           {{if $.CanEdit}}
-          <form method="post" action="/programmes/{{$.ProgrammeID}}/weekend-notes/{{.ID}}/delete" class="inline">
+          <form method="post" action="{{url "/programmes/" $.ProgrammeID "/weekend-notes/" .ID "/delete"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
             <button type="submit" class="link-button">Delete</button>
           </form>
@@ -125,7 +125,7 @@
     </tbody>
   </table>
   {{if .CanEdit}}
-  <form method="post" action="/programmes/{{.ProgrammeID}}/weekend-notes" class="inline-form">
+  <form method="post" action="{{url "/programmes/" .ProgrammeID "/weekend-notes"}}" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <label>Date <input type="date" name="date" required></label>
     <label>Text <input type="text" name="text" placeholder="12-19 Apr - CRTC Windermere Camp 2025" required></label>
@@ -136,10 +136,10 @@
 
 <section class="card">
   <h2>Notes / requirement tracker (footer table)</h2>
-  {{range .Requirements}}
+  {{range $cat := .Requirements}}
     <h3>{{.Name}} <span class="muted">{{.DueLabel}}</span>
       {{if $.CanEdit}}
-      <form method="post" action="/programmes/{{$.ProgrammeID}}/requirements/{{.ID}}/delete" class="inline">
+      <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/delete"}}" class="inline">
         <input type="hidden" name="csrf" value="{{$.CSRF}}">
         <button type="submit" class="link-button">Delete category</button>
       </form>
@@ -149,7 +149,7 @@
       {{range .Entries}}
       <li>{{.CadetName}} {{.Note}}
         {{if $.CanEdit}}
-        <form method="post" action="/programmes/{{$.ProgrammeID}}/requirements/{{$.ID}}/entries/{{.ID}}/delete" class="inline">
+        <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/entries/" .ID "/delete"}}" class="inline">
           <input type="hidden" name="csrf" value="{{$.CSRF}}">
           <button type="submit" class="link-button">x</button>
         </form>
@@ -158,7 +158,7 @@
       {{end}}
     </ul>
     {{if $.CanEdit}}
-    <form method="post" action="/programmes/{{$.ProgrammeID}}/requirements/{{.ID}}/entries" class="inline-form">
+    <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/entries"}}" class="inline-form">
       <input type="hidden" name="csrf" value="{{$.CSRF}}">
       <label>Cadet <input type="text" name="cadet_name" required></label>
       <label>Note <input type="text" name="note" placeholder="2 X Exercises"></label>
@@ -167,7 +167,7 @@
     {{end}}
   {{end}}
   {{if .CanEdit}}
-  <form method="post" action="/programmes/{{.ProgrammeID}}/requirements" class="inline-form">
+  <form method="post" action="{{url "/programmes/" .ProgrammeID "/requirements"}}" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <label>New category <input type="text" name="name" placeholder="Mandatory Briefings" required></label>
     <label>Due label <input type="text" name="due_label" placeholder="(TBC - 12/06/2025)"></label>
