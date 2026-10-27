@@ -90,14 +90,14 @@ Roughly ordered by value for the effort.
    - The PDF gets shared around, so the feed URL carries a long random
      per-squadron token and exposes only parade dates and activity titles,
      never cadet names or the requirements tracker.
-   - The token expires after 3 whole months. There is no revoke: a
-     "regenerate link" button in squadron settings issues a new token (new
-     QR code) and the old one stops working. The expiry date is printed at
-     the bottom of the PDF next to the QR code, so people know when to
-     re-scan. Reject expired tokens with a clear message rather than an
-     empty calendar. Decide whether the feed renews automatically when
-     regenerated or must be done by hand before expiry (a reminder email to
-     the owner a week before would help).
+   - The link expires after 3 whole months. Users regenerate it themselves,
+     as and when needed (a button in squadron settings), and each
+     regeneration gives a new token, a new QR code and a fresh 3 months; the
+     old link stops working straight away. There is no separate revoke. The
+     expiry date is printed at the bottom of the PDF next to the QR code, so
+     people know when to re-scan. An expired link should say so clearly
+     rather than return an empty calendar. A reminder email to the owner a
+     week before expiry would help.
    - Generate the QR in Go (e.g. `skip2/go-qrcode`) and embed it as an image
      in `pdfgen`. Keep the codes big enough to scan from a printed A4 and
      leave room for them in the single-page layout.
@@ -112,6 +112,14 @@ Roughly ordered by value for the effort.
 10. **Account hygiene:** change password, sign out everywhere, optional
     two-factor.
 11. **Data export and backup:** download a squadron's data as JSON/CSV.
+12. **Documentation.** Write short user and admin docs in `docs/`, in plain
+    language: claiming a squadron and inviting people, roles, building a
+    programme and exporting the PDF, the calendar feed and QR codes (what the
+    link shows, that it expires after 3 months, how to regenerate it, what
+    happens to old PDFs and calendar subscriptions when it does), the cadet
+    suggestion form and moderation, password reset, and privacy and data
+    retention. Add an admin/operator guide covering config and environment
+    variables, environments, backups and restore, and the CI checks.
 
 ## Reference
 
