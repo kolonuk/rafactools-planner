@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"time"
 
 	"rafactools-planner/internal/auth"
@@ -42,7 +43,7 @@ func (s *server) claimSubmit(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Claim your squadron", "Account created, but the confirmation email failed to send. Contact an admin.")
 		return
 	}
-	http.Redirect(w, r, s.url("/check-email?email="+email), http.StatusSeeOther)
+	http.Redirect(w, r, s.url("/check-email?email="+url.QueryEscape(email)), http.StatusSeeOther)
 }
 
 func (s *server) checkEmail(w http.ResponseWriter, r *http.Request) {

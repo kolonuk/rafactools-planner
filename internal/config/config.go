@@ -53,6 +53,10 @@ func Load() (Config, error) {
 		return c, fmt.Errorf("SESSION_KEY must be set (random 32+ byte string used to sign CSRF tokens)")
 	}
 
+	if len(c.SessionKey) < 32 {
+		return c, fmt.Errorf("SESSION_KEY must be at least 32 characters (try `openssl rand -hex 32`)")
+	}
+
 	// When this app is reverse-proxied under a path prefix (e.g. dadock's
 	// Traefik PathPrefix(`/rafactools`) + stripprefix — the app itself always
 	// sees unprefixed paths, but any URL IT generates for the browser to

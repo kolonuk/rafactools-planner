@@ -29,7 +29,7 @@ real file itself into `examples/pdfs/` or anywhere else in this repo.
 ```sh
 docker build -t rafactools-planner:dev .
 docker run -d --name rt-pdf -p 18099:8080 \
-  -e SESSION_KEY=pdf-check-session-key -e COOKIE_SECURE=false \
+  -e SESSION_KEY=pdf-check-session-key-0123456789abcd -e COOKIE_SECURE=false \
   rafactools-planner:dev
 # ... claim a squadron, create a programme, fill some rows (see internal/web
 # handlers for the form field names: day_<id>_*, row_<id>_text_<idx>) ...

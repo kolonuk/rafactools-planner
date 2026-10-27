@@ -6,9 +6,11 @@ package mail
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net/smtp"
+	"strings"
 )
 
 type Sender struct {
@@ -36,7 +38,19 @@ func (s Sender) SendInvite(to, baseURL, token, squadronName, invitedByEmail stri
 	return s.send(to, subject, body)
 }
 
+// errHeaderInjection is returned when a header value contains CR/LF, which
+// would let a caller smuggle extra headers (e.g. Bcc:) or SMTP commands into
+// the message. Recipient addresses and the squadron name in the subject are
+// user-supplied, so every header value is checked here, at the one place
+// they are assembled.
+var errHeaderInjection = errors.New("mail: header value contains a line break")
+
 func (s Sender) send(to, subject, body string) error {
+	for _, v := range []string{to, subject, s.From} {
+		if strings.ContainsAny(v, "\r\n") {
+			return errHeaderInjection
+		}
+	}
 	if !s.configured() {
 		log.Printf("[mail] SMTP not configured — %q for %s:\n%s", subject, to, body)
 		return nil
@@ -61,7 +75,7 @@ func (s Sender) send(to, subject, body string) error {
 }
 
 func (s Sender) sendImplicitTLS(addr, to string, msg []byte) error {
-	conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: s.Host})
+	conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: s.Host, MinVersion: tls.VersionTLS12})
 	if err != nil {
 		return fmt.Errorf("tls dial: %w", err)
 	}
