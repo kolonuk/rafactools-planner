@@ -28,7 +28,7 @@ a spreadsheet one person maintains.
   (`internal/db`).
 - **Auth**: email+password, bcrypt, server-side sessions (DB-backed, HTTP-only
   cookie), CSRF via a session-derived token (or a double-submit cookie for the
-  pre-login claim/login/invite-accept forms). No OAuth/SSO — see `internal/auth`.
+  pre-login claim/login/invite-accept forms). See `internal/auth`.
 - **Email**: SMTP (`internal/mail`) for the claim-verification and invite
   emails. With no SMTP configured, links are logged to stdout instead — fine
   for dev, never acceptable for test/prod (see TODO.md).

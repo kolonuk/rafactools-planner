@@ -82,54 +82,36 @@ Roughly ordered by value for the effort.
    rate limiting (already have `ipLimiter`), a hidden honeypot field, strict
    length limits, no cadet names or phone numbers collected, and moderation
    before anything is shown.
-5. **Microsoft sign-in** (see the note below), alongside the password login.
-6. **Read-only sharing:** a published/final status plus a read-only link for
+5. **Read-only sharing:** a published/final status plus a read-only link for
    parents and cadets, and an `.ics` calendar feed.
    **QR codes at the bottom of the programme PDF** (and the web page): one
    for subscribing to the `.ics` feed, one for the cadet suggestion form
    (item 4). Notes:
-   - The PDF gets shared around, so the feed URL must carry a long random,
-     revocable per-squadron token, and expose only parade dates and
-     activity titles, never cadet names or the requirements tracker.
+   - The PDF gets shared around, so the feed URL carries a long random
+     per-squadron token and exposes only parade dates and activity titles,
+     never cadet names or the requirements tracker.
+   - The token expires after 3 whole months. There is no revoke: a
+     "regenerate link" button in squadron settings issues a new token (new
+     QR code) and the old one stops working. The expiry date is printed at
+     the bottom of the PDF next to the QR code, so people know when to
+     re-scan. Reject expired tokens with a clear message rather than an
+     empty calendar. Decide whether the feed renews automatically when
+     regenerated or must be done by hand before expiry (a reminder email to
+     the owner a week before would help).
    - Generate the QR in Go (e.g. `skip2/go-qrcode`) and embed it as an image
      in `pdfgen`. Keep the codes big enough to scan from a printed A4 and
      leave room for them in the single-page layout.
-   - A "regenerate link" button in squadron settings, since a leaked link
-     can't otherwise be withdrawn.
-7. **Reminders:** email staff N days before a parade night that still has
+6. **Reminders:** email staff N days before a parade night that still has
    blank activity or instructor cells.
-8. **Programme templates** for recurring evenings (e.g. "Monday: drill, then
+7. **Programme templates** for recurring evenings (e.g. "Monday: drill, then
    first aid").
-9. **Instructor availability and duty rota,** with a clash warning when the
+8. **Instructor availability and duty rota,** with a clash warning when the
    same person is on two things at once.
-10. **Audit trail:** "last edited by X at Y" on each programme, and an
+9. **Audit trail:** "last edited by X at Y" on each programme, and an
     optional change log.
-11. **Account hygiene:** change password, sign out everywhere, optional
+10. **Account hygiene:** change password, sign out everywhere, optional
     two-factor.
-12. **Data export and backup:** download a squadron's data as JSON/CSV.
-
-### Can Microsoft sign-in work without being a RAFAC tenant admin?
-
-Probably yes for registering the app, but not guaranteed for letting RAFAC
-users in. This is from general Entra ID behaviour, not checked against the
-RAFAC tenant:
-
-- You can register the app in **your own** Entra tenant (a free tenant is
-  enough) and mark it **multi-tenant**. You don't need admin rights in the
-  RAFAC tenant to do that.
-- A RAFAC user signing in is then asked to consent. If the RAFAC tenant
-  blocks user consent (common in government tenants), a tenant admin has to
-  approve the app once, or the user sees an "approval required" screen. That
-  is the part you can't control. Ask the RAFAC/MOD IT contact; the app only
-  needs the basic `openid profile email` permissions.
-- The "Microsoft SSO already in use" may be a separate app you can't reuse.
-  Reusing it only works if its owner adds this site as a redirect URI.
-- Don't trust the `email` claim alone. Match on the tenant ID (`tid`) and the
-  stable user ID (`oid`), and only allow a claim when the tenant is RAFAC's.
-  That keeps the current rule (only `oc.<n>@`/`snco.<n>@` can claim a
-  squadron) intact.
-- If admin approval is refused, keep the password login. It already works
-  for everyone.
+11. **Data export and backup:** download a squadron's data as JSON/CSV.
 
 ## Reference
 
