@@ -10,7 +10,13 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/server ./cmd/server
+# VERSION -> internal/version.Version (shown in the web and PDF footers).
+# "1.<PR number>" set by deploy.yml for a real build; defaults to "dev" for
+# a local `docker build .` with no --build-arg.
+ARG VERSION=dev
+RUN CGO_ENABLED=0 GOOS=linux go build \
+      -ldflags "-X rafactools-planner/internal/version.Version=${VERSION}" \
+      -o /out/server ./cmd/server
 RUN mkdir -p /appdata
 
 # distroless static — no shell, no libc, ca-certs included for SMTP TLS.

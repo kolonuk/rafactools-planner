@@ -29,6 +29,7 @@ import (
 	"github.com/go-pdf/fpdf"
 
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/version"
 )
 
 const (
@@ -107,6 +108,7 @@ func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error)
 	drawUniformKey(pdf, sq, usableWidth)
 	drawRequirementsFooter(pdf, fp.Requirements, usableWidth)
 	drawProtectiveMarking(pdf, sq, usableWidth)
+	drawVersionFooter(pdf, usableWidth)
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -121,6 +123,26 @@ func drawProtectiveMarking(pdf *fpdf.Fpdf, sq *programme.Squadron, usableWidth f
 	}
 	pdf.SetFont("Helvetica", "", 6)
 	pdf.CellFormat(usableWidth, 3, sq.ProtectiveMarking, "0", 1, "C", false, 0, "")
+}
+
+const changelogURL = "https://github.com/kolonuk/rafactools-planner/blob/main/CHANGELOG.md"
+
+// drawVersionFooter prints the build version with a clickable link to the
+// changelog — same information the web footer shows (see layout.html),
+// so a printed/saved PDF is traceable back to the code that produced it.
+func drawVersionFooter(pdf *fpdf.Fpdf, usableWidth float64) {
+	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetTextColor(120, 120, 120)
+	// Plain hyphen, not an em-dash: fpdf's core Helvetica font is
+	// WinAnsi/Latin-1, not UTF-8 — a Go string literal's em-dash (3 UTF-8
+	// bytes) gets drawn as three mojibake glyphs instead of transcoded. Same
+	// trap exists for any other non-Latin1 character reaching CellFormat/
+	// MultiCell anywhere in this file (a squadron name with a smart quote,
+	// say) — seen directly: rendered as "â€"" first time this line used "—".
+	// Not fixed project-wide here (would need an embedded Unicode TTF via
+	// AddUTF8Font); tracked in TODO.md.
+	pdf.CellFormat(usableWidth, 3, "v"+version.Version+" - version history", "0", 1, "C", false, 0, changelogURL)
+	pdf.SetTextColor(0, 0, 0)
 }
 
 func drawTitleBand(pdf *fpdf.Fpdf, sq *programme.Squadron, fp *programme.FullProgramme, usableWidth float64) {
