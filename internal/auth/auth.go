@@ -110,8 +110,8 @@ func (s *Service) ClaimSquadron(email, password, squadronName string) (userID in
 	if !ok {
 		return 0, "", ErrEmailDomainNotAllowed
 	}
-	if len(password) < 12 {
-		return 0, "", errors.New("password must be at least 12 characters")
+	if err := checkPassword(password); err != nil {
+		return 0, "", err
 	}
 	squadronName = strings.TrimSpace(squadronName)
 	if squadronName == "" {
@@ -260,8 +260,8 @@ func (s *Service) AcceptInvite(token, password string) (userID int64, squadronID
 	if err != nil {
 		return 0, 0, err
 	}
-	if len(password) < 12 {
-		return 0, 0, errors.New("password must be at least 12 characters")
+	if err := checkPassword(password); err != nil {
+		return 0, 0, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -429,6 +429,19 @@ func (s *Service) CSRFToken(sessionToken string) string {
 func (s *Service) ValidCSRF(sessionToken, submitted string) bool {
 	expected := s.CSRFToken(sessionToken)
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(submitted)) == 1
+}
+
+// checkPassword enforces 12-72 bytes. bcrypt silently ignores everything past
+// 72 bytes (and newer x/crypto refuses outright), so a longer password would
+// either be weaker than it looks or fail with an internal error message.
+func checkPassword(password string) error {
+	switch {
+	case len(password) < 12:
+		return errors.New("password must be at least 12 characters")
+	case len(password) > 72:
+		return errors.New("password must be at most 72 characters")
+	}
+	return nil
 }
 
 func randomToken() (string, error) {

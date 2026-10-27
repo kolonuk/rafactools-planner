@@ -466,3 +466,30 @@ func TestUserRoleHelpers(t *testing.T) {
 		}
 	}
 }
+
+func TestPasswordLengthBounds(t *testing.T) {
+	s, _ := newService(t, true)
+	// bcrypt only uses the first 72 bytes; refuse longer ones with a clear
+	// message instead of leaking "bcrypt: password length exceeds 72 bytes".
+	_, _, err := s.ClaimSquadron("oc.80@"+testDomain, strings.Repeat("a", 73), "")
+	if err == nil || strings.Contains(err.Error(), "bcrypt") || !strings.Contains(err.Error(), "72") {
+		t.Errorf("73-byte password: %v (want a friendly message mentioning 72)", err)
+	}
+	if _, _, err := s.ClaimSquadron("oc.81@"+testDomain, strings.Repeat("a", 72), ""); err != nil {
+		t.Errorf("72-byte password rejected: %v", err)
+	}
+	// Multi-byte characters count by bytes, which is what bcrypt truncates on.
+	if _, _, err := s.ClaimSquadron("oc.82@"+testDomain, strings.Repeat("é", 37), ""); err == nil {
+		t.Error("74-byte password of 37 characters accepted")
+	}
+
+	var sqID, ownerID int64
+	s.db.QueryRow(`SELECT squadron_id, id FROM users LIMIT 1`).Scan(&sqID, &ownerID)
+	tok, _ := s.CreateInvite(sqID, ownerID, "long@example.org", "viewer")
+	if _, _, err := s.AcceptInvite(tok, strings.Repeat("a", 73)); err == nil || strings.Contains(err.Error(), "bcrypt") {
+		t.Errorf("invite accept with 73 bytes: %v", err)
+	}
+	if _, err := s.GetInvite(tok); err != nil {
+		t.Error("invite consumed by a rejected password")
+	}
+}

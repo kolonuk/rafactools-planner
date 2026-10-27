@@ -2,5 +2,7 @@
 .github
 examples
 *.md
+# the in-app docs are embedded in the binary; keep them in the build context
+!internal/docs/content/**
 .claude
 data

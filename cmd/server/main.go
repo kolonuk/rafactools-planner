@@ -14,6 +14,7 @@ import (
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/config"
 	"rafactools-planner/internal/db"
+	"rafactools-planner/internal/docs"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
 	"rafactools-planner/internal/web"
@@ -35,7 +36,14 @@ func main() {
 	store := programme.NewStore(database)
 	sender := mail.Sender{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.MailFrom}
 
-	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Cfg: cfg})
+	// Fail at startup, not on a reader's first click, if the embedded docs
+	// are malformed (CI runs the same validation).
+	docLib, err := docs.Embedded()
+	if err != nil {
+		log.Fatalf("docs: %v", err)
+	}
+
+	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg})
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

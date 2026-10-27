@@ -47,6 +47,14 @@ npx --yes -p stylelint@16.10.0 -p stylelint-config-recommended@14.0.1 stylelint 
 .github/scripts/validate-html.sh
 ```
 
+## 3c. Docs
+
+```sh
+go test ./internal/docs ./internal/web -count=1   # validity, links, versions, routes
+```
+
+For a PR, also run `.github/scripts/docs-check.sh` (see `.claude/skills/docs/SKILL.md`).
+
 ## 4. Known-vulnerability scan
 
 ```sh

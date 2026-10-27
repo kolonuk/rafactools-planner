@@ -18,11 +18,18 @@ a spreadsheet one person maintains.
   activity/instructor per classification, notes, weekend events, closures,
   and a footer requirement tracker), then export it as a PDF matching the
   existing paper format.
+- In-app help at `/docs` (behind login, same theme): versioned Markdown pages
+  built into the binary, with a version selector, a compare view and per-page
+  version notes. Authoring rules are in `.claude/skills/docs/SKILL.md`; the
+  pages live in `internal/docs/content/`.
 
 ## Architecture
 
 - **Backend**: Go (`cmd/server`, `internal/*`), no web framework — stdlib
   `net/http` with Go 1.22+ method+pattern routing.
+- **Docs**: `internal/docs` renders embedded Markdown (`goldmark`, raw HTML
+  disabled) inside the app layout; no JavaScript, so version switching and
+  comparison are plain links and GET forms.
 - **Storage**: SQLite (`modernc.org/sqlite`, pure Go, no CGO) — one file,
   mounted as a volume. Migrations are embedded SQL files applied on startup
   (`internal/db`).

@@ -1,0 +1,45 @@
+{{define "content"}}
+<div class="docs">
+  <aside class="docs-side">
+    <p class="docs-back"><a href="{{url "/"}}">&larr; Back to the planner</a></p>
+    <form method="get" action="{{.GoURL}}" class="docs-version">
+      <input type="hidden" name="page" value="{{.Page.Slug}}">
+      <label>Version
+        <select name="version">
+          {{range .Versions}}<option value="{{.Label}}" {{if .Selected}}selected{{end}}>{{.Display}}</option>{{end}}
+        </select>
+      </label>
+      <button type="submit">Show</button>
+    </form>
+    {{if .CanCompare}}
+    <p class="docs-compare-link"><a href="{{.CompareHref}}">Compare this page between versions</a> ·
+      <a href="{{.CompareURL}}">What changed overall</a></p>
+    {{end}}
+    <nav class="docs-nav" aria-label="Documentation pages">
+      <ul>
+        {{range .Nav}}<li>{{if .Current}}<a href="{{.URL}}" aria-current="page" class="current">{{.Title}}</a>{{else}}<a href="{{.URL}}">{{.Title}}</a>{{end}}</li>{{end}}
+      </ul>
+    </nav>
+  </aside>
+
+  <article class="docs-content">
+    {{if .DocIsNext}}
+    <p class="docs-banner">You are reading the <strong>Unreleased</strong> documentation. It describes changes that may not be in the version you are running yet.</p>
+    {{else if not .DocIsLatest}}
+    <p class="docs-banner">You are reading the documentation for version <strong>{{.DocVersion}}</strong>. <a href="{{.DocLatest}}">Read the latest version of this page</a>.</p>
+    {{end}}
+
+    {{.Body}}
+
+    <section class="docs-meta">
+      <h2>Version notes</h2>
+      <p>This page first appeared in version <strong>{{.Since}}</strong>.</p>
+      {{if .Changes}}
+      <ul>
+        {{range .Changes}}<li><strong>{{.Version}}</strong>: {{.Note}}</li>{{end}}
+      </ul>
+      {{else}}<p class="muted">No behaviour changes recorded since it first appeared.</p>{{end}}
+    </section>
+  </article>
+</div>
+{{end}}

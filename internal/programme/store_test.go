@@ -454,3 +454,66 @@ func TestSquadronSettingsRoundTrip(t *testing.T) {
 		t.Errorf("missing squadron: %v", err)
 	}
 }
+
+// Ticking "Parade" on a night that wasn't generated as one must give it
+// activity/instructor rows, otherwise the editor shows a parade night with
+// nowhere to type.
+func TestMakingANightAParadeNightSeedsRows(t *testing.T) {
+	st, _ := newStore(t)
+	p := mustProg(t, st, 1, 2030, 3)
+	fp, _ := st.GetFullProgramme(1, p.ID)
+	var plain Day
+	for _, d := range fp.Days {
+		if !d.IsParade {
+			plain = d
+			break
+		}
+	}
+	in := DayInput{ID: plain.ID, IsParade: true, DayLabel: "F"}
+	for i := 0; i < 2; i++ { // saving again must not duplicate rows
+		if err := st.SaveDaysAndRows(1, p.ID, []DayInput{in}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, _ := st.GetFullProgramme(1, p.ID)
+	for _, d := range got.Days {
+		if d.ID == plain.ID {
+			if len(d.Rows) != 2 {
+				t.Fatalf("%d rows after ticking Parade, want 2", len(d.Rows))
+			}
+			for _, r := range d.Rows {
+				if len(r.Texts) != 4 {
+					t.Errorf("row has %d text slots, want 4", len(r.Texts))
+				}
+			}
+		}
+	}
+
+	// Unticking and re-ticking keeps what was typed and does not add rows.
+	got, _ = st.GetFullProgramme(1, p.ID)
+	var firstRow int64
+	for _, d := range got.Days {
+		if d.ID == plain.ID {
+			firstRow = d.Rows[0].ID
+		}
+	}
+	st.SaveDaysAndRows(1, p.ID, []DayInput{{ID: plain.ID, IsParade: true, Rows: []RowInput{{ID: firstRow, Texts: []string{"Kept", "", "", ""}}}}})
+	st.SaveDaysAndRows(1, p.ID, []DayInput{{ID: plain.ID, IsParade: false}})
+	st.SaveDaysAndRows(1, p.ID, []DayInput{{ID: plain.ID, IsParade: true}})
+	got, _ = st.GetFullProgramme(1, p.ID)
+	for _, d := range got.Days {
+		if d.ID != plain.ID {
+			continue
+		}
+		if len(d.Rows) != 2 {
+			t.Fatalf("%d rows after untick/tick, want 2", len(d.Rows))
+		}
+		var kept bool
+		for _, r := range d.Rows {
+			kept = kept || (r.ID == firstRow && r.Texts[0] == "Kept")
+		}
+		if !kept {
+			t.Error("typed text lost across untick/tick")
+		}
+	}
+}
