@@ -5,6 +5,13 @@
 {{if .CanEdit}}
 <form method="post" action="{{url "/programmes/" .ProgrammeID}}" class="grid-form">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <!-- Plain checkbox + CSS sibling selector, not JS (none is allowed under
+       this app's CSP — see internal/web/web.go securityHeaders). input and
+       table must stay direct siblings for app.css's
+       "#parade-only-toggle:checked ~ table.grid" rule to reach the table at
+       all — don't nest the input inside the label. -->
+  <input type="checkbox" id="parade-only-toggle" class="parade-toggle-input">
+  <label for="parade-only-toggle" class="parade-toggle-label">Show parade evenings only</label>
   <table class="grid">
     <thead>
       <tr>
@@ -51,7 +58,7 @@
         </tr>
         {{end}}
       {{else}}
-        <tr>
+        <tr class="non-parade-row">
           <td>{{.DateLabel}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
           <td><input type="text" size="2" name="day_{{.ID}}_label" value="{{.DayLabel}}"></td>
           <td><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}}></td>

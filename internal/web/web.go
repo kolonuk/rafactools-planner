@@ -19,6 +19,7 @@ import (
 	"rafactools-planner/internal/config"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/version"
 )
 
 //go:embed templates/*.html
@@ -187,11 +188,12 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, page, title stri
 		return
 	}
 	data := map[string]any{
-		"Title": title,
-		"User":  userFrom(r.Context()),
-		"CSRF":  s.csrfFor(r),
-		"Flash": "",
-		"Error": "",
+		"Title":   title,
+		"User":    userFrom(r.Context()),
+		"CSRF":    s.csrfFor(r),
+		"Flash":   "",
+		"Error":   "",
+		"Version": version.Version,
 	}
 	for k, v := range extra {
 		data[k] = v

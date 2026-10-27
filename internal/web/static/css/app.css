@@ -192,3 +192,17 @@ code {
 }
 
 a { color: var(--md-primary); }
+
+/* Parade-evenings-only toggle on the programme grid (programme_edit.html) —
+   CSS-only, no JS: the checkbox and table are kept as direct siblings so
+   this general-sibling selector can reach the table at all. */
+.parade-toggle-input { margin: 10px 0 4px; }
+.parade-toggle-label { display: inline-block; margin: 10px 0 10px 6px; font-size: 0.9em; cursor: pointer; }
+#parade-only-toggle:checked ~ table.grid tr.non-parade-row { display: none; }
+
+.version-footer {
+  text-align: center;
+  padding: 16px 20px 24px;
+  font-size: 0.78em;
+  color: var(--md-on-surface-variant);
+}
