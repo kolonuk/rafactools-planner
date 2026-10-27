@@ -83,14 +83,18 @@ type Invite struct {
 }
 
 type Service struct {
-	db          *sql.DB
-	sessionKey  []byte
-	secure      bool
-	claimDomain string
+	db                    *sql.DB
+	sessionKey            []byte
+	secure                bool
+	claimDomain           string
+	skipEmailVerification bool
 }
 
-func NewService(db *sql.DB, sessionKey string, cookieSecure bool, claimDomain string) *Service {
-	return &Service{db: db, sessionKey: []byte(sessionKey), secure: cookieSecure, claimDomain: claimDomain}
+func NewService(db *sql.DB, sessionKey string, cookieSecure bool, claimDomain string, skipEmailVerification bool) *Service {
+	return &Service{
+		db: db, sessionKey: []byte(sessionKey), secure: cookieSecure,
+		claimDomain: claimDomain, skipEmailVerification: skipEmailVerification,
+	}
 }
 
 func (s *Service) CookieSecure() bool  { return s.secure }
@@ -136,8 +140,15 @@ func (s *Service) ClaimSquadron(email, password, squadronName string) (userID in
 		return 0, "", err
 	}
 
-	res, err = tx.Exec(`INSERT INTO users (squadron_id, email, password_hash, role) VALUES (?, ?, ?, 'owner')`,
-		squadronID, email, string(hash))
+	// SkipEmailVerification (dev only — see config.Config) marks the owner
+	// verified immediately instead of going through the token+email dance,
+	// so claiming a squadron needs nothing but this form. Never set outside
+	// dev: it removes the one check that the claiming email is real.
+	userInsert := `INSERT INTO users (squadron_id, email, password_hash, role) VALUES (?, ?, ?, 'owner')`
+	if s.skipEmailVerification {
+		userInsert = `INSERT INTO users (squadron_id, email, password_hash, role, email_verified_at) VALUES (?, ?, ?, 'owner', CURRENT_TIMESTAMP)`
+	}
+	res, err = tx.Exec(userInsert, squadronID, email, string(hash))
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return 0, "", ErrEmailTaken
@@ -149,13 +160,15 @@ func (s *Service) ClaimSquadron(email, password, squadronName string) (userID in
 		return 0, "", err
 	}
 
-	token, err = randomToken()
-	if err != nil {
-		return 0, "", err
-	}
-	if _, err := tx.Exec(`INSERT INTO email_verifications (token, user_id, expires_at) VALUES (?, ?, ?)`,
-		token, userID, time.Now().Add(24*time.Hour)); err != nil {
-		return 0, "", fmt.Errorf("insert verification token: %w", err)
+	if !s.skipEmailVerification {
+		token, err = randomToken()
+		if err != nil {
+			return 0, "", err
+		}
+		if _, err := tx.Exec(`INSERT INTO email_verifications (token, user_id, expires_at) VALUES (?, ?, ?)`,
+			token, userID, time.Now().Add(24*time.Hour)); err != nil {
+			return 0, "", fmt.Errorf("insert verification token: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

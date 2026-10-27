@@ -31,7 +31,7 @@ func main() {
 	}
 	defer database.Close()
 
-	authSvc := auth.NewService(database, cfg.SessionKey, cfg.CookieSecure, cfg.ClaimDomain)
+	authSvc := auth.NewService(database, cfg.SessionKey, cfg.CookieSecure, cfg.ClaimDomain, cfg.SkipEmailVerification)
 	store := programme.NewStore(database)
 	sender := mail.Sender{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.MailFrom}
 

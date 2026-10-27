@@ -30,6 +30,14 @@ func (s *server) claimSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// token is "" when SKIP_EMAIL_VERIFICATION is set (dev only — see
+	// config.Config.SkipEmailVerification): the account is already verified,
+	// there's no token to email, and no email gets sent at all.
+	if token == "" {
+		http.Redirect(w, r, s.url("/login?claimed=1"), http.StatusSeeOther)
+		return
+	}
+
 	if err := s.Mail.SendVerification(email, s.Cfg.BaseURL, token); err != nil {
 		s.renderError(w, r, http.StatusInternalServerError, "Claim your squadron", "Account created, but the confirmation email failed to send. Contact an admin.")
 		return
@@ -52,8 +60,11 @@ func (s *server) verify(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) loginForm(w http.ResponseWriter, r *http.Request) {
 	extra := map[string]any{}
-	if r.URL.Query().Get("verified") == "1" {
+	switch {
+	case r.URL.Query().Get("verified") == "1":
 		extra["Flash"] = "Email confirmed — you can log in now."
+	case r.URL.Query().Get("claimed") == "1":
+		extra["Flash"] = "Squadron claimed — you can log in now (dev mode: no email verification)."
 	}
 	s.render(w, r, "login", "Log in", extra)
 }

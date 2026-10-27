@@ -17,41 +17,41 @@
 - [ ] **GitHub branch protection.** Require `CI` to pass before merging into
   `test`/`main`. Not something this repo's files can configure — a GitHub
   repo setting once the repo exists there.
-- [ ] **`DADOCK_DEPLOY_TOKEN` secret — still needed.** A fine-grained PAT,
-  `Actions:write` on `kolonuk/dadock` only, set as a secret **on this repo**
-  (`gh secret set DADOCK_DEPLOY_TOKEN --repo kolonuk/rafactools-planner`).
-  dadock's side (compose service, homepage entry, `RAFACTOOLS_SESSION_KEY`
-  slot) is already wired and pushed — this token is the one missing piece
-  stopping a push to `main` from actually reaching the running stack. Create
-  it at github.com/settings/personal-access-tokens/new (fine-grained,
-  repository access limited to `kolonuk/dadock`, permission `Actions: write`),
-  or reuse the same PAT already used as `sbcwaste.top`'s/`johnwood.dev`'s
-  `DADOCK_DEPLOY_TOKEN` if you still have that value. Until this is set,
-  `deploy.yml` pushes the image to GHCR and stops, printing a reminder.
-- [ ] **Trigger the first real deploy.** Once the token above is set, either
-  push to `main` again or `gh workflow run "1. Deploy docker stack" --repo
-  kolonuk/dadock` to pick up the service for the first time (it needs
-  `docker compose up -d` to actually run — the compose/homepage/env.template
-  changes landing in git don't do that by themselves).
+- [x] **`DADOCK_DEPLOY_TOKEN` secret.** Set on this repo (reusing dadock's
+  own `GH_PAT`, verified first to actually have `Actions:write` on
+  `kolonuk/dadock` before setting it).
+- [x] **Trigger the first real deploy.** Done manually
+  (`gh workflow run "1. Deploy docker stack" --repo kolonuk/dadock`) —
+  future pushes to `main`/`dev`/`test` trigger it automatically.
 
 ## Three real environments
 
-One real deployment target exists now: prod, wired into dadock (see
-`dadock`'s `docker-compose.yml` `rafactools` service, `config/homepage/
-services.yaml`, `config/env.template`, `scripts/bootstrap.sh` — all pushed).
-It's LAN-only (`http://<dadock-host>/rafactools/`, no TLS, no public domain)
-since there's no domain yet — see below. `dev`/`test` pushes still only get
-as far as a tagged image in GHCR (`dev-<sha>`/`test-<sha>`) — nothing pulls
-and runs them. To make those real too:
+All three now run as separate containers in the same dadock compose stack
+(`dadock`'s `docker-compose.yml`: `rafactools`, `rafactools-dev`,
+`rafactools-test` services), each with its own `SESSION_KEY` secret and its
+own data directory, on different `PathPrefix`es
+(`/rafactools`, `/rafactools-dev`, `/rafactools-test`). All LAN-only, no
+TLS, no public domain — see "No domain yet" below.
 
-- Decide where they run. Options: more containers in the same dadock compose
-  stack on different paths (cheapest, matches the pattern just added for
-  prod — copy the `rafactools` service, rename, pick a different
-  `PathPrefix`), or genuinely separate hosts.
-- Add a second/third `trigger-dadock-deploy`-style job in `deploy.yml` for
-  the `dev`/`test` branches once those targets exist.
-- Each one needs its own `SESSION_KEY` secret and its own data directory —
-  don't point two environments at the same SQLite file.
+- **dev** (`rafactools-dev`): `SKIP_EMAIL_VERIFICATION=true` — claiming a
+  squadron logs straight in, no email step, nothing sent anywhere. Its
+  SQLite data directory gets wiped and recreated empty every night at ~2am
+  (see dadock's "Reset dev database" scheduled workflow) — don't put
+  anything in dev you want to keep.
+- **test** (`rafactools-test`): currently behaves like a normal instance
+  (signups allowed, real verification flow) — that's not the intended final
+  state. **Intended design, not yet built:** test should *not* allow new
+  signups via the claim form at all; instead, each deploy to test should
+  take a snapshot of prod's live SQLite database and load it into test, so
+  test is always testing against real-shaped data rather than accumulating
+  its own throwaway squadrons. Needs: a way to disable the claim route (or
+  have it 404/redirect) when some `DISABLE_SIGNUPS`-style flag is set, plus
+  a snapshot-and-restore step in dadock's deploy pipeline for the
+  `rafactools-test` service specifically (copy prod's `.db` file into test's
+  data directory, probably as part of "1. Deploy docker stack" or a
+  dedicated step, *before* starting/restarting the test container).
+- **prod** (`rafactools`): real squadron data, real email verification,
+  unchanged.
 
 ## No domain yet
 
