@@ -83,12 +83,23 @@ hyphenation). Re-check against `examples/pdfs/` after any change to
 - [ ] No automated tests yet (`internal/auth`, `internal/programme`,
   `internal/pdfgen` are all hand-smoke-tested, not unit tested). `go test`
   runs in CI but there's nothing for it to run.
-- [ ] `AddHalf` only grows a parade night from 1 half to 2 — there's no UI to
-  shrink it back, or to cancel a parade night that already has rows without
-  leaving orphaned empty rows in the DB (harmless, just untidy).
-- [ ] No squadron crest/logo image in the PDF header — `pdfgen.go` renders
-  text only. The real programmes have the RAFAC roundel + squadron crest;
-  adding per-squadron logo upload + embedding is follow-up work.
+- [ ] `AddHalf` only grows a parade night from 1 half to 2 — needs three more
+  things: (a) a "remove second half" action, which should warn first if
+  half 2's content actually differs from half 1's (silently discarding
+  different content is the dangerous case; dropping an identical duplicate
+  isn't); (b) when *adding* a second half, clone half 1's activity/
+  instructor text into it as a starting point instead of leaving it empty —
+  the common case is both halves being the same or similar, not blank; (c)
+  no way to cancel a parade night that already has rows without leaving
+  orphaned empty rows in the DB (harmless, just untidy).
+- [ ] No squadron crest/logo image in the PDF header, and no way to link out
+  to the squadron's own website/social page from the app either —
+  `pdfgen.go` renders text only, and there's no per-squadron "badge or
+  external link" field anywhere. The real programmes have the RAFAC
+  roundel + squadron crest. Needs: an upload (or URL) field in squadron
+  settings, storage (a blob column or a file on disk — this app currently
+  has no file upload path at all, so this is also the first thing that'd
+  need one), and embedding the image in `pdfgen.go`'s title band.
 - [ ] Grid editor (`programme_edit.html`) isn't tested on mobile widths — it's
   a wide table, likely needs horizontal scroll at minimum on a phone.
 - [ ] `programme_requirement_categories`/`entries` have a `sort_order` column
@@ -115,6 +126,68 @@ hyphenation). Re-check against `examples/pdfs/` after any change to
   than erroring. Found via the version-footer's em-dash (fixed there by
   just using a plain hyphen); not fixed project-wide. Proper fix is an
   embedded Unicode TTF via `Fpdf.AddUTF8Font`.
+
+## Requested features (not yet built)
+
+- [ ] **Copy previous month's notes/requirements.** A button on the "new
+  month" flow (or on an existing draft programme) to pull the prior month's
+  `programme_weekend_notes`-adjacent requirement categories and/or notes
+  forward as a starting point, instead of every month starting from a
+  structurally-blank requirement tracker. Needs deciding exactly what
+  copies (requirement *categories* probably yes, *entries*/cadet names
+  probably no — those are presumably different cadets each month) —
+  worth confirming with whoever actually uses this before building it.
+- [ ] **Drag-to-reorder activity rows**, to rearrange a month's parade
+  nights without retyping. Tension to resolve first: this app currently
+  ships `script-src 'none'` in its CSP (see `internal/web/web.go`
+  `securityHeaders`) specifically because there's no JS anywhere — drag-
+  and-drop fundamentally needs JS (HTML5 drag events, or a library). Either
+  this is the feature that finally justifies loosening that CSP line (with
+  a `script-src 'self'` and a small first-party script, no CDN), or it's
+  worth asking whether "reorder" actually means "change which *date* an
+  activity is on" (which the existing form fields can already do, just
+  clunkily — editing a day's uniform/notes/rows already targets that day's
+  DB row regardless of calendar order) before building real drag-and-drop
+  for what might be a smaller problem.
+- [ ] **Explicit classification grouping**, e.g. "all but 1st Class do
+  Drill, 1st Class do something else" as a deliberate choice rather than a
+  side effect. Right now `pdfgen`'s merge (`mergeSegments`) and the grid's
+  saved text are the same mechanism: typing identical text into adjacent
+  classification cells is what makes them merge into one shared cell —
+  there's no explicit "group these classifications together" control, just
+  implicit merge-by-matching-text. Workable for simple cases but doesn't
+  scale well past 2 groups and isn't obvious from the editing UI alone (you
+  have to already know the merge-by-matching-text rule). A real fix
+  probably means a small per-row grouping control (e.g. checkboxes or a
+  drag-to-group picker across the classification columns) that then writes
+  the matching/non-matching text to produce the same merge behaviour today
+  reads implicitly.
+- [ ] **Day-of-week should not be a free-text field.** `programme_days.
+  day_label` is currently an editable `<input type="text" size="2">` in
+  `programme_edit.html` (`day_{{.ID}}_label`) — nothing stops it from being
+  wrong for the actual date, or from silently disagreeing with
+  `pdfgen.groupIntoWeeks`'/`drawWeekendCell`'s own weekday computation
+  (which uses the *real* `time.Weekday()` of `programme_days.date`, not
+  this label). This bit for real once already, in `cmd/genexamples` (see
+  git history around the "page-break bug" fix) — a hand-picked label that
+  didn't match the real calendar weekday silently broke week-grouping and
+  weekend-note matching. Fix: derive the displayed label from `date` alone
+  (`defaultDayLabels` in `internal/programme/store.go` already has the
+  M/Tu/W/T/F/Sa/Su mapping used at generation time — just use it at render
+  time too instead of reading a stored, editable column) and drop the
+  column/input entirely, or at minimum make the input read-only.
+- [ ] **Verify PDF export always reflects the current month's saved state**
+  — specifically Notes and the requirement tracker, not just the grid.
+  `programmePDF` already calls `GetFullProgramme` fresh on every request
+  (no caching layer anywhere in this app) and `pdfgen.Render` already
+  reads `fp.Requirements`/day `.Notes`, so this *should* already be
+  correct — but it's untested (see "no automated tests yet" above) and
+  worth a regression test pinning it down explicitly, not just trusting
+  the code reading. Also worth watching once the test-environment DB
+  snapshot (see "Three real environments" above) exists: test's PDF export
+  will only ever be as fresh as its last snapshot of prod, which is a
+  different kind of "stale" than a caching bug and should be obvious to
+  whoever's looking at test, not a surprise.
 
 ## Example PDFs
 
