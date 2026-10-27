@@ -113,7 +113,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /invite/{token}", s.withUserOptional(s.inviteForm))
 	mux.HandleFunc("POST /invite/{token}", authLimiter.rateLimited(s.withUserOptional(s.inviteSubmit)))
 
-	mux.HandleFunc("GET /", s.requireAuth(s.dashboard))
+	mux.HandleFunc("GET /{$}", s.requireAuth(s.dashboard))
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))

@@ -96,8 +96,15 @@ func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error)
 	}
 	closureByDate := map[string]programme.Closure{}
 	for _, c := range fp.Closures {
-		for d := c.StartDate; d <= c.EndDate; d = nextDate(d) {
+		// nextDate returns its input unchanged for an unparseable date;
+		// stop rather than spin forever on bad data.
+		for d := c.StartDate; d <= c.EndDate; {
 			closureByDate[d] = c
+			n := nextDate(d)
+			if n == d {
+				break
+			}
+			d = n
 		}
 	}
 
