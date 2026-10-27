@@ -112,14 +112,42 @@ Roughly ordered by value for the effort.
 10. **Account hygiene:** change password, sign out everywhere, optional
     two-factor.
 11. **Data export and backup:** download a squadron's data as JSON/CSV.
-12. **Documentation.** Write short user and admin docs in `docs/`, in plain
-    language: claiming a squadron and inviting people, roles, building a
-    programme and exporting the PDF, the calendar feed and QR codes (what the
-    link shows, that it expires after 3 months, how to regenerate it, what
-    happens to old PDFs and calendar subscriptions when it does), the cadet
-    suggestion form and moderation, password reset, and privacy and data
-    retention. Add an admin/operator guide covering config and environment
-    variables, environments, backups and restore, and the CI checks.
+12. **Documentation, versioned.** Plain-language user and operator docs in
+    `docs/` as Markdown, one page per topic. User docs: claiming a squadron
+    and inviting people, roles, building a programme and exporting the PDF,
+    the calendar feed and QR codes (what the link shows, the 3-month expiry,
+    how to regenerate it, what happens to old PDFs and calendar
+    subscriptions), the cadet suggestion form and moderation, password reset,
+    privacy and retention. Operator docs: config and environment variables,
+    environments, backups and restore, the CI checks.
+    - **Versions.** Docs are versioned with the app (`1.<PR number>`, as in
+      `CHANGELOG.md`). Each release keeps its own snapshot, and the docs site
+      has a version selector so a reader can open any page as it was in any
+      version.
+    - **Compare.** Pick two versions of a page and see what changed between
+      them. Render the comparison on the server so it works under the strict
+      CSP with no JavaScript (selector and compare are plain links and a
+      GET form).
+    - **Change notes.** Every page says which version it first appeared in
+      (`since:`), and each behaviour change is listed under the version it
+      arrived in (`changed:` in the page's front matter), so a reader on an
+      older version knows what doesn't apply to them yet.
+    - **Served by the app** at `/docs`, embedded in the binary like the
+      static assets, so the docs always match the build the user is running
+      and need no extra hosting.
+    - **CI enforcement.** A build step fails if: a page is missing front
+      matter or its version fields; a link or anchor is broken; the docs
+      don't build; or a change under `internal/` or `cmd/` touches
+      user-visible behaviour or config without a matching `docs/` change (or
+      an explicit, reviewed "no docs impact" note in the PR).
+    - **A repo skill, `.claude/skills/docs/`, owned by Claude and the
+      strictest one in this repo.** Priority order is security first,
+      documentation second, everything else after. It requires Claude to
+      update the docs in the same commit as any user-visible change, record
+      the `since:`/`changed:` entries and the `CHANGELOG.md` line, document
+      every security-relevant behaviour (expiry, rate limits, retention,
+      roles), never leave a page describing behaviour that no longer exists,
+      and refuse to call work done while the docs check is failing.
 
 ## Reference
 
