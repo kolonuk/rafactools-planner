@@ -85,6 +85,17 @@ Roughly ordered by value for the effort.
 5. **Microsoft sign-in** (see the note below), alongside the password login.
 6. **Read-only sharing:** a published/final status plus a read-only link for
    parents and cadets, and an `.ics` calendar feed.
+   **QR codes at the bottom of the programme PDF** (and the web page): one
+   for subscribing to the `.ics` feed, one for the cadet suggestion form
+   (item 4). Notes:
+   - The PDF gets shared around, so the feed URL must carry a long random,
+     revocable per-squadron token, and expose only parade dates and
+     activity titles, never cadet names or the requirements tracker.
+   - Generate the QR in Go (e.g. `skip2/go-qrcode`) and embed it as an image
+     in `pdfgen`. Keep the codes big enough to scan from a printed A4 and
+     leave room for them in the single-page layout.
+   - A "regenerate link" button in squadron settings, since a leaked link
+     can't otherwise be withdrawn.
 7. **Reminders:** email staff N days before a parade night that still has
    blank activity or instructor cells.
 8. **Programme templates** for recurring evenings (e.g. "Monday: drill, then
