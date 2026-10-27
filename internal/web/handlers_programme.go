@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -283,6 +284,10 @@ func (s *server) closureAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.AddClosure(id, r.FormValue("start_date"), r.FormValue("end_date"), r.FormValue("message")); err != nil {
+		if errors.Is(err, programme.ErrInvalidInput) {
+			s.renderError(w, r, http.StatusBadRequest, "Error", "Closure dates must be valid yyyy-mm-dd dates, at most a year apart, with the end on or after the start.")
+			return
+		}
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add closure.")
 		return
 	}
@@ -321,6 +326,10 @@ func (s *server) weekendNoteAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.AddWeekendNote(id, r.FormValue("date"), r.FormValue("text")); err != nil {
+		if errors.Is(err, programme.ErrInvalidInput) {
+			s.renderError(w, r, http.StatusBadRequest, "Error", "The note date must be a valid yyyy-mm-dd date.")
+			return
+		}
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add note.")
 		return
 	}

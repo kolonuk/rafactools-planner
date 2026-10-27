@@ -13,6 +13,19 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **security**: requirement entries could be added to or deleted from another
+  squadron's programme by forging a category ID; mail headers could be
+  injected via invite addresses/squadron names; rate limiter trusted a
+  spoofable `X-Forwarded-For`; SMTP TLS had no minimum version; login timing
+  revealed which emails exist; `SESSION_KEY` must now be 32+ characters.
+- **fix**: a closure with unparseable dates made PDF export loop forever;
+  closure and weekend-note dates are now validated. Unknown URLs returned the
+  dashboard instead of 404. Parade weekdays outside 1-7 and blank squadron
+  names are no longer saved.
+- **chore**: unit, integration, fuzz and operational (real-binary) tests;
+  staticcheck, gosec, stylelint, rendered-HTML validation, actionlint, Trivy
+  secret/misconfig scanning and SHA-pinned actions in CI.
+
 - **feat**: parade-evenings-only toggle on the programme grid (CSS-only
   checkbox, hides non-parade filler rows).
 - **feat**: build version shown in the web footer and PDF footer, linking

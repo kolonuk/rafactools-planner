@@ -69,7 +69,11 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sq.Name = r.FormValue("name")
+	// A blank name would leave the PDF and every page without a title; keep
+	// the existing one instead.
+	if name := strings.TrimSpace(r.FormValue("name")); name != "" {
+		sq.Name = name
+	}
 	sq.Subtitle = r.FormValue("subtitle")
 	sq.ProtectiveMarking = r.FormValue("protective_marking")
 
@@ -87,7 +91,7 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	var weekdays []int
 	for _, v := range r.PostForm["parade_weekdays"] {
-		if n, err := strconv.Atoi(v); err == nil {
+		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 7 {
 			weekdays = append(weekdays, n)
 		}
 	}

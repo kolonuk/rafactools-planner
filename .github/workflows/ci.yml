@@ -29,7 +29,20 @@ jobs:
           cache: true
       - run: go build ./...
       - run: go vet ./...
-      - run: go test ./... -race -count=1
+      # Includes the operational tests in cmd/server, which build and run
+      # the real binary (startup failures, signals, restart persistence).
+      - name: Test (race, coverage)
+        run: go test ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic
+      - name: Coverage summary
+        run: |
+          {
+            echo "### Test coverage"
+            echo '```'
+            go tool cover -func=coverage.out | tail -n 25
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fuzz (short)
+        run: go test ./internal/auth -run '^$' -fuzz FuzzParseClaimEmail -fuzztime 20s
       - name: gofmt check
         run: |
           out="$(gofmt -l .)"

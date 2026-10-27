@@ -11,6 +11,22 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
+// ErrInvalidInput marks user-supplied data that failed validation (as opposed
+// to a database failure); handlers map it to a 400.
+var ErrInvalidInput = errors.New("invalid input")
+
+// maxClosureDays bounds a closure's span so one row can't make the PDF
+// renderer expand millions of dates.
+const maxClosureDays = 366
+
+func parseISODate(s string) (time.Time, error) {
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("%w: %q is not a yyyy-mm-dd date", ErrInvalidInput, s)
+	}
+	return t, nil
+}
+
 // defaultDayLabels gives each ISO weekday a short label matching the source
 // PDFs (Monday "M", Thursday "T"); editable per-day afterwards since
 // squadrons are free to parade any day(s) of the week.
@@ -371,7 +387,21 @@ func (s *Store) listClosures(programmeID int64) ([]Closure, error) {
 }
 
 func (s *Store) AddClosure(programmeID int64, start, end, message string) error {
-	_, err := s.db.Exec(`INSERT INTO programme_closures (programme_id, start_date, end_date, message) VALUES (?, ?, ?, ?)`,
+	st, err := parseISODate(start)
+	if err != nil {
+		return err
+	}
+	en, err := parseISODate(end)
+	if err != nil {
+		return err
+	}
+	if en.Before(st) {
+		return fmt.Errorf("%w: closure ends before it starts", ErrInvalidInput)
+	}
+	if en.Sub(st) > maxClosureDays*24*time.Hour {
+		return fmt.Errorf("%w: closure is longer than %d days", ErrInvalidInput, maxClosureDays)
+	}
+	_, err = s.db.Exec(`INSERT INTO programme_closures (programme_id, start_date, end_date, message) VALUES (?, ?, ?, ?)`,
 		programmeID, start, end, message)
 	return err
 }
@@ -401,6 +431,9 @@ func (s *Store) listWeekendNotes(programmeID int64) ([]WeekendNote, error) {
 }
 
 func (s *Store) AddWeekendNote(programmeID int64, date, text string) error {
+	if _, err := parseISODate(date); err != nil {
+		return err
+	}
 	var maxOrder sql.NullInt64
 	if err := s.db.QueryRow(`SELECT MAX(sort_order) FROM programme_weekend_notes WHERE programme_id = ? AND date = ?`, programmeID, date).Scan(&maxOrder); err != nil {
 		return err

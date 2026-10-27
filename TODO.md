@@ -1,199 +1,127 @@
 # TODO
 
-## Before this is real infrastructure anyone relies on
+Sections are in rough priority order. Anything done is deleted, not ticked —
+`CHANGELOG.md` and git history are the record.
 
-- [ ] **Password reset.** Not implemented at all — a locked-out user has no
-  self-serve recovery. Needs a token flow mirroring email verification
-  (`internal/auth`: `email_verifications` table/pattern already there to copy).
-- [ ] **Real SMTP provider.** Right now `SMTP_HOST` unset just logs links to
-  stdout (`internal/mail`). Fine for dev; pick a real relay (a transactional
-  provider, or an existing dadock-reachable SMTP relay if one exists) for
-  test/prod and set `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`/`MAIL_FROM` there.
-- [x] **`SESSION_KEY` as a real secret (prod).** `dadock/config/env.template`
-  has `RAFACTOOLS_SESSION_KEY`; **pending**: the actual secret value needs
-  setting — `gh secret set RAFACTOOLS_SESSION_KEY --repo kolonuk/dadock --body "$(openssl rand -hex 32)"`
-  (this needed a human to run — it writes a secret, which the agent that did
-  the rest of this wiring was blocked from doing itself).
-- [ ] **GitHub branch protection.** Require `CI` to pass before merging into
-  `test`/`main`. Not something this repo's files can configure — a GitHub
-  repo setting once the repo exists there.
-- [x] **`DADOCK_DEPLOY_TOKEN` secret.** Set on this repo (reusing dadock's
-  own `GH_PAT`, verified first to actually have `Actions:write` on
-  `kolonuk/dadock` before setting it).
-- [x] **Trigger the first real deploy.** Done manually
-  (`gh workflow run "1. Deploy docker stack" --repo kolonuk/dadock`) —
-  future pushes to `main`/`dev`/`test` trigger it automatically.
+## Before anyone relies on it
 
-## Three real environments
+- [ ] **Password reset.** Emailed single-use token, same shape as email
+  verification (`email_verifications` is the pattern to copy). Invalidate the
+  user's other sessions when the password changes.
+- [ ] **Real SMTP.** With `SMTP_HOST` unset the app only logs links. Pick a
+  relay for test/prod and set `SMTP_HOST/USER/PASS` and `MAIL_FROM`.
+- [ ] **Set the prod `SESSION_KEY` secret** (`RAFACTOOLS_SESSION_KEY` in
+  dadock). Needs a human: `gh secret set RAFACTOOLS_SESSION_KEY --repo kolonuk/dadock --body "$(openssl rand -hex 32)"`.
+  The app now refuses to start with a key under 32 characters.
+- [ ] **Branch protection.** Require the `CI` jobs to pass before merging to
+  `test` and `main` (GitHub repo setting).
+- [ ] **Privacy basics.** The app stores cadet names, so add a short privacy
+  notice, a way to delete a squadron's data, and a retention rule for old
+  programmes.
 
-All three now run as separate containers in the same dadock compose stack
-(`dadock`'s `docker-compose.yml`: `rafactools`, `rafactools-dev`,
-`rafactools-test` services), each with its own `SESSION_KEY` secret and its
-own data directory, on different `PathPrefix`es
-(`/rafactools`, `/rafactools-dev`, `/rafactools-test`). All LAN-only, no
-TLS, no public domain — see "No domain yet" below.
+## Environments and hosting
 
-- **dev** (`rafactools-dev`): `SKIP_EMAIL_VERIFICATION=true` — claiming a
-  squadron logs straight in, no email step, nothing sent anywhere. Its
-  SQLite data directory gets wiped and recreated empty every night at ~2am
-  (see dadock's "Reset dev database" scheduled workflow) — don't put
-  anything in dev you want to keep.
-- **test** (`rafactools-test`): currently behaves like a normal instance
-  (signups allowed, real verification flow) — that's not the intended final
-  state. **Intended design, not yet built:** test should *not* allow new
-  signups via the claim form at all; instead, each deploy to test should
-  take a snapshot of prod's live SQLite database and load it into test, so
-  test is always testing against real-shaped data rather than accumulating
-  its own throwaway squadrons. Needs: a way to disable the claim route (or
-  have it 404/redirect) when some `DISABLE_SIGNUPS`-style flag is set, plus
-  a snapshot-and-restore step in dadock's deploy pipeline for the
-  `rafactools-test` service specifically (copy prod's `.db` file into test's
-  data directory, probably as part of "1. Deploy docker stack" or a
-  dedicated step, *before* starting/restarting the test container).
-- **prod** (`rafactools`): real squadron data, real email verification,
-  unchanged.
+- [ ] **Test environment:** disable the claim form there (a
+  `DISABLE_SIGNUPS` flag) and copy prod's database into it on each deploy, so
+  test always has realistic data. The copy step lives in dadock's deploy
+  workflow.
+- [ ] **Domain and TLS.** Everything is LAN-only over plain HTTP today. Once
+  there is a domain: put it behind TLS, set `BASE_URL` to the `https://`
+  address and `COOKIE_SECURE=true` in dadock's compose.
 
-## No domain yet
+## Bugs and rough edges
 
-Local dev (`docker-compose.yml` at this repo's root) and the CI smoke test
-both use `http://localhost:8080`, which is fine since nothing else needs to
-reach them. **Prod's `BASE_URL`** is `http://<dadock HOST_IP>/rafactools`
-(set in dadock's compose) — real but LAN-only and unencrypted, since there's
-no domain yet. Once a domain exists: get it behind TLS (dadock's Traefik
-already serves everything over `websecure` with a self-signed cert as a
-fallback — a real domain + Pangolin tunnel replaces that), update
-`BASE_URL` to the real `https://` address in dadock's compose, and flip
-`COOKIE_SECURE` to `"true"` there (it's `"false"` right now specifically
-because the LAN path is plain HTTP).
+- [ ] **Day label should come from the date**, not a free-text field. A label
+  that disagrees with the real weekday has already broken week grouping once.
+  Derive it with `defaultDayLabels` and drop the editable input.
+- [ ] **Non-Latin-1 text breaks the PDF.** Smart quotes, em-dashes and
+  accented letters come out as mojibake. Fix with an embedded Unicode font
+  (`AddUTF8Font`).
+- [ ] **Second half of a parade night:** copy half 1's text when adding it,
+  and add a "remove second half" button that warns if half 2 differs.
+- [ ] **PDF:** multi-week closures and weekend events aren't true merged
+  cells, and long words break mid-word in the Weekends column. Compare
+  against `examples/pdfs/` after any `internal/pdfgen` change (see the
+  `pdf-fidelity` skill).
+- [ ] **Mobile and accessibility pass:** the grid editor is a wide table;
+  icon-only delete buttons need labels; check focus states and swatch
+  contrast.
+- [ ] **Squadron crest/logo** in the PDF header. Needs a first upload path
+  (the app has none yet).
 
-## PDF layout fidelity
+## Planned improvements to existing screens
 
-Single portrait page, with every row height computed from actual wrapped
-line counts (no more fixed-height/landscape/multi-page — that was the v1
-approach and produced both a 2-page export and a real text-overlap bug,
-both now fixed). Remaining gaps tracked in detail in
-`.claude/skills/pdf-fidelity/SKILL.md`: multi-week closure banners and
-cross-week weekend events aren't true rowspans yet, and `SplitText`'s
-word-wrap breaks long words mid-word in the narrow Weekends column (no
-hyphenation). Re-check against `examples/pdfs/` after any change to
-`internal/pdfgen`.
+- [ ] **Copy last month forward:** requirement categories (not cadet names)
+  and standing notes. Confirm with a real user first.
+- [ ] **Reorder rows with up/down buttons.** Simple and needs no JavaScript.
+  Real drag-and-drop would mean loosening the `script-src 'none'` CSP, so
+  only do that together with the picker below.
+- [ ] **Clearer classification grouping:** an explicit "these classes do the
+  same thing" control instead of typing identical text to merge cells.
 
-## Smaller gaps
+## Feature ideas
 
-- [ ] No automated tests yet (`internal/auth`, `internal/programme`,
-  `internal/pdfgen` are all hand-smoke-tested, not unit tested). `go test`
-  runs in CI but there's nothing for it to run.
-- [ ] `AddHalf` only grows a parade night from 1 half to 2 — needs three more
-  things: (a) a "remove second half" action, which should warn first if
-  half 2's content actually differs from half 1's (silently discarding
-  different content is the dangerous case; dropping an identical duplicate
-  isn't); (b) when *adding* a second half, clone half 1's activity/
-  instructor text into it as a starting point instead of leaving it empty —
-  the common case is both halves being the same or similar, not blank; (c)
-  no way to cancel a parade night that already has rows without leaving
-  orphaned empty rows in the DB (harmless, just untidy).
-- [ ] No squadron crest/logo image in the PDF header, and no way to link out
-  to the squadron's own website/social page from the app either —
-  `pdfgen.go` renders text only, and there's no per-squadron "badge or
-  external link" field anywhere. The real programmes have the RAFAC
-  roundel + squadron crest. Needs: an upload (or URL) field in squadron
-  settings, storage (a blob column or a file on disk — this app currently
-  has no file upload path at all, so this is also the first thing that'd
-  need one), and embedding the image in `pdfgen.go`'s title band.
-- [ ] Grid editor (`programme_edit.html`) isn't tested on mobile widths — it's
-  a wide table, likely needs horizontal scroll at minimum on a phone.
-- [ ] `programme_requirement_categories`/`entries` have a `sort_order` column
-  that's only ever appended to — no drag-reorder UI.
-- [ ] No accessibility pass (focus states, ARIA labels on the icon-only
-  delete/revoke buttons, colour-contrast check on the uniform-key swatches)
-  beyond what the Material color tokens give for free.
-- [ ] **In progress, paused mid-build:** a separate instructors list for the
-  grid's Instructor row — prefilled options for "All Staff", each
-  registered planner user (per squadron), or a custom typed name. Plan: an
-  HTML `<datalist>` (no JS needed — a `list=` attribute on the existing text
-  input, browser-native autocomplete, typing anything not listed still
-  works) built from `auth.Service.ListMembers`, attached only to Instructor
-  sub-rows (not Activity) in `programme_edit.html`. Not started: fetching
-  members in `programmeEdit`'s handler, the `<datalist>` markup itself, and
-  the `list=` attribute on the right inputs. Note in passing: `users.
-  display_name` exists in the schema but nothing ever sets it, so "each
-  registered planner user" would show as their email — fine for v1, but a
-  display-name field in squadron settings would make this much more
-  readable before relying on it.
-- [ ] fpdf's core Helvetica font is WinAnsi/Latin-1, not UTF-8 — any
-  non-Latin-1 character (an em-dash, a smart quote, a squadron name with an
-  accented character) reaching `internal/pdfgen` renders as mojibake rather
-  than erroring. Found via the version-footer's em-dash (fixed there by
-  just using a plain hyphen); not fixed project-wide. Proper fix is an
-  embedded Unicode TTF via `Fpdf.AddUTF8Font`.
+Roughly ordered by value for the effort.
 
-## Requested features (not yet built)
+1. **Instructors list.** A per-squadron list (name, rank, optional email)
+   plus "All Staff". Start with a native `<datalist>` on the Instructor row,
+   which needs no JavaScript. Also lets us set `display_name` on users.
+2. **Activities and training classes library.** A per-squadron catalogue
+   (title, syllabus/class, default instructor, notes) to pick from when
+   filling the grid. A proper searchable popup needs a small first-party
+   script, so decide on the CSP change once for this and for drag-and-drop.
+3. **Ideas board** (reminder notes for future months). Each idea has a title,
+   type, possible dates, contact details (e.g. RAF Careers), equipment needed,
+   cost, status (idea / asked / confirmed / dropped) and a "use in programme"
+   button that drops it into a day.
+4. **QR-code suggestions from cadets.** Each squadron gets a revocable public
+   link and QR code to a short form: type (camp, training day, airshow or
+   airbase visit, trip, other), proposed dates, cost, transport, location,
+   contact name, description. Submissions land in an inbox on the Ideas board
+   for staff to accept or reject. It's a public write endpoint, so it needs:
+   rate limiting (already have `ipLimiter`), a hidden honeypot field, strict
+   length limits, no cadet names or phone numbers collected, and moderation
+   before anything is shown.
+5. **Microsoft sign-in** (see the note below), alongside the password login.
+6. **Read-only sharing:** a published/final status plus a read-only link for
+   parents and cadets, and an `.ics` calendar feed.
+7. **Reminders:** email staff N days before a parade night that still has
+   blank activity or instructor cells.
+8. **Programme templates** for recurring evenings (e.g. "Monday: drill, then
+   first aid").
+9. **Instructor availability and duty rota,** with a clash warning when the
+   same person is on two things at once.
+10. **Audit trail:** "last edited by X at Y" on each programme, and an
+    optional change log.
+11. **Account hygiene:** change password, sign out everywhere, optional
+    two-factor.
+12. **Data export and backup:** download a squadron's data as JSON/CSV.
 
-- [ ] **Copy previous month's notes/requirements.** A button on the "new
-  month" flow (or on an existing draft programme) to pull the prior month's
-  `programme_weekend_notes`-adjacent requirement categories and/or notes
-  forward as a starting point, instead of every month starting from a
-  structurally-blank requirement tracker. Needs deciding exactly what
-  copies (requirement *categories* probably yes, *entries*/cadet names
-  probably no — those are presumably different cadets each month) —
-  worth confirming with whoever actually uses this before building it.
-- [ ] **Drag-to-reorder activity rows**, to rearrange a month's parade
-  nights without retyping. Tension to resolve first: this app currently
-  ships `script-src 'none'` in its CSP (see `internal/web/web.go`
-  `securityHeaders`) specifically because there's no JS anywhere — drag-
-  and-drop fundamentally needs JS (HTML5 drag events, or a library). Either
-  this is the feature that finally justifies loosening that CSP line (with
-  a `script-src 'self'` and a small first-party script, no CDN), or it's
-  worth asking whether "reorder" actually means "change which *date* an
-  activity is on" (which the existing form fields can already do, just
-  clunkily — editing a day's uniform/notes/rows already targets that day's
-  DB row regardless of calendar order) before building real drag-and-drop
-  for what might be a smaller problem.
-- [ ] **Explicit classification grouping**, e.g. "all but 1st Class do
-  Drill, 1st Class do something else" as a deliberate choice rather than a
-  side effect. Right now `pdfgen`'s merge (`mergeSegments`) and the grid's
-  saved text are the same mechanism: typing identical text into adjacent
-  classification cells is what makes them merge into one shared cell —
-  there's no explicit "group these classifications together" control, just
-  implicit merge-by-matching-text. Workable for simple cases but doesn't
-  scale well past 2 groups and isn't obvious from the editing UI alone (you
-  have to already know the merge-by-matching-text rule). A real fix
-  probably means a small per-row grouping control (e.g. checkboxes or a
-  drag-to-group picker across the classification columns) that then writes
-  the matching/non-matching text to produce the same merge behaviour today
-  reads implicitly.
-- [ ] **Day-of-week should not be a free-text field.** `programme_days.
-  day_label` is currently an editable `<input type="text" size="2">` in
-  `programme_edit.html` (`day_{{.ID}}_label`) — nothing stops it from being
-  wrong for the actual date, or from silently disagreeing with
-  `pdfgen.groupIntoWeeks`'/`drawWeekendCell`'s own weekday computation
-  (which uses the *real* `time.Weekday()` of `programme_days.date`, not
-  this label). This bit for real once already, in `cmd/genexamples` (see
-  git history around the "page-break bug" fix) — a hand-picked label that
-  didn't match the real calendar weekday silently broke week-grouping and
-  weekend-note matching. Fix: derive the displayed label from `date` alone
-  (`defaultDayLabels` in `internal/programme/store.go` already has the
-  M/Tu/W/T/F/Sa/Su mapping used at generation time — just use it at render
-  time too instead of reading a stored, editable column) and drop the
-  column/input entirely, or at minimum make the input read-only.
-- [ ] **Verify PDF export always reflects the current month's saved state**
-  — specifically Notes and the requirement tracker, not just the grid.
-  `programmePDF` already calls `GetFullProgramme` fresh on every request
-  (no caching layer anywhere in this app) and `pdfgen.Render` already
-  reads `fp.Requirements`/day `.Notes`, so this *should* already be
-  correct — but it's untested (see "no automated tests yet" above) and
-  worth a regression test pinning it down explicitly, not just trusting
-  the code reading. Also worth watching once the test-environment DB
-  snapshot (see "Three real environments" above) exists: test's PDF export
-  will only ever be as fresh as its last snapshot of prod, which is a
-  different kind of "stale" than a caching bug and should be obvious to
-  whoever's looking at test, not a surprise.
+### Can Microsoft sign-in work without being a RAFAC tenant admin?
 
-## Example PDFs
+Probably yes for registering the app, but not guaranteed for letting RAFAC
+users in. This is from general Entra ID behaviour, not checked against the
+RAFAC tenant:
 
-`examples/pdfs/` holds synthetic PDFs generated by `cmd/genexamples` —
-fabricated squadron/cadet/staff data, real layout patterns. If you're ever
-handed a *real* squadron programme again to diagnose a layout issue, don't
-commit it — see `.claude/skills/pdf-fidelity` for what to do instead (the
-real examples this was originally built from carried real cadets'/staff's
-names and were deliberately scrubbed from this repo and its git history).
+- You can register the app in **your own** Entra tenant (a free tenant is
+  enough) and mark it **multi-tenant**. You don't need admin rights in the
+  RAFAC tenant to do that.
+- A RAFAC user signing in is then asked to consent. If the RAFAC tenant
+  blocks user consent (common in government tenants), a tenant admin has to
+  approve the app once, or the user sees an "approval required" screen. That
+  is the part you can't control. Ask the RAFAC/MOD IT contact; the app only
+  needs the basic `openid profile email` permissions.
+- The "Microsoft SSO already in use" may be a separate app you can't reuse.
+  Reusing it only works if its owner adds this site as a redirect URI.
+- Don't trust the `email` claim alone. Match on the tenant ID (`tid`) and the
+  stable user ID (`oid`), and only allow a claim when the tenant is RAFAC's.
+  That keeps the current rule (only `oc.<n>@`/`snco.<n>@` can claim a
+  squadron) intact.
+- If admin approval is refused, keep the password login. It already works
+  for everyone.
+
+## Reference
+
+`examples/pdfs/` holds synthetic PDFs from `cmd/genexamples` (fabricated
+data). Never commit a real squadron programme; real cadet and staff names were
+scrubbed from this repo's history once already.
