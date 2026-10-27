@@ -480,7 +480,18 @@ func (s *Store) DeleteRequirementCategory(programmeID, categoryID int64) error {
 	return err
 }
 
-func (s *Store) AddRequirementEntry(categoryID int64, cadetName, note string) error {
+// AddRequirementEntry adds an entry to a category, but only if that category
+// belongs to programmeID — callers verify programmeID against the user's
+// squadron, so this check is what stops a forged catID reaching another
+// squadron's data.
+func (s *Store) AddRequirementEntry(programmeID, categoryID int64, cadetName, note string) error {
+	var owned int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM programme_requirement_categories WHERE id = ? AND programme_id = ?`, categoryID, programmeID).Scan(&owned); err != nil {
+		return err
+	}
+	if owned == 0 {
+		return sql.ErrNoRows
+	}
 	var maxOrder sql.NullInt64
 	if err := s.db.QueryRow(`SELECT MAX(sort_order) FROM programme_requirement_entries WHERE category_id = ?`, categoryID).Scan(&maxOrder); err != nil {
 		return err
@@ -490,8 +501,9 @@ func (s *Store) AddRequirementEntry(categoryID int64, cadetName, note string) er
 	return err
 }
 
-func (s *Store) DeleteRequirementEntry(categoryID, entryID int64) error {
-	_, err := s.db.Exec(`DELETE FROM programme_requirement_entries WHERE id = ? AND category_id = ?`, entryID, categoryID)
+func (s *Store) DeleteRequirementEntry(programmeID, categoryID, entryID int64) error {
+	_, err := s.db.Exec(`DELETE FROM programme_requirement_entries WHERE id = ? AND category_id = ?
+		AND category_id IN (SELECT id FROM programme_requirement_categories WHERE programme_id = ?)`, entryID, categoryID, programmeID)
 	return err
 }
 

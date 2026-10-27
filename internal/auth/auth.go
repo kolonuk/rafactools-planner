@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/mail"
 	"regexp"
 	"strings"
 	"time"
@@ -214,7 +215,7 @@ const inviteTTL = 7 * 24 * time.Hour
 // into their squadron. role must be "owner", "editor" or "viewer".
 func (s *Service) CreateInvite(squadronID, invitedBy int64, email, role string) (token string, err error) {
 	email = strings.ToLower(strings.TrimSpace(email))
-	if email == "" || !strings.Contains(email, "@") {
+	if addr, perr := mail.ParseAddress(email); perr != nil || addr.Address != email {
 		return "", errors.New("invalid email address")
 	}
 	switch role {
@@ -354,6 +355,9 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 	err := s.db.QueryRow(`SELECT id, squadron_id, email, display_name, role, password_hash, email_verified_at FROM users WHERE email = ?`, email).
 		Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &hash, &u.EmailVerifiedAt)
 	if errors.Is(err, sql.ErrNoRows) {
+		// Burn the same bcrypt time as a real check so response latency
+		// doesn't reveal which emails have accounts.
+		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return nil, ErrInvalidCredentials
 	} else if err != nil {
 		return nil, fmt.Errorf("lookup user: %w", err)
@@ -367,6 +371,10 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 	}
 	return &u, nil
 }
+
+// dummyHash is a valid bcrypt hash (of a random value) used to equalise
+// Authenticate's timing for unknown emails.
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("timing-equaliser"), bcrypt.DefaultCost)
 
 const sessionTTL = 30 * 24 * time.Hour
 

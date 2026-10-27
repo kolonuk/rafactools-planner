@@ -393,7 +393,7 @@ func (s *server) reqEntryAdd(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusNotFound, "Not found", "That programme doesn't exist.")
 		return
 	}
-	if err := s.Store.AddRequirementEntry(catID, r.FormValue("cadet_name"), r.FormValue("note")); err != nil {
+	if err := s.Store.AddRequirementEntry(id, catID, r.FormValue("cadet_name"), r.FormValue("note")); err != nil {
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add entry.")
 		return
 	}
@@ -413,6 +413,6 @@ func (s *server) reqEntryDelete(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusNotFound, "Not found", "That programme doesn't exist.")
 		return
 	}
-	_ = s.Store.DeleteRequirementEntry(catID, entryID)
+	_ = s.Store.DeleteRequirementEntry(id, catID, entryID)
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }

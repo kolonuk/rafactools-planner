@@ -38,6 +38,15 @@ docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine sh -c \
 `-race` here — CI's `ubuntu-24.04` runner has one and runs the race-enabled
 test there; don't skip it in CI.)
 
+## 3b. Static analysis and frontend lint (mirrors CI `go-lint` / `frontend-lint`)
+
+```sh
+go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
+go run github.com/securego/gosec/v2/cmd/gosec@v2.22.4 -severity medium -exclude-dir=cmd/genexamples ./...
+npx --yes -p stylelint@16.10.0 -p stylelint-config-recommended@14.0.1 stylelint "internal/web/static/**/*.css"
+.github/scripts/validate-html.sh
+```
+
 ## 4. Known-vulnerability scan
 
 ```sh
@@ -55,7 +64,7 @@ the distroless final stage) that `go build` alone did not:
 ```sh
 docker build -t rafactools-planner:dev .
 docker run -d --name rt-lint -p 18099:8080 \
-  -e SESSION_KEY=lint-smoke-test-session-key -e COOKIE_SECURE=false \
+  -e SESSION_KEY=lint-smoke-test-session-key-0123456789 -e COOKIE_SECURE=false \
   rafactools-planner:dev
 sleep 1 && curl -sf http://localhost:18099/health
 docker rm -f rt-lint

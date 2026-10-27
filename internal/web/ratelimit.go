@@ -87,11 +87,14 @@ func (l *ipLimiter) rateLimited(next http.HandlerFunc) http.HandlerFunc {
 // docker-compose.yml) — without it every request would appear to come from
 // Traefik's own container IP, making per-IP limiting useless. Falls back to
 // RemoteAddr for local dev, where there's no proxy in front.
+//
+// The LAST X-Forwarded-For entry is used: the proxy appends the address it
+// actually saw, whereas earlier entries are whatever the client sent and are
+// trivially spoofed to dodge the rate limit.
 func clientIP(r *http.Request) string {
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		// First entry is the original client; later ones are intermediate proxies.
-		first, _, _ := strings.Cut(fwd, ",")
-		return strings.TrimSpace(first)
+		parts := strings.Split(fwd, ",")
+		return strings.TrimSpace(parts[len(parts)-1])
 	}
 	if real := r.Header.Get("X-Real-IP"); real != "" {
 		return real
