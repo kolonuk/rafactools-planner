@@ -96,6 +96,25 @@ hyphenation). Re-check against `examples/pdfs/` after any change to
 - [ ] No accessibility pass (focus states, ARIA labels on the icon-only
   delete/revoke buttons, colour-contrast check on the uniform-key swatches)
   beyond what the Material color tokens give for free.
+- [ ] **In progress, paused mid-build:** a separate instructors list for the
+  grid's Instructor row — prefilled options for "All Staff", each
+  registered planner user (per squadron), or a custom typed name. Plan: an
+  HTML `<datalist>` (no JS needed — a `list=` attribute on the existing text
+  input, browser-native autocomplete, typing anything not listed still
+  works) built from `auth.Service.ListMembers`, attached only to Instructor
+  sub-rows (not Activity) in `programme_edit.html`. Not started: fetching
+  members in `programmeEdit`'s handler, the `<datalist>` markup itself, and
+  the `list=` attribute on the right inputs. Note in passing: `users.
+  display_name` exists in the schema but nothing ever sets it, so "each
+  registered planner user" would show as their email — fine for v1, but a
+  display-name field in squadron settings would make this much more
+  readable before relying on it.
+- [ ] fpdf's core Helvetica font is WinAnsi/Latin-1, not UTF-8 — any
+  non-Latin-1 character (an em-dash, a smart quote, a squadron name with an
+  accented character) reaching `internal/pdfgen` renders as mojibake rather
+  than erroring. Found via the version-footer's em-dash (fixed there by
+  just using a plain hyphen); not fixed project-wide. Proper fix is an
+  embedded Unicode TTF via `Fpdf.AddUTF8Font`.
 
 ## Example PDFs
 
