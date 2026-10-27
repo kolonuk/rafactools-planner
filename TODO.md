@@ -118,7 +118,7 @@ Roughly ordered by value for the effort.
 12. **Documentation, next steps.** The versioned in-app docs exist
     (`/docs`, see `.claude/skills/docs/SKILL.md`). Still to do: add pages for
     each feature on this list as it is built; take the first release snapshot
-    with `.github/scripts/docs-snapshot.sh 1.<PR number>` once a release is
+    with `go run ./cmd/devtools docs-snapshot 1.<PR number>` once a release is
     designated, so the version selector and compare view have something to
     compare; link relevant screens to their help page; images/screenshots
     (not supported yet); in-docs search (needs the CSP decision above).

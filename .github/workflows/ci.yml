@@ -81,7 +81,7 @@ jobs:
       # Templates are Go templates (HTML linters can't parse {{ }}), so
       # this boots the server and validates the rendered public pages.
       - name: html-validate (rendered pages)
-        run: .github/scripts/validate-html.sh
+        run: go run ./cmd/devtools validate-html
       # The app ships no JavaScript and its CSP is script-src 'none'. Fail
       # if any appears so it's a conscious decision (add ESLint and a CSP
       # review at the same time).
@@ -101,14 +101,18 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      # The PR body is passed through the environment, never interpolated
-      # into the script, so it cannot inject commands.
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      # The PR body is passed through the environment and read by the Go
+      # tool as data; it is never interpolated into a shell command.
       - name: Require a docs change (or a stated reason)
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: .github/scripts/docs-check.sh
+        run: go run ./cmd/devtools docs-check
 
   workflow-lint:
     name: Lint GitHub workflows (actionlint)
