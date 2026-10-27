@@ -77,3 +77,12 @@ jobs:
       - uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
         with:
           category: "/language:go"
+          # Uploading SARIF to GitHub's code-scanning UI needs GitHub
+          # Advanced Security, which isn't available for a private repo on
+          # this plan (confirmed: `security_and_analysis` comes back null
+          # from the repos API) — upload always failed with "Code scanning
+          # is not enabled for this repository", failing CI on every push
+          # despite the scan itself succeeding. The analysis still runs and
+          # still fails the job on its own terms; it just doesn't try to
+          # push results somewhere this plan can't receive them.
+          upload: false
