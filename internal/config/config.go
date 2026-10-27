@@ -20,6 +20,12 @@ type Config struct {
 	CookieSecure bool
 	ClaimDomain  string // email domain allowed to claim a squadron, e.g. "rafac.mod.gov.uk"
 
+	// SkipEmailVerification marks every new claim as verified immediately,
+	// skipping the confirmation-email step entirely — for dev only. Real
+	// environments (test/prod) must never set this: it removes the one
+	// check that a claim's email address is real and reachable.
+	SkipEmailVerification bool
+
 	SMTPHost string
 	SMTPPort int
 	SMTPUser string
@@ -35,10 +41,12 @@ func Load() (Config, error) {
 		SessionKey:   os.Getenv("SESSION_KEY"),
 		CookieSecure: getenvBool("COOKIE_SECURE", true),
 		ClaimDomain:  getenv("CLAIM_DOMAIN", "rafac.mod.gov.uk"),
-		SMTPHost:     os.Getenv("SMTP_HOST"),
-		SMTPUser:     os.Getenv("SMTP_USER"),
-		SMTPPass:     os.Getenv("SMTP_PASS"),
-		MailFrom:     getenv("MAIL_FROM", "no-reply@rafactools-planner.local"),
+
+		SkipEmailVerification: getenvBool("SKIP_EMAIL_VERIFICATION", false),
+		SMTPHost:              os.Getenv("SMTP_HOST"),
+		SMTPUser:              os.Getenv("SMTP_USER"),
+		SMTPPass:              os.Getenv("SMTP_PASS"),
+		MailFrom:              getenv("MAIL_FROM", "no-reply@rafactools-planner.local"),
 	}
 
 	if c.SessionKey == "" {
