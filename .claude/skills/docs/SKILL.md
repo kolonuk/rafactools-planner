@@ -105,7 +105,7 @@ Decided once; do not relitigate without a reason that beats these:
    not write from memory or from `TODO.md`. A number in the docs (days, limits,
    characters) must be traced to the constant in code.
 10. **Releases snapshot the docs.** When the owner designates a release
-    (`1.<PR number>`), run `.github/scripts/docs-snapshot.sh <version>` in that
+    (`1.<PR number>`), run `go run ./cmd/devtools docs-snapshot <version>` in that
     PR. It relabels `next` entries and `since: next` to the new version in both
     the working copy and the snapshot, copies `next/` to `<version>/`, and runs
     the docs tests. Read the snapshot in the running app, commit it, and never
@@ -117,14 +117,17 @@ Decided once; do not relitigate without a reason that beats these:
     output) for each page you touched, and confirm the page list, version
     selector and compare view still work. If the docs check fails, the work is
     not done — fix it, never skip, weaken or delete the check.
-12. **PRs.** CI (`.github/scripts/docs-check.sh`) fails a PR that changes
+12. **PRs.** CI (`go run ./cmd/devtools docs-check`) fails a PR that changes
     user-visible code (`internal/web`, `internal/config`, `internal/auth`,
     `internal/mail`, `internal/pdfgen`, `cmd/server`, `Dockerfile`,
     `docker-compose.yml`, workflows; test files excluded) without touching
     `internal/docs/content/`, unless the PR body has a line starting
     `No docs impact: ` followed by a specific reason. Do not write that line to
     get past the check; use it only when it is true, and say why. Locally you
-    can run the same script with `BASE`, `HEAD` and `PR_BODY` set.
+    can run the same tool with `BASE`, `HEAD` (full commit hashes, e.g.
+    `BASE=$(git merge-base origin/main HEAD) HEAD=$(git rev-parse HEAD)`) and
+    `PR_BODY` set. All repo tooling is Go (`cmd/devtools`); no Python or shell
+    scripts belong in the repo.
 13. **Accuracy beats completeness.** If you cannot verify a statement, leave it
     out and say so; do not soften it into something vague. When writing or
     reviewing docs, test the claim against the running app or a test, as was done

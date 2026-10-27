@@ -44,7 +44,7 @@ test there; don't skip it in CI.)
 go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.22.4 -severity medium -exclude-dir=cmd/genexamples ./...
 npx --yes -p stylelint@16.10.0 -p stylelint-config-recommended@14.0.1 stylelint "internal/web/static/**/*.css"
-.github/scripts/validate-html.sh
+go run ./cmd/devtools validate-html
 ```
 
 ## 3c. Docs
@@ -53,7 +53,8 @@ npx --yes -p stylelint@16.10.0 -p stylelint-config-recommended@14.0.1 stylelint 
 go test ./internal/docs ./internal/web -count=1   # validity, links, versions, routes
 ```
 
-For a PR, also run `.github/scripts/docs-check.sh` (see `.claude/skills/docs/SKILL.md`).
+For a PR, also run `go run ./cmd/devtools docs-check` with `BASE`, `HEAD` (commit hashes) and
+`PR_BODY` set (see `.claude/skills/docs/SKILL.md`).
 
 ## 4. Known-vulnerability scan
 
