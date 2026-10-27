@@ -1,0 +1,44 @@
+{{define "content"}}
+<div class="docs docs-compare">
+  <p class="docs-back"><a href="{{url "/docs"}}">&larr; Help home</a> · <a href="{{url "/"}}">Back to the planner</a></p>
+  <h1>{{if .PageSlug}}{{.PageTitle}}{{else}}What changed{{end}}</h1>
+
+  <form method="get" action="{{.CompareURL}}" class="inline-form">
+    {{if .PageSlug}}<input type="hidden" name="page" value="{{.PageSlug}}">{{end}}
+    <label>From
+      <select name="from">{{range .FromOptions}}<option value="{{.Label}}" {{if .Selected}}selected{{end}}>{{.Display}}</option>{{end}}</select>
+    </label>
+    <label>To
+      <select name="to">{{range .ToOptions}}<option value="{{.Label}}" {{if .Selected}}selected{{end}}>{{.Display}}</option>{{end}}</select>
+    </label>
+    <button type="submit">Compare</button>
+  </form>
+
+  {{if .PageSlug}}
+    <p class="muted">Comparing <strong>{{.FromDisplay}}</strong> with <strong>{{.ToDisplay}}</strong>. <a href="{{.SummaryURL}}">All pages</a></p>
+    {{if .MissingFrom}}<p class="docs-banner">This page did not exist in {{.FromDisplay}}.</p>{{end}}
+    {{if .MissingTo}}<p class="docs-banner">This page no longer exists in {{.ToDisplay}}.</p>{{end}}
+    {{if .Notes}}
+    <section class="card">
+      <h2>Recorded changes</h2>
+      <ul>{{range .Notes}}<li><strong>{{.Version}}</strong>: {{.Note}}</li>{{end}}</ul>
+    </section>
+    {{end}}
+    {{if .Differs}}
+    <section class="card">
+      <h2>Text</h2>
+      <pre class="diff" aria-label="Differences between the two versions">{{range .Lines}}<span class="diff-{{.Kind}}"><span class="diff-mark" aria-hidden="true">{{if eq .Kind "add"}}+{{else if eq .Kind "del"}}-{{else}} {{end}}</span>{{if eq .Kind "add"}}<span class="visually-hidden">Added: </span>{{else if eq .Kind "del"}}<span class="visually-hidden">Removed: </span>{{end}}{{.Text}}
+</span>{{end}}</pre>
+    </section>
+    {{else}}<p>The text is identical in these two versions.</p>{{end}}
+  {{else}}
+    <p class="muted">Pages that were added, removed or changed between <strong>{{.FromDisplay}}</strong> and <strong>{{.ToDisplay}}</strong>.</p>
+    {{if .Rows}}
+    <table class="list">
+      <thead><tr><th>Page</th><th>What happened</th></tr></thead>
+      <tbody>{{range .Rows}}<tr><td><a href="{{.URL}}">{{.Title}}</a></td><td>{{.Status}}</td></tr>{{end}}</tbody>
+    </table>
+    {{else}}<p>No differences.</p>{{end}}
+  {{end}}
+</div>
+{{end}}

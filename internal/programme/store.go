@@ -316,6 +316,11 @@ func (s *Store) SaveDaysAndRows(squadronID, programmeID int64, days []DayInput) 
 		if n, _ := res.RowsAffected(); n == 0 {
 			return fmt.Errorf("day %d does not belong to programme %d", d.ID, programmeID)
 		}
+		if d.IsParade {
+			if err := seedParadeRows(tx, squadronID, d.ID); err != nil {
+				return err
+			}
+		}
 
 		for _, r := range d.Rows {
 			textsJSON, err := json.Marshal(r.Texts)
@@ -336,6 +341,35 @@ func (s *Store) SaveDaysAndRows(squadronID, programmeID int64, days []DayInput) 
 		return err
 	}
 	return tx.Commit()
+}
+
+// seedParadeRows gives a parade night its half-1 activity and instructor
+// rows if it has none — the case when a night is ticked as a parade night
+// after the programme was generated. Existing rows are never touched, so
+// unticking and re-ticking keeps what was typed.
+func seedParadeRows(tx *sql.Tx, squadronID, dayID int64) error {
+	var have int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM programme_rows WHERE day_id = ?`, dayID).Scan(&have); err != nil {
+		return err
+	}
+	if have > 0 {
+		return nil
+	}
+	var classJSON string
+	if err := tx.QueryRow(`SELECT classifications FROM squadrons WHERE id = ?`, squadronID).Scan(&classJSON); err != nil {
+		return err
+	}
+	var classes []string
+	if err := json.Unmarshal([]byte(classJSON), &classes); err != nil {
+		return fmt.Errorf("parse classifications: %w", err)
+	}
+	empty, _ := json.Marshal(make([]string, len(classes)))
+	for _, rt := range []string{"activity", "instructor"} {
+		if _, err := tx.Exec(`INSERT INTO programme_rows (day_id, half, row_type, texts) VALUES (?, 1, ?, ?)`, dayID, rt, string(empty)); err != nil {
+			return fmt.Errorf("seed %s row: %w", rt, err)
+		}
+	}
+	return nil
 }
 
 // AddHalf turns on the second half for a parade day, seeding empty

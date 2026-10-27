@@ -17,6 +17,7 @@ import (
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/config"
+	"rafactools-planner/internal/docs"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
 	"rafactools-planner/internal/version"
@@ -32,6 +33,7 @@ type Deps struct {
 	Auth  *auth.Service
 	Store *programme.Store
 	Mail  mail.Sender
+	Docs  *docs.Library
 	Cfg   config.Config
 }
 
@@ -48,6 +50,7 @@ type server struct {
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept",
 	"dashboard", "squadron_settings", "programme_edit",
+	"docs_page", "docs_compare",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -114,6 +117,15 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /invite/{token}", authLimiter.rateLimited(s.withUserOptional(s.inviteSubmit)))
 
 	mux.HandleFunc("GET /{$}", s.requireAuth(s.dashboard))
+
+	// Documentation: behind login like everything else. Version labels are
+	// validated against the library, never used as file paths.
+	mux.HandleFunc("GET /docs", s.requireAuth(s.docsRoot))
+	mux.HandleFunc("GET /docs/{$}", s.requireAuth(s.docsRoot))
+	mux.HandleFunc("GET /docs/go", s.requireAuth(s.docsGo))
+	mux.HandleFunc("GET /docs/compare", s.requireAuth(s.docsCompare))
+	mux.HandleFunc("GET /docs/{version}/{$}", s.requireAuth(s.docsPage))
+	mux.HandleFunc("GET /docs/{version}/{slug}", s.requireAuth(s.docsPage))
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))

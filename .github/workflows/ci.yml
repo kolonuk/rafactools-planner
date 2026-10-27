@@ -93,6 +93,23 @@ jobs:
             echo "Inline script/handlers in templates conflict with the CSP"; exit 1
           fi
 
+  docs-check:
+    name: Docs updated with user-visible changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      # The PR body is passed through the environment, never interpolated
+      # into the script, so it cannot inject commands.
+      - name: Require a docs change (or a stated reason)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: .github/scripts/docs-check.sh
+
   workflow-lint:
     name: Lint GitHub workflows (actionlint)
     runs-on: ubuntu-24.04

@@ -13,6 +13,17 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **feat**: in-app help at `/docs`, behind login and in the app's theme: 14
+  pages for users and operators, a version selector, a compare view and
+  per-page "first appeared in / changed in" notes. Embedded in the binary;
+  validated at build time and at startup. A "Help" link is in the top bar.
+- **fix**: passwords over 72 bytes were refused with a raw bcrypt error; they
+  now get a clear message. Ticking "Parade" on a night that was not generated
+  as one gave it no activity or instructor boxes; it now does. The
+  check-your-email page no longer tells users to read TODO.md.
+- **chore**: docs skill, docs snapshot script and a pull-request check that
+  user-visible changes include a docs change.
+
 - **security**: requirement entries could be added to or deleted from another
   squadron's programme by forging a category ID; mail headers could be
   injected via invite addresses/squadron names; rate limiter trusted a

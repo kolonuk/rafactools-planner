@@ -10,9 +10,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"rafactools-planner/internal/docs"
 	"regexp"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/config"
@@ -42,6 +44,11 @@ type testApp struct {
 
 func newApp(t *testing.T, tweak ...func(*config.Config)) *testApp {
 	t.Helper()
+	return newAppWithDocs(t, testDocs(t), tweak...)
+}
+
+func newAppWithDocs(t *testing.T, lib *docs.Library, tweak ...func(*config.Config)) *testApp {
+	t.Helper()
 	database, err := db.Open(filepath.Join(t.TempDir(), "web.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -57,7 +64,7 @@ func newApp(t *testing.T, tweak ...func(*config.Config)) *testApp {
 	a := &testApp{t: t, db: database, cfg: cfg}
 	a.auth = auth.NewService(database, cfg.SessionKey, cfg.CookieSecure, cfg.ClaimDomain, cfg.SkipEmailVerification)
 	a.store = programme.NewStore(database)
-	a.srv = httptest.NewServer(NewRouter(&Deps{Auth: a.auth, Store: a.store, Mail: mail.Sender{}, Cfg: cfg}))
+	a.srv = httptest.NewServer(NewRouter(&Deps{Auth: a.auth, Store: a.store, Mail: mail.Sender{}, Docs: lib, Cfg: cfg}))
 	t.Cleanup(func() { a.srv.Close(); database.Close() })
 	return a
 }
@@ -226,3 +233,25 @@ func count(t *testing.T, d *sql.DB, query string, args ...any) int {
 }
 
 var regexpHref = regexp.MustCompile(`(?:href|action)="([^"]+)"`)
+
+// testDocs is a two-version docs library so version selection and
+// comparison are exercised; the real embedded docs are validated separately
+// in internal/docs.
+func testDocs(t *testing.T) *docs.Library {
+	t.Helper()
+	page := func(title, since, changed, body string) *fstest.MapFile {
+		fm := "---\ntitle: " + title + "\norder: 1\nsummary: s\nsince: " + since + "\n" + changed + "---\n" + body
+		return &fstest.MapFile{Data: []byte(fm)}
+	}
+	lib, err := docs.New(fstest.MapFS{
+		"1.1/index.md":  page("Home", "1.0", "", "Welcome one.\n\nSee [roles](roles).\n"),
+		"1.1/roles.md":  page("Roles", "1.0", "", "Owners edit.\nViewers read.\n"),
+		"next/index.md": page("Home", "1.0", "changed:\n  - next: Reworded.\n", "Welcome two.\n\nSee [roles](roles) and [settings](app:/squadron).\n\nRaw <script>alert(1)</script> html.\n"),
+		"next/roles.md": page("Roles", "1.0", "changed:\n  - next: Viewers can export PDFs.\n", "Owners edit.\nEditors edit.\nViewers read and export.\n"),
+		"next/extra.md": page("Extra", "next", "", "A new page.\n"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return lib
+}
