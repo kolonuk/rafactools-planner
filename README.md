@@ -23,6 +23,14 @@ a spreadsheet one person maintains.
   version notes. Authoring rules are in `.claude/skills/docs/SKILL.md`; the
   pages live in `internal/docs/content/`.
 
+## Running it yourself
+
+For security and trust, run your own copy; a free public site is also available from the
+maintainer. What you need, the settings (which belong in GitHub secrets and which in
+variables) and the deployment stack are in the in-app docs page
+`internal/docs/content/next/run-your-own.md` ("Run your own copy" under Help). The master admin
+settings can be created on GitHub with `go run ./cmd/devtools github-setup`.
+
 ## Architecture
 
 - **Backend**: Go (`cmd/server`, `internal/*`), no web framework — stdlib
