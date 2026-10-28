@@ -65,10 +65,9 @@ Chromium), plus the "Add a second half" fix. Still to do:
   cells, and long words break mid-word in the Weekends column. Compare
   against `examples/pdfs/` after any `internal/pdfgen` change (see the
   `pdf-fidelity` skill).
-- [ ] **Accessibility, rest of the pass:** check uniform-swatch contrast and
-  run a screen-reader and keyboard-only walk through each page (delete buttons
-  now have row-specific names and every control shows focus). The grid already
-  scrolls sideways on a phone; a real mobile layout is still open.
+- [ ] **Mobile layout.** Check uniform-swatch contrast. The grid scrolls sideways
+  on a phone; a real mobile layout is still open. (Screen-reader and keyboard
+  walk-throughs are not wanted for now; focus on usable features and bugs.)
 - [ ] **Squadron crest/logo image** in the PDF header. The website link is done;
   an image needs a first upload path (storage plus an upload form), which the
   app does not have yet.
@@ -149,9 +148,8 @@ Roughly ordered by value for the effort.
 
 Small gaps found while building and reviewing; each is a candidate to pick up.
 
-- **Delete a programme** and a **status** that means something (draft / final).
-  The database has both, but the screen can't delete a month and the status is
-  always "draft".
+- A **status** that means something (draft / final). The database has it, but
+  it is always "draft". Months are deliberately never deleted: keep them all.
 - **Edit uniform colours** (names and colours) in squadron settings; today only
   the five defaults exist.
 - **Resend an invite** (and see when it was sent); today you revoke and re-invite.
