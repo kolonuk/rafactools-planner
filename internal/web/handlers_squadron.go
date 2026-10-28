@@ -1,9 +1,14 @@
 package web
 
 import (
+	"errors"
+	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+
+	"rafactools-planner/internal/auth"
 )
 
 var weekdayNames = []struct {
@@ -76,6 +81,14 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 	}
 	sq.Subtitle = r.FormValue("subtitle")
 	sq.ProtectiveMarking = r.FormValue("protective_marking")
+	// The address goes into a clickable link on the dashboard and in the PDF,
+	// so only a plain http(s) address is accepted (never javascript:, data:, file:).
+	website := strings.TrimSpace(r.FormValue("website_url"))
+	if website != "" && !validWebsiteURL(website) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "The website must be a full address starting with http:// or https://.")
+		return
+	}
+	sq.WebsiteURL = website
 
 	var classifications []string
 	for _, line := range strings.Split(r.FormValue("classifications"), "\n") {
@@ -138,4 +151,73 @@ func (s *server) inviteRevoke(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r.Context())
 	_ = s.Auth.RevokeInvite(u.SquadronID, r.PathValue("token"))
 	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
+}
+
+func (s *server) memberSetRole(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	memberID, ok := parseID(r, "memberID")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
+		return
+	}
+	if err := s.Auth.SetMemberRole(u.SquadronID, memberID, r.FormValue("role")); err != nil {
+		s.memberError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
+}
+
+func (s *server) memberRemove(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	memberID, ok := parseID(r, "memberID")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
+		return
+	}
+	if err := s.Auth.RemoveMember(u.SquadronID, memberID); err != nil {
+		s.memberError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
+}
+
+// memberError shows the reason for a refused member change when it is one of
+// the known, user-meaningful ones, and a generic message (never the raw
+// database error) for anything else.
+func (s *server) memberError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, auth.ErrLastOwner), errors.Is(err, auth.ErrInvalidRole):
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", err.Error())
+	case errors.Is(err, auth.ErrNotMember):
+		s.renderError(w, r, http.StatusNotFound, "Squadron settings", err.Error())
+	default:
+		log.Printf("member change: %v", err)
+		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not change that member. Try again.")
+	}
+}
+
+// validWebsiteURL accepts only absolute http(s) URLs of sensible length with
+// a host and no spaces or control characters.
+func validWebsiteURL(raw string) bool {
+	if len(raw) > 200 {
+		return false
+	}
+	for _, r := range raw {
+		if r <= ' ' || r == 0x7f {
+			return false
+		}
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || u.User != nil {
+		return false
+	}
+	return u.Scheme == "http" || u.Scheme == "https"
 }

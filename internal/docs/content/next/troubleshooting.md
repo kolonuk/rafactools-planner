@@ -4,7 +4,7 @@ order: 90
 summary: What the messages mean and what to do.
 since: 1.0
 changed:
-  - next: Added the password reset messages.
+  - next: Added the password reset, last-owner and website messages.
 ---
 # Troubleshooting
 
@@ -22,6 +22,8 @@ changed:
 | `That invite link is invalid or has expired.` | The invite was used, revoked or is older than 7 days. | Ask an owner for a new one. |
 | `Viewers can't make changes.` | Your role is viewer. | Ask an owner to invite you again as an editor: see [roles and invites](roles-and-invites). |
 | `Only the squadron owner can do that.` | The page is for owners. | Ask an owner. |
+| `can't remove or demote the squadron's only owner` | Every squadron must keep at least one owner. | Make someone else an owner first: see [roles and invites](roles-and-invites). |
+| `The website must be a full address starting with http:// or https://.` | The squadron website field only accepts web addresses. | Include `https://`, or leave it blank: see [squadron settings](squadron-settings). |
 | Closure dates rejected | Dates must be real, in order, and at most 366 days apart. | Check the dates: see [programmes](programmes). |
 | Odd characters in the PDF | Characters outside Western European text. | Use plain quotes and hyphens: see [PDF export](pdf-export). |
 

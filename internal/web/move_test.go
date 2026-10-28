@@ -197,3 +197,33 @@ func TestViewersGetNeitherGridNorScript(t *testing.T) {
 		}
 	}
 }
+
+// Removing a member who created a programme or sent an invite used to fail
+// with a raw foreign-key error, because those rows pointed at the member.
+func TestRemoveMemberWhoCreatedAProgrammeAndSentInvites(t *testing.T) {
+	app := newApp(t)
+	ownerEmail := app.owner("1204")
+	app.member(ownerEmail, "ed@example.org", "owner") // an owner, so they may invite
+	ed := app.login("ed@example.org")
+	ed.post("/programmes", url.Values{"year": {"2030"}, "month": {"4"}}).Body.Close()
+	ed.post("/squadron/invites", url.Values{"email": {"pending@example.org"}, "role": {"viewer"}}).Body.Close()
+	var edID int64
+	app.db.QueryRow(`SELECT id FROM users WHERE email = 'ed@example.org'`).Scan(&edID)
+
+	owner := app.login(ownerEmail)
+	wantRedirect(t, owner.post("/squadron/members/"+strconv.FormatInt(edID, 10)+"/remove", nil), "/squadron")
+
+	if count(t, app.db, `SELECT COUNT(*) FROM users WHERE email = 'ed@example.org'`) != 0 {
+		t.Error("member not removed")
+	}
+	if count(t, app.db, `SELECT COUNT(*) FROM programmes`) != 1 {
+		t.Error("their programme should stay")
+	}
+	if count(t, app.db, `SELECT COUNT(*) FROM programmes WHERE created_by IS NULL`) != 1 {
+		t.Error("programme still points at a removed user")
+	}
+	if count(t, app.db, `SELECT COUNT(*) FROM invites WHERE email = 'pending@example.org'`) != 0 {
+		t.Error("invites sent by a removed member should be withdrawn")
+	}
+	wantRedirect(t, ed.get("/"), "/login") // and they are signed out
+}

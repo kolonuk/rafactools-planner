@@ -4,6 +4,7 @@ order: 60
 summary: What the exported programme looks like.
 since: 1.0
 changed:
+  - next: The squadron website, if set, is printed under the subtitle as a clickable link.
   - next: A closure with unreadable dates can no longer make the export hang.
 ---
 # PDF export
@@ -15,7 +16,8 @@ the top of a programme. The file opens in your browser and is named like
 ## What is in it
 
 - One portrait A4 page for the whole month.
-- A title band with the squadron name, subtitle and month.
+- A title band with the squadron name, subtitle, the squadron website (if you set
+  one in [squadron settings](squadron-settings)) and the month.
 - The protective marking at the top and bottom, if you set one in
   [squadron settings](squadron-settings).
 - One row group per day, with the Activity and Instructor text under each

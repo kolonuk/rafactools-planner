@@ -1,5 +1,6 @@
 {{define "content"}}
 <h1>{{.Squadron.Name}}</h1>
+{{if .Squadron.WebsiteURL}}<p class="muted"><a href="{{.Squadron.WebsiteURL}}" target="_blank" rel="noopener">{{.Squadron.WebsiteURL}}</a></p>{{end}}
 
 <section class="card">
   <h2>Training programmes</h2>

@@ -17,6 +17,9 @@ baseline instead of per-entry.
   pages for users and operators, a version selector, a compare view and
   per-page "first appeared in / changed in" notes. Embedded in the binary;
   validated at build time and at startup. A "Help" link is in the top bar.
+- **fix**: removing a member who had created a programme or sent an invite failed with a raw database error; their programmes now stay (without a creator), their pending invites are withdrawn, and unexpected errors no longer show database text.
+- **security**: the squadron website address is validated on the server (http/https only) before it becomes a link on the dashboard and in the PDF.
+- **fix**: the new "Remove second half" button sat inside the grid form like "Add a second half" did, so it submitted the grid instead; it now uses its own form.
 - **feat**: password reset ("Forgot your password?"): an emailed link that works once and expires after an hour, stored only as a hash, never reveals whether an address has an account, is rate limited, and signs the user out everywhere when used. The handlers now send mail through a small `Mailer` interface so tests can follow the real links.
 - **feat**: move a parade night's activities to another date, by drag-and-drop (TypeScript, `internal/web/ts/programme-grid.ts`, compiled into `static/js/gen/`) or with a plain "Move" control that works without scripts, with the keyboard and on touch screens. It swaps the two dates so nothing is overwritten, and saves other pending edits first.
 - **fix**: "+ Add a second half to this night" did nothing in a real browser (a form nested in a form made it submit the whole grid); fixed, and the programme editor is now part of the rendered-HTML validation. Table headers have `scope` for screen readers.
@@ -49,6 +52,28 @@ baseline instead of per-entry.
 - **fix**: PDF footer text used an em-dash, which fpdf's core Helvetica font
   (WinAnsi/Latin-1, not UTF-8) rendered as mojibake — same trap applies to
   any other non-Latin-1 character reaching the PDF renderer.
+- **feat**: instructor `<datalist>` on the grid's Instructor row — "All
+  Staff" plus each registered squadron member, native browser autocomplete
+  (no JS), still free text for anything else.
+- **feat**: squadron members can now be removed or have their role changed
+  from squadron settings — previously an owner could invite people but
+  never demote or remove an existing member. Refuses to remove or demote
+  the squadron's last owner.
+- **feat**: squadron website link — set in squadron settings, shown on the
+  dashboard and in the PDF title band.
+- **feat**: adding a parade night's second half now clones the first
+  half's text instead of leaving it blank; removing a second half warns
+  (with a side-by-side comparison) if its content actually differs from
+  the first half's, rather than silently discarding it.
+- **fix**: a parade night's day-of-week letter was a free-text field a user
+  could edit to disagree with the actual calendar date, which had already
+  caused a real bug once (see `cmd/genexamples` history). Now derived once
+  from the date at month-creation time and never user-editable.
+- **fix**: programme grid wrapped in a horizontal-scroll container for
+  narrow screens, instead of squeezing every column illegibly thin.
+- **chore**: tests for the last-owner removal/demotion guard, that
+  migrations apply exactly once, and that PDF output actually changes when
+  the underlying Notes/requirement data does.
 
 ## Baseline (1.0) — initial build
 

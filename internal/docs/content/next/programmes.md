@@ -4,6 +4,9 @@ order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
 changed:
+  - next: The day label is worked out from the date and can no longer be edited.
+  - next: A new second half starts as a copy of the first, and a second half can be removed (with a warning if the halves differ).
+  - next: Instructor boxes suggest All Staff and your members as you type.
   - next: Activities can be moved to another date, by dragging or with the Move control.
   - next: "+ Add a second half to this night" now works in the browser (it previously saved the grid instead).
   - next: Closure and weekend-note dates are checked when saved; a closure must end on or after its start and last at most 366 days.
@@ -29,8 +32,8 @@ classification.
 
 Open **Edit** on a month. For each day you can set:
 
-- **Day** – the short label shown on the PDF. It is a text box you can edit; if
-  you change it, make sure it is still right for the date.
+- **Day** – the weekday (for example `M` or `Tu`), worked out from the date. It
+  cannot be edited, so it can never disagree with the calendar.
 - **Parade** – tick for a parade night. A night ticked after the month was
   created gets its Activity and Instructor rows when you save.
 - The uniform for the night (the dropdown beside Parade).
@@ -40,14 +43,30 @@ Open **Edit** on a month. For each day you can set:
 
 Select **Save programme** to keep your changes. Nothing is saved until you do.
 
+As you type in an **Instructor** box the browser suggests **All Staff** and each
+member of your squadron (by their email address). They are only suggestions: you
+can type any name.
+
+On a narrow screen the grid scrolls sideways rather than squeezing its columns.
+
 **Show parade evenings only** hides the days that are not parade nights, to make
 the grid shorter.
 
-### Adding a second half
+### Adding and removing a second half
 
 A parade night starts with one half. **+ Add a second half to this night** adds a
-second pair of Activity and Instructor rows. It cannot currently be removed
-again: see [known limits](known-limits).
+second pair of Activity and Instructor rows, **copied from the first half** so
+you only need to change what differs.
+
+**− Remove second half** takes a night back to one half.
+
+- If the second half has the same text as the first, it is removed straight away.
+- If it is different, you are shown both halves side by side and asked to
+  confirm with **Yes, remove Half 2**, because removing it deletes that text.
+  **Cancel** keeps it.
+
+Both buttons act on the saved programme, so select **Save programme** first if
+you have typed changes you want to keep.
 
 ## Moving activities to another date
 

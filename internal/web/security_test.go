@@ -356,3 +356,43 @@ func TestBasePathPrefixesRedirectsAndLinks(t *testing.T) {
 		}
 	}
 }
+
+// The squadron website is rendered as a link on the dashboard and written into
+// the PDF as a clickable link, so only plain http(s) addresses are stored.
+func TestSquadronWebsiteMustBeAnHTTPAddress(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1401")
+	c := app.login(email)
+	sqID := app.squadronID(email)
+	website := func() string {
+		sq, _ := app.store.GetSquadron(sqID)
+		return sq.WebsiteURL
+	}
+
+	for _, bad := range []string{
+		"javascript:alert(1)", "data:text/html,<script>x</script>", "file:///etc/passwd", "ftp://example.org",
+		"example.org", "//example.org", "https://", "https://user:pass@example.org", "https://exa mple.org",
+		"https://example.org/\x00", "https://example.org/" + strings.Repeat("a", 250),
+	} {
+		resp := c.post("/squadron", url.Values{"name": {"N"}, "website_url": {bad}})
+		if resp.StatusCode != 400 {
+			t.Errorf("%q accepted (status %d)", bad, resp.StatusCode)
+		}
+		resp.Body.Close()
+		if website() != "" {
+			t.Fatalf("%q was stored", bad)
+		}
+	}
+
+	wantRedirect(t, c.post("/squadron", url.Values{"name": {"N"}, "website_url": {"  https://sqn.example.org/about  "}}), "/squadron")
+	if website() != "https://sqn.example.org/about" {
+		t.Errorf("stored %q", website())
+	}
+	if !strings.Contains(body(c.get("/")), `href="https://sqn.example.org/about"`) {
+		t.Error("link not shown on the dashboard")
+	}
+	wantRedirect(t, c.post("/squadron", url.Values{"name": {"N"}, "website_url": {""}}), "/squadron")
+	if website() != "" {
+		t.Error("blank did not clear the website")
+	}
+}
