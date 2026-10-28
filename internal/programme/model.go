@@ -16,7 +16,8 @@ type Squadron struct {
 	Name              string
 	Subtitle          string
 	ProtectiveMarking string
-	ParadeWeekdays    []int // ISO weekday: 1=Mon .. 7=Sun
+	WebsiteURL        string // optional, shown on the dashboard and PDF title band
+	ParadeWeekdays    []int  // ISO weekday: 1=Mon .. 7=Sun
 	Classifications   []string
 	UniformColours    []UniformColour
 }

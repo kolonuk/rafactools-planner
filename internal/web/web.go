@@ -47,7 +47,7 @@ type server struct {
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept",
-	"dashboard", "squadron_settings", "programme_edit",
+	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -119,12 +119,15 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
 	mux.HandleFunc("POST /squadron/invites/{token}/revoke", s.requireOwner(s.inviteRevoke))
+	mux.HandleFunc("POST /squadron/members/{memberID}/role", s.requireOwner(s.memberSetRole))
+	mux.HandleFunc("POST /squadron/members/{memberID}/remove", s.requireOwner(s.memberRemove))
 
 	mux.HandleFunc("POST /programmes", s.requireEditor(s.programmeCreate))
 	mux.HandleFunc("GET /programmes/{id}", s.requireAuth(s.programmeEdit))
 	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.programmeSave))
 	mux.HandleFunc("GET /programmes/{id}/pdf", s.requireAuth(s.programmePDF))
 	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/add-half", s.requireEditor(s.dayAddHalf))
+	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/remove-half", s.requireEditor(s.dayRemoveHalf))
 	mux.HandleFunc("POST /programmes/{id}/closures", s.requireEditor(s.closureAdd))
 	mux.HandleFunc("POST /programmes/{id}/closures/{closureID}/delete", s.requireEditor(s.closureDelete))
 	mux.HandleFunc("POST /programmes/{id}/weekend-notes", s.requireEditor(s.weekendNoteAdd))

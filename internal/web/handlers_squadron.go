@@ -72,6 +72,7 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 	sq.Name = r.FormValue("name")
 	sq.Subtitle = r.FormValue("subtitle")
 	sq.ProtectiveMarking = r.FormValue("protective_marking")
+	sq.WebsiteURL = strings.TrimSpace(r.FormValue("website_url"))
 
 	var classifications []string
 	for _, line := range strings.Split(r.FormValue("classifications"), "\n") {
@@ -133,5 +134,41 @@ func (s *server) inviteRevoke(w http.ResponseWriter, r *http.Request) {
 	}
 	u := userFrom(r.Context())
 	_ = s.Auth.RevokeInvite(u.SquadronID, r.PathValue("token"))
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
+}
+
+func (s *server) memberSetRole(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	memberID, ok := parseID(r, "memberID")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
+		return
+	}
+	if err := s.Auth.SetMemberRole(u.SquadronID, memberID, r.FormValue("role")); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", err.Error())
+		return
+	}
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
+}
+
+func (s *server) memberRemove(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	memberID, ok := parseID(r, "memberID")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
+		return
+	}
+	if err := s.Auth.RemoveMember(u.SquadronID, memberID); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", err.Error())
+		return
+	}
 	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }

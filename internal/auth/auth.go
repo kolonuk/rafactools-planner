@@ -346,6 +346,82 @@ func (s *Service) ListMembers(squadronID int64) ([]User, error) {
 	return out, rows.Err()
 }
 
+var (
+	ErrLastOwner   = errors.New("can't remove or demote the squadron's only owner")
+	ErrNotMember   = errors.New("that user isn't a member of this squadron")
+	ErrInvalidRole = errors.New("invalid role")
+)
+
+func (s *Service) ownerCount(squadronID int64) (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM users WHERE squadron_id = ? AND role = 'owner'`, squadronID).Scan(&n)
+	return n, err
+}
+
+// SetMemberRole changes a squadron member's role. Refuses to demote the
+// squadron's last owner — there'd be nobody left who could invite, remove,
+// or change anyone's role, including re-promoting themselves.
+func (s *Service) SetMemberRole(squadronID, targetUserID int64, newRole string) error {
+	switch newRole {
+	case "owner", "editor", "viewer":
+	default:
+		return ErrInvalidRole
+	}
+
+	var currentRole string
+	err := s.db.QueryRow(`SELECT role FROM users WHERE id = ? AND squadron_id = ?`, targetUserID, squadronID).Scan(&currentRole)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotMember
+	} else if err != nil {
+		return fmt.Errorf("lookup member: %w", err)
+	}
+
+	if currentRole == "owner" && newRole != "owner" {
+		n, err := s.ownerCount(squadronID)
+		if err != nil {
+			return err
+		}
+		if n <= 1 {
+			return ErrLastOwner
+		}
+	}
+
+	_, err = s.db.Exec(`UPDATE users SET role = ? WHERE id = ? AND squadron_id = ?`, newRole, targetUserID, squadronID)
+	return err
+}
+
+// RemoveMember deletes a member from a squadron (cascades to their sessions
+// — see the users FK). Refuses to remove the last owner, same reasoning as
+// SetMemberRole.
+func (s *Service) RemoveMember(squadronID, targetUserID int64) error {
+	var role string
+	err := s.db.QueryRow(`SELECT role FROM users WHERE id = ? AND squadron_id = ?`, targetUserID, squadronID).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotMember
+	} else if err != nil {
+		return fmt.Errorf("lookup member: %w", err)
+	}
+
+	if role == "owner" {
+		n, err := s.ownerCount(squadronID)
+		if err != nil {
+			return err
+		}
+		if n <= 1 {
+			return ErrLastOwner
+		}
+	}
+
+	res, err := s.db.Exec(`DELETE FROM users WHERE id = ? AND squadron_id = ?`, targetUserID, squadronID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotMember
+	}
+	return nil
+}
+
 // Authenticate checks email+password and requires a verified address.
 func (s *Service) Authenticate(email, password string) (*User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
