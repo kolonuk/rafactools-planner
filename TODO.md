@@ -34,6 +34,18 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 ## Environments and hosting
 
+- [ ] **Later: version check.** Two parts, to be done together, not yet:
+  1. A repo skill (`.claude/skills/version-check`) saying when and how the
+     version must change (what counts as a user-visible change, how the
+     `1.<PR number>` scheme and the docs `since:`/`changed:` notes relate), so it is
+     checked before a PR is opened.
+  2. A GitHub Actions workflow, run on pull requests, that reads the version
+     the PR submits and compares it with the version on `main`, failing when it
+     is unchanged or goes backwards where a change is expected (and passing for
+     docs-only or CI-only PRs as the skill defines). Written in Go like the
+     other tooling (a `devtools` subcommand), run by the workflow, with tests.
+     Decide first, and ask the owner: where the version lives in the repo
+     today, since it is currently computed at build time from the PR number.
 - [ ] **Test environment:** disable the claim form there (a
   `DISABLE_SIGNUPS` flag) and copy prod's database into it on each deploy, so
   test always has realistic data. The copy step lives in dadock's deploy
