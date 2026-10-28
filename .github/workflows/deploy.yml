@@ -152,11 +152,20 @@ jobs:
           min-versions-to-keep: 10
 
   trigger-dadock-deploy:
-    name: Reload the dadock stack (main only)
+    name: Reload the dadock stack
     needs: build
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     steps:
+      # Was main-only until this comment changed — dev/test pushes built and
+      # pushed a new dev-latest/test-latest image but never actually told
+      # dadock to pull it, so rafactools-dev/rafactools-test kept running
+      # whatever was live at last manual trigger indefinitely. dadock's
+      # "1. Deploy docker stack" reconciles the *whole* stack against
+      # whatever each service's compose entry is pinned to (dev/test/main
+      # each pin a different tag — see dadock's docker-compose.yml), so
+      # running it for any of the three branches is the correct, safe thing
+      # regardless of which one triggered this.
+      #
       # DADOCK_DEPLOY_TOKEN is a fine-grained PAT scoped to Actions:write on
       # kolonuk/dadock only, same secret/pattern used by sbcwaste.top and
       # johnwood.dev. Set it as a repo secret here to enable auto-redeploy;
