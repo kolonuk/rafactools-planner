@@ -11,7 +11,7 @@
     <tbody>
     {{range .Instructors}}
       <tr>
-        <td>{{.Display}}</td>
+        <td data-private>{{.Display}}</td>
         <td>
           <form method="post" action="{{url "/instructors/" .ID "/delete"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">

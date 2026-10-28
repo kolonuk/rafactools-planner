@@ -287,3 +287,10 @@ details.move label { display: block; margin: 4px 0; }
 /* a labelled group of controls (fieldset) that looks like the other fields */
 fieldset.field { border: 0; padding: 0; margin: 0; }
 fieldset.field legend { padding: 0; font-size: 0.85rem; color: var(--md-on-surface-variant); }
+
+/* --- Report a problem ------------------------------------------------- */
+.js-only { display: none; }
+.js .js-only { display: block; }
+.notice { background: var(--md-error-container); color: var(--md-on-error-container); padding: 10px 14px; border-radius: 8px; }
+#shot-canvas { max-width: 100%; height: auto; border: 1px solid var(--md-outline-variant); border-radius: 4px; background: var(--md-surface-container); }
+.version-footer a[data-report-link] { white-space: nowrap; }

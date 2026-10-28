@@ -58,7 +58,11 @@ func (s Sender) send(to, subject, body string) error {
 
 	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
 		s.From, to, subject, body)
+	return s.deliver(to, msg)
+}
 
+// deliver hands a complete, already-built message to the SMTP server.
+func (s Sender) deliver(to string, msg []byte) error {
 	addr := fmt.Sprintf("%s:%d", s.Host, s.Port)
 
 	// Mailpit (dev) and most relays on 587/25 accept plain SMTP with

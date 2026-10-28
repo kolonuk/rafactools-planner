@@ -17,7 +17,7 @@
     <a class="brand" href="{{url "/"}}">RAFACTools Planner</a>
     {{if .User}}
       <nav aria-label="Account and help">
-        <a href="{{url "/account"}}" class="muted">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Email}}{{end}} ({{.User.Role}})</a>
+        <a href="{{url "/account"}}" class="muted" data-private>{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Email}}{{end}} ({{.User.Role}})</a>
         {{if ne .User.Role "viewer"}}<a href="{{url "/instructors"}}">Instructors</a>{{end}}
         {{if eq .User.Role "owner"}}<a href="{{url "/squadron"}}">Squadron settings</a>{{end}}
         <a href="{{url "/docs"}}">Help</a>
@@ -39,7 +39,9 @@
   <footer class="version-footer">
     v{{.Version}} ·
     <a href="https://github.com/kolonuk/rafactools-planner/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Version history</a>
+    {{if .ReportEnabled}}· <a href="{{url "/report"}}" data-report-link>Report a problem</a>{{end}}
   </footer>
+  {{if .ReportEnabled}}<script type="module" src="{{url "/static/js/gen/report-capture.js"}}"></script>{{end}}
 </body>
 </html>
 {{end}}

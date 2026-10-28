@@ -24,10 +24,12 @@ var (
 	prefixRe = regexp.MustCompile(`^[A-Z0-9_]*$`)
 )
 
-// masterAdminSettings are the two settings the master admin needs. The
-// password is a SECRET: GitHub variables are plain text.
+// masterAdminSettings are the settings the master admin and problem
+// reporting need. The password is a SECRET: GitHub variables are plain text.
 func masterAdminSettings(prefix string) []setting {
 	return []setting{
+		{"variable", prefix + "ISSUE_EMAIL", "CHANGE_ME", "Where problem reports are emailed (for example issues@your-domain). Leave the feature off by not setting it."},
+		{"variable", prefix + "ISSUE_MASKING", "true", "true lets people black out parts of a screenshot before sending; set false only on a site you run for others."},
 		{"variable", prefix + "MASTER_ADMIN_EMAIL", "CHANGE_ME", "Email address of the site-wide master admin (not secret)."},
 		{"secret", prefix + "MASTER_ADMIN_PASSWORD", "", "Password of the master admin, 12 to 72 characters. Must be a secret."},
 	}
@@ -58,7 +60,7 @@ func runGithubSetup(args []string) error {
 	}
 
 	settings := masterAdminSettings(*prefix)
-	fmt.Printf("Master admin settings for %s\n\n", *repo)
+	fmt.Printf("Master admin and problem-report settings for %s\n\n", *repo)
 	for _, s := range settings {
 		fmt.Printf("  %-8s %-34s %s\n", s.Kind, s.Name, s.Purpose)
 	}
@@ -67,8 +69,8 @@ func runGithubSetup(args []string) error {
 		fmt.Println("  " + strings.Join(setCommand(*repo, s), " "))
 	}
 	if !*apply {
-		fmt.Println("\nRun again with -apply to run them. Then set the real email value, and give the")
-		fmt.Println("deployment stack both settings as MASTER_ADMIN_EMAIL / MASTER_ADMIN_PASSWORD.")
+		fmt.Println("\nRun again with -apply to run them. Then set the real email values, and give the")
+		fmt.Println("deployment stack each setting without the prefix (MASTER_ADMIN_EMAIL, ISSUE_EMAIL, ...).")
 		return nil
 	}
 	for _, s := range settings {

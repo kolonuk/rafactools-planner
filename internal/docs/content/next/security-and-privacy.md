@@ -4,6 +4,7 @@ order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
+  - next: Added Report a problem, which can email a screenshot and recent activity to the site's operators.
   - next: Documented the optional master admin, who can view any squadron read-only.
   - next: Added the optional displayed name and the instructor list (name and rank only).
   - next: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
@@ -21,6 +22,7 @@ changed:
 | Accounts | Email address, role, and a salted bcrypt hash of the password. The password itself is never stored. |
 | Sign-in sessions | A random token per browser, valid for 30 days or until logout. |
 | Password reset requests | A SHA-256 hash of the emailed link, who it is for, and when it expires (1 hour). Deleted when used or replaced. |
+| Problem reports | **Not stored.** A report you send is emailed to the site's operators, and the server briefly remembers your last 20 requests (method, path and result code only, in memory) so that a report can include them. See [report a problem](report-a-problem). |
 | Names | The name each person chooses to display (optional), and your squadron's instructor list: a name and a rank each, no contact details. |
 | Programmes | Everything you type: activities, instructor names, notes, closures, weekend notes. |
 | Requirements tracker | **Cadets' names** and notes. |
@@ -28,7 +30,7 @@ changed:
 
 Nothing is sent to any other service. The site makes no requests to third
 parties: no analytics, no external fonts, no tracking. The only email it sends
-is the confirmation, invitation and password reset emails described in
+is the confirmation, invitation and password reset emails, and the problem reports you choose to send, described in
 [getting started](getting-started), [roles and invites](roles-and-invites) and
 [signing in](signing-in).
 

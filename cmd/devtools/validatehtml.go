@@ -42,7 +42,7 @@ func runValidateHTML() error {
 	defer database.Close()
 	cfg := config.Config{
 		SessionKey: "html-validate-session-key-0123456789abcdef", ClaimDomain: "rafac.mod.gov.uk",
-		BaseURL: "http://localhost", SkipEmailVerification: true,
+		BaseURL: "http://localhost", SkipEmailVerification: true, IssueEmail: "issues@example.org", IssueMasking: true,
 	}
 	lib, err := docs.Embedded()
 	if err != nil {
@@ -138,7 +138,7 @@ func runValidateHTML() error {
 	if err := save("programme-edit", loc); err != nil {
 		return err
 	}
-	for name, path := range map[string]string{"instructors": "/instructors", "account": "/account", "squadron-settings": "/squadron"} {
+	for name, path := range map[string]string{"instructors": "/instructors", "account": "/account", "squadron-settings": "/squadron", "report": "/report"} {
 		if err := save(name, path); err != nil {
 			return err
 		}

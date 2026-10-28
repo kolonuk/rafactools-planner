@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"net/mail"
 	"net/url"
 	"os"
 	"strconv"
@@ -33,6 +34,15 @@ type Config struct {
 	MasterAdminEmail    string
 	MasterAdminPassword string
 
+	// IssueEmail is where "Report a problem" reports are emailed (for example
+	// issues@your-domain). Empty switches the feature off entirely.
+	IssueEmail string
+	// IssueMasking lets people black out parts of their screenshot before
+	// sending it (default true). A site run for other people, whose operators
+	// need to see exactly what the user saw, sets it false; the report form
+	// then says plainly that the screenshot is sent as it is.
+	IssueMasking bool
+
 	SMTPHost string
 	SMTPPort int
 	SMTPUser string
@@ -52,10 +62,18 @@ func Load() (Config, error) {
 		SkipEmailVerification: getenvBool("SKIP_EMAIL_VERIFICATION", false),
 		MasterAdminEmail:      strings.TrimSpace(os.Getenv("MASTER_ADMIN_EMAIL")),
 		MasterAdminPassword:   os.Getenv("MASTER_ADMIN_PASSWORD"),
+		IssueEmail:            strings.TrimSpace(os.Getenv("ISSUE_EMAIL")),
+		IssueMasking:          getenvBool("ISSUE_MASKING", true),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPUser:              os.Getenv("SMTP_USER"),
 		SMTPPass:              os.Getenv("SMTP_PASS"),
 		MailFrom:              getenv("MAIL_FROM", "no-reply@rafactools-planner.local"),
+	}
+
+	if c.IssueEmail != "" {
+		if a, err := mail.ParseAddress(c.IssueEmail); err != nil || a.Address != c.IssueEmail {
+			return c, fmt.Errorf("ISSUE_EMAIL %q is not a valid email address", c.IssueEmail)
+		}
 	}
 
 	if c.SessionKey == "" {
