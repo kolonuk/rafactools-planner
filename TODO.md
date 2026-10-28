@@ -18,9 +18,6 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 ## Before anyone relies on it
 
-- [ ] **Password reset.** Emailed single-use token, same shape as email
-  verification (`email_verifications` is the pattern to copy). Invalidate the
-  user's other sessions when the password changes.
 - [ ] **Real SMTP.** With `SMTP_HOST` unset the app only logs links. Pick a
   relay for test/prod and set `SMTP_HOST/USER/PASS` and `MAIL_FROM`.
 - [ ] **Set the prod `SESSION_KEY` secret** (`RAFACTOOLS_SESSION_KEY` in

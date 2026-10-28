@@ -2,8 +2,10 @@ package web
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"rafactools-planner/internal/auth"
@@ -64,6 +66,8 @@ func (s *server) loginForm(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Query().Get("verified") == "1":
 		extra["Flash"] = "Email confirmed — you can log in now."
+	case r.URL.Query().Get("reset") == "1":
+		extra["Flash"] = "Password changed. Log in with your new password."
 	case r.URL.Query().Get("claimed") == "1":
 		extra["Flash"] = "Squadron claimed — you can log in now (dev mode: no email verification)."
 	}
@@ -139,4 +143,64 @@ func (s *server) inviteSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	s.setSessionCookie(w, sessToken, expiresAt)
 	http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
+}
+
+func (s *server) forgotForm(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "forgot", "Forgot your password", nil)
+}
+
+// forgotSubmit answers the same way whether or not the address has an
+// account, and sends the email in the background so the response time does
+// not give the answer away either.
+func (s *server) forgotSubmit(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Forgot your password", "Form expired, try again.")
+		return
+	}
+	email := strings.ToLower(strings.TrimSpace(r.FormValue("email")))
+	token, send, err := s.Auth.RequestPasswordReset(email)
+	if err != nil {
+		log.Printf("password reset request: %v", err)
+	} else if send {
+		go func() {
+			if err := s.Mail.SendPasswordReset(email, s.Cfg.BaseURL, token); err != nil {
+				log.Printf("password reset email: %v", err)
+			}
+		}()
+	}
+	s.render(w, r, "forgot", "Check your email", map[string]any{"Sent": true})
+}
+
+func (s *server) resetForm(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	if err := s.Auth.CheckPasswordReset(token); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Reset password", "That password reset link is invalid or has expired. You can ask for a new one.")
+		return
+	}
+	s.render(w, r, "reset", "Choose a new password", map[string]any{"Token": token})
+}
+
+func (s *server) resetSubmit(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Reset password", "Form expired, try again.")
+		return
+	}
+	token := r.PathValue("token")
+	err := s.Auth.ResetPassword(token, r.FormValue("password"))
+	switch {
+	case errors.Is(err, auth.ErrResetInvalid):
+		s.renderError(w, r, http.StatusBadRequest, "Reset password", "That password reset link is invalid or has expired. You can ask for a new one.")
+		return
+	case err != nil:
+		// A password the rules refuse leaves the link usable, so show the
+		// form again with the reason.
+		if r2 := s.Auth.CheckPasswordReset(token); r2 != nil {
+			s.renderError(w, r, http.StatusBadRequest, "Reset password", "Something went wrong. Ask for a new link.")
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		s.render(w, r, "reset", "Choose a new password", map[string]any{"Token": token, "Error": err.Error()})
+		return
+	}
+	http.Redirect(w, r, s.url("/login?reset=1"), http.StatusSeeOther)
 }

@@ -3,12 +3,15 @@ title: Troubleshooting
 order: 90
 summary: What the messages mean and what to do.
 since: 1.0
+changed:
+  - next: Added the password reset messages.
 ---
 # Troubleshooting
 
 | What you see | What it means | What to do |
 | --- | --- | --- |
-| `Invalid email or password.` | The email or password is wrong. | Check both. Remember there is no reset: see [signing in](signing-in). |
+| `Invalid email or password.` | The email or password is wrong. | Check both, or use **Forgot your password?**: see [signing in](signing-in). |
+| `That password reset link is invalid or has expired.` | The link was used, is older than 1 hour, or a newer one replaced it. | Ask for a new link on the [reset page](app:/forgot). |
 | `Confirm your email first` | You claimed a squadron but never opened the confirmation link. | Open the link in the email (valid 24 hours). If it expired, ask whoever runs the site. |
 | `Form expired, try again.` | The page you were on is too old, or you were signed out. | Reload the page and repeat the change. |
 | `Too many attempts` | Too many tries from your network in five minutes. | Wait five minutes. Many people behind one network share the limit. |

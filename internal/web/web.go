@@ -29,10 +29,20 @@ var templateFS embed.FS
 //go:embed static
 var staticFS embed.FS
 
+// Mailer is what the handlers need to send. mail.Sender implements it; tests
+// substitute a recorder so they can read the links that would be emailed.
+type Mailer interface {
+	SendVerification(to, baseURL, token string) error
+	SendInvite(to, baseURL, token, squadronName, invitedByEmail string) error
+	SendPasswordReset(to, baseURL, token string) error
+}
+
+var _ Mailer = mail.Sender{}
+
 type Deps struct {
 	Auth  *auth.Service
 	Store *programme.Store
-	Mail  mail.Sender
+	Mail  Mailer
 	Docs  *docs.Library
 	Cfg   config.Config
 }
@@ -48,7 +58,7 @@ type server struct {
 // all into one set would make every file's {{define "content"}} collide,
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
-	"claim", "login", "check_email", "invite_accept",
+	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
 	"dashboard", "squadron_settings", "programme_edit",
 	"docs_page", "docs_compare",
 }
@@ -113,6 +123,10 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /login", s.withUserOptional(s.loginForm))
 	mux.HandleFunc("POST /login", authLimiter.rateLimited(s.withUserOptional(s.loginSubmit)))
 	mux.HandleFunc("POST /logout", s.requireAuth(s.logout))
+	mux.HandleFunc("GET /forgot", s.withUserOptional(s.forgotForm))
+	mux.HandleFunc("POST /forgot", authLimiter.rateLimited(s.withUserOptional(s.forgotSubmit)))
+	mux.HandleFunc("GET /reset/{token}", s.withUserOptional(s.resetForm))
+	mux.HandleFunc("POST /reset/{token}", authLimiter.rateLimited(s.withUserOptional(s.resetSubmit)))
 	mux.HandleFunc("GET /invite/{token}", s.withUserOptional(s.inviteForm))
 	mux.HandleFunc("POST /invite/{token}", authLimiter.rateLimited(s.withUserOptional(s.inviteSubmit)))
 

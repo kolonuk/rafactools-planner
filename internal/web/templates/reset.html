@@ -1,0 +1,11 @@
+{{define "content"}}
+<h1>Choose a new password</h1>
+<p class="muted">12 to 72 characters. You will be signed out everywhere and asked to log in again.</p>
+<form method="post" action="{{url "/reset/" .Token}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label>New password
+    <input type="password" name="password" required minlength="12" maxlength="72" autocomplete="new-password" autofocus>
+  </label>
+  <button type="submit">Change password</button>
+</form>
+{{end}}

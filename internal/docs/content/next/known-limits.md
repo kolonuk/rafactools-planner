@@ -4,6 +4,7 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
+  - next: Password reset now exists;
   - next: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works; activities can be moved between dates.
 ---
 # Known limits
@@ -11,7 +12,7 @@ changed:
 These are not mistakes in how you are using the planner.
 
 **People**
-- No password reset or change-password screen.
+- No change-password screen for when you are already logged in (use **Forgot your password?** to set a new one).
 - No way to change a member's role or remove a member.
 - No two-factor sign-in.
 

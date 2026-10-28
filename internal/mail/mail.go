@@ -110,3 +110,13 @@ func (s Sender) sendImplicitTLS(addr, to string, msg []byte) error {
 	}
 	return client.Quit()
 }
+
+func (s Sender) SendPasswordReset(to, baseURL, token string) error {
+	link := fmt.Sprintf("%s/reset/%s", baseURL, token)
+	subject := "Reset your RAFACTools Planner password"
+	body := fmt.Sprintf("Someone asked to reset the password for this email address on RAFACTools Planner.\r\n\r\n"+
+		"To choose a new password, open:\r\n%s\r\n\r\n"+
+		"This link works once and expires in 1 hour. Using it signs you out everywhere.\r\n\r\n"+
+		"If you didn't ask for this, ignore this email: your password has not changed.\r\n", link)
+	return s.send(to, subject, body)
+}

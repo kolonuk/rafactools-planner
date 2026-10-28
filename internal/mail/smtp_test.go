@@ -159,3 +159,20 @@ func TestUnconfiguredSenderDoesNotFail(t *testing.T) {
 		t.Errorf("dev-mode logging sender errored: %v", err)
 	}
 }
+
+func TestSendPasswordResetOnTheWire(t *testing.T) {
+	f := newFakeSMTP(t)
+	if err := f.sender().SendPasswordReset("cadet@example.org", "https://x.example/planner", "resettok"); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, want := range []string{
+		"Subject: Reset your RAFACTools Planner password\r\n", "https://x.example/planner/reset/resettok",
+		"expires in 1 hour", "signs you out everywhere", "If you didn't ask for this, ignore this email",
+	} {
+		if !strings.Contains(f.data, want) {
+			t.Errorf("reset email missing %q:\n%s", want, f.data)
+		}
+	}
+}
