@@ -10,5 +10,6 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["internal/web/static/js/**/*", "internal/web/ts/**/*"]
+  "include": ["internal/web/static/js/**/*", "internal/web/ts/**/*"],
+  "exclude": ["internal/web/static/js/gen/**"]
 }

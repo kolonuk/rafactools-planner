@@ -137,6 +137,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.programmeSave))
 	mux.HandleFunc("GET /programmes/{id}/pdf", s.requireAuth(s.programmePDF))
 	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/add-half", s.requireEditor(s.dayAddHalf))
+	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/move", s.requireEditor(s.dayMove))
 	mux.HandleFunc("POST /programmes/{id}/closures", s.requireEditor(s.closureAdd))
 	mux.HandleFunc("POST /programmes/{id}/closures/{closureID}/delete", s.requireEditor(s.closureDelete))
 	mux.HandleFunc("POST /programmes/{id}/weekend-notes", s.requireEditor(s.weekendNoteAdd))

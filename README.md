@@ -52,7 +52,9 @@ a spreadsheet one person maintains.
   `script-src 'self'`: no inline scripts or handlers, no third-party or `eval`
   scripts). Pages should still work for the basic task without script where
   that is reasonable. TypeScript sources go in `internal/web/ts/` and compile
-  into `static/js/` (compiled output committed, CI checks it is current);
+  into `internal/web/static/js/gen/` (generated: never edit; compiled output is
+  committed and CI checks it is current). Hand-written JavaScript goes in
+  `static/js/` and is type-checked through JSDoc comments;
   `tsconfig.json` type-checks both strictly. Styled with a hand-rolled Material Design 3 theme
   (`internal/web/static/css/app.css`) that follows the system light/dark
   preference automatically.

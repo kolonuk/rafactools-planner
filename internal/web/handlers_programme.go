@@ -96,6 +96,7 @@ type subRowView struct {
 
 type dayView struct {
 	ID          int64
+	FullLabel   string // e.g. "Mon 7", for the move picker and drag confirmation
 	DateLabel   string
 	DayLabel    string
 	IsParade    bool
@@ -110,7 +111,7 @@ func buildDayViews(days []programme.Day, canEdit bool) []dayView {
 	for _, d := range days {
 		t, _ := time.Parse("2006-01-02", d.Date)
 		dv := dayView{
-			ID: d.ID, DateLabel: strconv.Itoa(t.Day()), DayLabel: d.DayLabel,
+			ID: d.ID, FullLabel: t.Format("Mon 2"), DateLabel: strconv.Itoa(t.Day()), DayLabel: d.DayLabel,
 			IsParade: d.IsParade, UniformKey: d.UniformKey, Notes: d.Notes,
 		}
 		if d.IsParade {
@@ -169,6 +170,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		"LabelClassColsCount": 1 + len(sq.Classifications),
 		"UniformOptions":      uniformOptions,
 		"Days":                buildDayViews(fp.Days, canEdit),
+		"DayOptions":          dayOptions(fp.Days),
 		"Closures":            fp.Closures,
 		"WeekendNotes":        fp.WeekendNotes,
 		"Requirements":        fp.Requirements,
@@ -243,7 +245,42 @@ func (s *server) dayAddHalf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.AddHalf(u.SquadronID, progID, dayID, len(sq.Classifications)); err != nil {
+		if errors.Is(err, programme.ErrNotFound) {
+			s.renderError(w, r, http.StatusNotFound, "Not found", "That night doesn't exist.")
+			return
+		}
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not add half.")
+		return
+	}
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(progID, 10)), http.StatusSeeOther)
+}
+
+// dayMove moves one parade night's activities to another date (a swap, so
+// nothing is overwritten). It backs both the "Move" control, which works
+// without JavaScript, and drag-and-drop in static/js/gen/programme-grid.js.
+func (s *server) dayMove(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Error", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	progID, ok1 := parseID(r, "id")
+	fromID, ok2 := parseID(r, "dayID")
+	toID, err := strconv.ParseInt(r.FormValue("target_day"), 10, 64)
+	if !ok1 || !ok2 || err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Error", "Choose the date to move the activities to.")
+		return
+	}
+	switch err := s.Store.MoveDayContent(u.SquadronID, progID, fromID, toID); {
+	case errors.Is(err, programme.ErrInvalidInput):
+		s.renderError(w, r, http.StatusBadRequest, "Error", "Can't move the activities: choose a different date, and move from a parade night.")
+		return
+	case errors.Is(err, programme.ErrNotFound):
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That programme or date doesn't exist.")
+		return
+	case err != nil:
+		log.Printf("move activities in programme %d: %v", progID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not move the activities — try again.")
 		return
 	}
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(progID, 10)), http.StatusSeeOther)
@@ -424,4 +461,19 @@ func (s *server) reqEntryDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = s.Store.DeleteRequirementEntry(id, catID, entryID)
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
+}
+
+type dayOption struct {
+	ID    int64
+	Label string
+}
+
+// dayOptions lists every date of the month for the "move activities to" picker.
+func dayOptions(days []programme.Day) []dayOption {
+	out := make([]dayOption, 0, len(days))
+	for _, d := range days {
+		t, _ := time.Parse("2006-01-02", d.Date)
+		out = append(out, dayOption{ID: d.ID, Label: t.Format("Mon 2 Jan")})
+	}
+	return out
 }

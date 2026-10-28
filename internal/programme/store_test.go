@@ -517,3 +517,193 @@ func TestMakingANightAParadeNightSeedsRows(t *testing.T) {
 		}
 	}
 }
+
+// --- moving activities between dates -------------------------------------
+
+// paradeDays returns the programme's parade nights and its non-parade days.
+func splitDays(t *testing.T, st *Store, sq, pid int64) (parade, plain []Day) {
+	t.Helper()
+	fp, err := st.GetFullProgramme(sq, pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range fp.Days {
+		if d.IsParade {
+			parade = append(parade, d)
+		} else {
+			plain = append(plain, d)
+		}
+	}
+	return
+}
+
+func setTexts(t *testing.T, st *Store, sq, pid int64, day Day, activity, instructor string) {
+	t.Helper()
+	var in []RowInput
+	for _, r := range day.Rows {
+		if r.Half != 1 {
+			continue
+		}
+		txt := make([]string, len(r.Texts))
+		for i := range txt {
+			if r.RowType == "activity" {
+				txt[i] = activity
+			} else {
+				txt[i] = instructor
+			}
+		}
+		in = append(in, RowInput{ID: r.ID, Texts: txt})
+	}
+	if err := st.SaveDaysAndRows(sq, pid, []DayInput{{ID: day.ID, IsParade: true, DayLabel: day.DayLabel, Rows: in}}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func dayByID(t *testing.T, st *Store, sq, pid, id int64) Day {
+	t.Helper()
+	fp, _ := st.GetFullProgramme(sq, pid)
+	for _, d := range fp.Days {
+		if d.ID == id {
+			return d
+		}
+	}
+	t.Fatalf("day %d not found", id)
+	return Day{}
+}
+
+func text(d Day, half int, rt string) string {
+	r, ok := d.RowByHalfType(half, rt)
+	if !ok || len(r.Texts) == 0 {
+		return ""
+	}
+	return r.Texts[0]
+}
+
+func TestMoveDayContentSwapsTwoParadeNights(t *testing.T) {
+	st, _ := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	parade, _ := splitDays(t, st, 1, p.ID)
+	a, b := parade[0], parade[1]
+	setTexts(t, st, 1, p.ID, a, "Drill", "Sgt A")
+	setTexts(t, st, 1, p.ID, b, "First Aid", "Cpl B")
+
+	if err := st.MoveDayContent(1, p.ID, a.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	ga, gb := dayByID(t, st, 1, p.ID, a.ID), dayByID(t, st, 1, p.ID, b.ID)
+	if text(ga, 1, "activity") != "First Aid" || text(ga, 1, "instructor") != "Cpl B" ||
+		text(gb, 1, "activity") != "Drill" || text(gb, 1, "instructor") != "Sgt A" {
+		t.Errorf("not swapped: a=%q/%q b=%q/%q", text(ga, 1, "activity"), text(ga, 1, "instructor"), text(gb, 1, "activity"), text(gb, 1, "instructor"))
+	}
+	// Everything about the night itself stays put: date, label, notes, uniform.
+	if ga.Date != a.Date || ga.DayLabel != a.DayLabel || gb.Date != b.Date {
+		t.Error("dates or labels moved")
+	}
+
+	// Swapping again restores the original: nothing was lost.
+	if err := st.MoveDayContent(1, p.ID, a.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	ga, gb = dayByID(t, st, 1, p.ID, a.ID), dayByID(t, st, 1, p.ID, b.ID)
+	if text(ga, 1, "activity") != "Drill" || text(gb, 1, "activity") != "First Aid" {
+		t.Error("second swap did not restore the original")
+	}
+}
+
+func TestMoveDayContentToANonParadeDayMakesItAParadeNight(t *testing.T) {
+	st, _ := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	parade, plain := splitDays(t, st, 1, p.ID)
+	src, dst := parade[0], plain[0]
+	setTexts(t, st, 1, p.ID, src, "Camp prep", "Fg Off C")
+
+	if err := st.MoveDayContent(1, p.ID, src.ID, dst.ID); err != nil {
+		t.Fatal(err)
+	}
+	gd, gs := dayByID(t, st, 1, p.ID, dst.ID), dayByID(t, st, 1, p.ID, src.ID)
+	if !gd.IsParade {
+		t.Error("target was not made a parade night")
+	}
+	if text(gd, 1, "activity") != "Camp prep" || text(gd, 1, "instructor") != "Fg Off C" {
+		t.Errorf("target content = %q/%q", text(gd, 1, "activity"), text(gd, 1, "instructor"))
+	}
+	if gd.DayLabel == "" {
+		t.Error("new parade night has no day label")
+	}
+	// The source stays a parade night, now empty, ready to be unticked or refilled.
+	if !gs.IsParade || text(gs, 1, "activity") != "" {
+		t.Errorf("source: parade=%v activity=%q", gs.IsParade, text(gs, 1, "activity"))
+	}
+	// Per-classification text slots are intact on the new night.
+	if r, _ := gd.RowByHalfType(1, "activity"); len(r.Texts) != 4 {
+		t.Errorf("target row has %d text slots, want 4", len(r.Texts))
+	}
+}
+
+func TestMoveDayContentCarriesTheSecondHalf(t *testing.T) {
+	st, _ := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	parade, _ := splitDays(t, st, 1, p.ID)
+	a, b := parade[0], parade[1]
+	if err := st.AddHalf(1, p.ID, a.ID, 4); err != nil {
+		t.Fatal(err)
+	}
+	a = dayByID(t, st, 1, p.ID, a.ID)
+	for _, r := range a.Rows {
+		if r.Half == 2 && r.RowType == "activity" {
+			st.SaveDaysAndRows(1, p.ID, []DayInput{{ID: a.ID, IsParade: true, Rows: []RowInput{{ID: r.ID, Texts: []string{"Second half", "", "", ""}}}}})
+		}
+	}
+
+	if err := st.MoveDayContent(1, p.ID, a.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	ga, gb := dayByID(t, st, 1, p.ID, a.ID), dayByID(t, st, 1, p.ID, b.ID)
+	if gb.Halves != 2 || text(gb, 2, "activity") != "Second half" {
+		t.Errorf("target: halves=%d half2=%q, want 2 / Second half", gb.Halves, text(gb, 2, "activity"))
+	}
+	if ga.Halves != 1 {
+		t.Errorf("source: halves=%d, want 1 (it received a one-half night)", ga.Halves)
+	}
+}
+
+func TestMoveDayContentRefusals(t *testing.T) {
+	st, d := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	other := mustProg(t, st, 2, 2030, 4)
+	p2 := mustProg(t, st, 1, 2030, 5)
+	parade, plain := splitDays(t, st, 1, p.ID)
+	oparade, _ := splitDays(t, st, 2, other.ID)
+	p2parade, _ := splitDays(t, st, 1, p2.ID)
+	a, b := parade[0], parade[1]
+	setTexts(t, st, 1, p.ID, a, "Keep me", "x")
+
+	snapshot := func() string {
+		var s string
+		d.QueryRow(`SELECT group_concat(day_id||half||row_type||texts||is_parade||halves, '|') FROM programme_rows r JOIN programme_days pd ON pd.id = r.day_id ORDER BY 1`).Scan(&s)
+		return s
+	}
+	before := snapshot()
+
+	for name, tc := range map[string]struct {
+		sq, prog, from, to int64
+		want               error
+	}{
+		"same day":                 {1, p.ID, a.ID, a.ID, ErrInvalidInput},
+		"source is not a parade":   {1, p.ID, plain[0].ID, b.ID, ErrInvalidInput},
+		"other squadron's day":     {1, p.ID, a.ID, oparade[0].ID, ErrNotFound},
+		"other squadron as caller": {2, p.ID, a.ID, b.ID, ErrNotFound},
+		"day of a different month": {1, p.ID, a.ID, p2parade[0].ID, ErrNotFound},
+		"nonexistent target":       {1, p.ID, a.ID, 999999, ErrNotFound},
+		"nonexistent source":       {1, p.ID, 999999, b.ID, ErrNotFound},
+		"programme of another":     {1, other.ID, a.ID, b.ID, ErrNotFound},
+	} {
+		err := st.MoveDayContent(tc.sq, tc.prog, tc.from, tc.to)
+		if !errors.Is(err, tc.want) {
+			t.Errorf("%s: err = %v, want %v", name, err, tc.want)
+		}
+	}
+	if after := snapshot(); after != before {
+		t.Error("a refused move changed data")
+	}
+}

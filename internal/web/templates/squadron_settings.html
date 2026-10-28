@@ -31,7 +31,7 @@
 <section class="card">
   <h2>Members</h2>
   <table class="list">
-    <thead><tr><th>Email</th><th>Role</th></tr></thead>
+    <thead><tr><th scope="col">Email</th><th scope="col">Role</th></tr></thead>
     <tbody>
     {{range .Members}}
       <tr><td>{{.Email}}</td><td>{{.Role}}</td></tr>
@@ -44,7 +44,7 @@
   <h2>Pending invites</h2>
   {{if .Invites}}
   <table class="list">
-    <thead><tr><th>Email</th><th>Role</th><th>Expires</th><th></th></tr></thead>
+    <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Expires</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .Invites}}
       <tr>

@@ -4,6 +4,8 @@ order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
 changed:
+  - next: Activities can be moved to another date, by dragging or with the Move control.
+  - next: "+ Add a second half to this night" now works in the browser (it previously saved the grid instead).
   - next: Closure and weekend-note dates are checked when saved; a closure must end on or after its start and last at most 366 days.
   - next: Ticking Parade on a night that was not generated as a parade night now gives it activity and instructor rows.
 ---
@@ -46,6 +48,33 @@ the grid shorter.
 A parade night starts with one half. **+ Add a second half to this night** adds a
 second pair of Activity and Instructor rows. It cannot currently be removed
 again: see [known limits](known-limits).
+
+## Moving activities to another date
+
+You can move a parade night's activities to a different date, for example when
+a session is rescheduled. Only owners and editors can.
+
+**With the mouse:** each parade night has a handle (two columns of dots) beside
+its date. Drag it and drop it on any row of the date you want. You are asked to
+confirm first, and nothing changes if you cancel.
+
+**With the keyboard, a touch screen, or if scripts are switched off:** under the
+date of each parade night, open **Move**, choose the date and select
+**Move activities**.
+
+What happens:
+
+- The Activity and Instructor text of both halves moves, and so does the number
+  of halves. The date itself keeps its day label, uniform and notes.
+- It is a **swap**, so nothing is overwritten. If the other date already has
+  activities, the two dates trade places; if it is empty, the activities simply
+  move and the first date is left empty.
+- If the date you move to was not a parade night, it becomes one. The date you
+  moved from stays a parade night; untick **Parade** on it if you no longer
+  need it.
+- Anything else you have typed on the page but not yet saved is saved first when
+  you use drag and drop, so it is not lost. With the **Move** control, select
+  **Save programme** first, because that button reloads the page.
 
 ## Closures
 

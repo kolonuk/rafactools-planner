@@ -3,6 +3,19 @@
 Sections are in rough priority order. Anything done is deleted, not ticked —
 `CHANGELOG.md` and git history are the record.
 
+## Left over from the move-activities work
+
+Built, tested and documented: moving a night's activities to another date
+(store, endpoint, no-script "Move" control, TypeScript drag-and-drop; checked in
+Chromium), plus the "Add a second half" fix. Still to do:
+
+- [ ] **Run the full suite with `-race`** and the new CI jobs on GitHub; only the
+  plain test run, `tsc` and the HTML validation were run locally this time.
+- [ ] **Automated browser test** for the drag-and-drop script (it was verified by
+  hand in Chromium only). Worth adding if the script grows.
+- [ ] **First docs snapshot** (`go run ./cmd/devtools docs-snapshot 1.<PR>`) once a
+  release is designated, so the version selector has something to compare.
+
 ## Before anyone relies on it
 
 - [ ] **Password reset.** Emailed single-use token, same shape as email
@@ -56,9 +69,9 @@ Sections are in rough priority order. Anything done is deleted, not ticked —
 
 - [ ] **Copy last month forward:** requirement categories (not cadet names)
   and standing notes. Confirm with a real user first.
-- [ ] **Reorder rows:** drag-and-drop is now allowed (first-party scripts are
-  permitted, see `.claude/skills/docs/SKILL.md` and "Scripts" in the README).
-  Keep up/down buttons working without script as the fallback.
+- [ ] **Reorder rows within a night / requirement entries:** moving a night's
+  activities to another date is done (drag or the Move control). Reordering
+  requirement categories and entries is not; reuse the same pattern.
 - [ ] **Clearer classification grouping:** an explicit "these classes do the
   same thing" control instead of typing identical text to merge cells.
 
