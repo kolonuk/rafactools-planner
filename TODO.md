@@ -1,5 +1,35 @@
 # TODO
 
+## Quick recap: what's actually left (see sections below for detail)
+
+**Blockers — need a human, not code:**
+- Real SMTP provider for test/prod (currently logs links to stdout).
+- GitHub branch protection — confirmed 403; needs GitHub Pro or a public
+  repo on this plan.
+
+**Design decisions needed before building:**
+- Drag-to-reorder activity rows — needs JS, conflicts with this app's
+  `script-src 'none'` CSP; or "reorder" may mean something smaller.
+- Explicit classification-grouping UI (current merge-by-matching-text is
+  implicit, not obvious from the editing UI).
+- Copy-previous-month button — unclear what should actually copy.
+
+**Straightforward, just not built yet:**
+- Password reset flow.
+- Crest/badge *image* upload (the website *link* is done; an image needs
+  file-upload infrastructure this app doesn't have at all yet).
+- `test` env: disable signups + snapshot prod's DB per deploy (currently
+  just behaves like a normal instance).
+- Domain/TLS (no domain yet).
+- Mobile/accessibility pass.
+- Requirement-tracker drag-reorder (`sort_order` column exists, no UI).
+- Project-wide fpdf Unicode fix (mojibake on non-Latin-1 text — worked
+  around once in the version footer, not everywhere).
+- `internal/web` and most of `internal/programme`'s store are still only
+  hand-smoke-tested, not unit-tested.
+- No way to cancel a parade night entirely once it has rows (minor DB
+  tidiness — harmless, just untidy).
+
 ## Before this is real infrastructure anyone relies on
 
 - [ ] **Password reset.** Not implemented at all — a locked-out user has no
