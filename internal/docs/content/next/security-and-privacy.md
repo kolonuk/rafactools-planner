@@ -4,6 +4,7 @@ order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
+  - next: Documented the optional master admin, who can view any squadron read-only.
   - next: Added the optional displayed name and the instructor list (name and rank only).
   - next: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
   - next: Added password reset (see above); reset links are stored only as hashes.
@@ -41,6 +42,13 @@ Only signed-in members of the same squadron. Every page and every change is
 checked against the signed-in person's squadron, so another squadron cannot
 open or alter your programmes, even by guessing addresses. People running the
 site can read the database.
+
+The site can also have a **master admin**, a single site-wide account that can look
+at any squadron to investigate problems people report. It sees a squadron exactly
+as a viewer would (read-only; it cannot change anything), the page says so on every
+screen, and each time it switches squadron the site logs it. If you are not
+comfortable with that, ask the person who runs the site whether it is enabled.
+See [configuration](operators-configuration).
 
 ## Protections
 

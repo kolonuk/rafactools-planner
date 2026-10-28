@@ -26,6 +26,13 @@ type Config struct {
 	// check that a claim's email address is real and reachable.
 	SkipEmailVerification bool
 
+	// MasterAdminEmail / MasterAdminPassword configure the one site-wide
+	// administrator account, created and kept in step at every startup. Both
+	// must be set for it to exist. The password belongs in a secret, never in
+	// a plain variable or the repository.
+	MasterAdminEmail    string
+	MasterAdminPassword string
+
 	SMTPHost string
 	SMTPPort int
 	SMTPUser string
@@ -43,6 +50,8 @@ func Load() (Config, error) {
 		ClaimDomain:  getenv("CLAIM_DOMAIN", "rafac.mod.gov.uk"),
 
 		SkipEmailVerification: getenvBool("SKIP_EMAIL_VERIFICATION", false),
+		MasterAdminEmail:      strings.TrimSpace(os.Getenv("MASTER_ADMIN_EMAIL")),
+		MasterAdminPassword:   os.Getenv("MASTER_ADMIN_PASSWORD"),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPUser:              os.Getenv("SMTP_USER"),
 		SMTPPass:              os.Getenv("SMTP_PASS"),

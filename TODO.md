@@ -155,3 +155,38 @@ Small gaps found while building and reviewing; each is a candidate to pick up.
 `examples/pdfs/` holds synthetic PDFs from `cmd/genexamples` (fabricated
 data). Never commit a real squadron programme; real cadet and staff names were
 scrubbed from this repo's history once already.
+
+## Master admin: still to do
+
+The account, the squadron switcher (read-only), the banner and the audit log
+lines are built and tested. What is left, and why it is not done here:
+
+- [ ] **Wire the settings into the deployment (needs a human, in `dadock`).** The
+  running containers get their environment from `dadock`'s compose file, which
+  is a different repository this session cannot change, and the secret has to
+  be created by someone with admin rights on it. Steps:
+  1. In `dadock`'s GitHub settings add a **secret** `RAFACTOOLS_MASTER_ADMIN_PASSWORD`
+     and a **variable** `RAFACTOOLS_MASTER_ADMIN_EMAIL` (`john@kolon.co.uk`).
+  2. In `dadock`'s compose file give each `rafactools*` service
+     `MASTER_ADMIN_EMAIL` and `MASTER_ADMIN_PASSWORD` from those two.
+  3. Redeploy. The app applies them on every start, so every deployment creates
+     or updates the account (the log says what happened; check it).
+
+  The password must be a **secret, not a variable**: GitHub variables are stored
+  and shown in plain text. The password discussed in chat was 10 characters, under
+  the app's 12-character minimum, so the app refuses it (and logs why); pick a
+  longer one and treat the one that was pasted in chat as exposed.
+- [ ] **Issue reporting.** The master admin exists "to see issues reported in
+  other squadrons", but the app has no way to report an issue yet. Add a "Report
+  a problem" form (page, squadron and a message, no cadet data needed) that any
+  signed-in user can send, stored per squadron and listed in an inbox the master
+  admin sees across all squadrons, with a status (new / looking / done).
+- [ ] **Two-factor sign-in for the master admin** before it is used on a real
+  deployment: it can read every squadron, so a stolen password is the worst case.
+- [ ] **Let the master admin act as an editor or owner** in a squadron when
+  helping fix something (today it is strictly read-only, on purpose). If added,
+  make it an explicit second step with its own audit line.
+- [ ] **Show the audit trail** (who looked at which squadron, when) to the master
+  admin, and to a squadron's owners, instead of only writing it to the log.
+- [ ] **Shorter sessions for the master admin** (the normal 30 days is long for
+  this account).
