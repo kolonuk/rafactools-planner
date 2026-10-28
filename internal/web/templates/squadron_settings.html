@@ -14,6 +14,9 @@
     <label>Protective marking (blank to disable)
       <input type="text" name="protective_marking" value="{{.Squadron.ProtectiveMarking}}" placeholder="OFFICIAL - Public">
     </label>
+    <label>Squadron website (blank to disable) — shown on the dashboard and PDF
+      <input type="url" name="website_url" value="{{.Squadron.WebsiteURL}}" placeholder="https://2491aircadets.example">
+    </label>
     <label>Classifications, in progression order, one per line
       <textarea name="classifications" rows="5">{{.ClassificationsText}}</textarea>
     </label>
@@ -31,13 +34,36 @@
 <section class="card">
   <h2>Members</h2>
   <table class="list">
-    <thead><tr><th scope="col">Email</th><th scope="col">Role</th></tr></thead>
+    <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     {{range .Members}}
-      <tr><td>{{.Email}}</td><td>{{.Role}}</td></tr>
+      <tr>
+        <td>{{.Email}}</td>
+        <td>
+          <!-- An explicit button, not an onchange auto-submit: inline event
+               handlers are blocked by the CSP (see securityHeaders in web.go),
+               and a button works without script. -->
+          <form method="post" action="{{url "/squadron/members/" .ID "/role"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <select name="role">
+              <option value="owner" {{if eq .Role "owner"}}selected{{end}}>Owner</option>
+              <option value="editor" {{if eq .Role "editor"}}selected{{end}}>Editor</option>
+              <option value="viewer" {{if eq .Role "viewer"}}selected{{end}}>Viewer</option>
+            </select>
+            <button type="submit">Set</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{{url "/squadron/members/" .ID "/remove"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button">Remove</button>
+          </form>
+        </td>
+      </tr>
     {{end}}
     </tbody>
   </table>
+  <p class="muted">The squadron's last owner can't be removed or demoted — promote someone else first.</p>
 </section>
 
 <section class="card">

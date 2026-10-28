@@ -3,6 +3,8 @@ title: Roles and invites
 order: 30
 summary: What owners, editors and viewers can do, and how to invite people.
 since: 1.0
+changed:
+  - next: Owners can change a member's role and remove members.
 ---
 # Roles and invites
 
@@ -46,5 +48,13 @@ cancels one; the link stops working at once.
 
 ## Changing or removing people
 
-There is currently no screen to change someone's role or remove them. See
-[known limits](known-limits).
+Owners can do both from the **Members** table in [Squadron settings](app:/squadron).
+
+- **Change a role:** pick **Owner**, **Editor** or **Viewer** beside the person and
+  select **Set**.
+- **Remove someone:** select **Remove**. Their account is deleted and they are signed
+  out. The programmes they created stay (they just no longer show a creator), and
+  invites they had sent that were still waiting are withdrawn.
+- **The last owner is protected:** the only remaining owner cannot be demoted or
+  removed. Make someone else an owner first. This also stops a squadron being left
+  with nobody who can manage it.

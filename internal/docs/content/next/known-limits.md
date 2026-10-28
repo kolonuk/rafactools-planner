@@ -4,6 +4,7 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
+  - next: Role changes, member removal, removing a second half and automatic day labels now exist, so they are no longer listed.
   - next: Password reset now exists;
   - next: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works; activities can be moved between dates.
 ---
@@ -13,13 +14,12 @@ These are not mistakes in how you are using the planner.
 
 **People**
 - No change-password screen for when you are already logged in (use **Forgot your password?** to set a new one).
-- No way to change a member's role or remove a member.
 - No two-factor sign-in.
 
 **Programmes**
 - Programmes cannot be deleted from the screen, and their status stays `draft`.
-- A second half on a parade night cannot be removed once added.
-- The second half starts empty; it does not copy the first half.
+- Unticking **Parade** on a night that has activities leaves them stored but
+  hidden; there is no "cancel this night" action.
 - Moving activities swaps two dates; there is no way to move one night's
   activities to several dates at once.
 - Parade weekdays and the number of classifications are fixed when a month is
@@ -27,13 +27,13 @@ These are not mistakes in how you are using the planner.
   headings and text boxes not line up. Parade nights of an existing month can
   be ticked or unticked night by night.
 - Uniform colours and their names cannot be edited in the app.
-- The **Day** label is a text box; the app does not check it matches the date.
-- Activities are free text. There is no saved list of instructors or
-  activities to choose from.
+- Activities are free text. There is no saved list of activities to choose from,
+  and the Instructor suggestions are only All Staff and your members' email
+  addresses (there is no list of instructors who do not have a login).
 
 **Output**
 - The PDF is one A4 page. There is no calendar file or other export.
-- No squadron crest or logo on the PDF.
+- No squadron crest or logo image on the PDF (a website address can be shown).
 - Characters outside Western European text may print incorrectly.
 
 **Site**

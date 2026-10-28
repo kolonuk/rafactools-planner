@@ -49,9 +49,9 @@ func NewStore(db *sql.DB) *Store { return &Store{db: db} }
 func (s *Store) GetSquadron(squadronID int64) (*Squadron, error) {
 	var sq Squadron
 	var paradeJSON, classJSON, coloursJSON string
-	err := s.db.QueryRow(`SELECT id, number, name, subtitle, protective_marking, parade_weekdays, classifications, uniform_colours
+	err := s.db.QueryRow(`SELECT id, number, name, subtitle, protective_marking, website_url, parade_weekdays, classifications, uniform_colours
 		FROM squadrons WHERE id = ?`, squadronID).
-		Scan(&sq.ID, &sq.Number, &sq.Name, &sq.Subtitle, &sq.ProtectiveMarking, &paradeJSON, &classJSON, &coloursJSON)
+		Scan(&sq.ID, &sq.Number, &sq.Name, &sq.Subtitle, &sq.ProtectiveMarking, &sq.WebsiteURL, &paradeJSON, &classJSON, &coloursJSON)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -82,8 +82,8 @@ func (s *Store) UpdateSquadronSettings(sq *Squadron) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.Exec(`UPDATE squadrons SET name=?, subtitle=?, protective_marking=?, parade_weekdays=?, classifications=?, uniform_colours=? WHERE id=?`,
-		sq.Name, sq.Subtitle, sq.ProtectiveMarking, string(paradeJSON), string(classJSON), string(coloursJSON), sq.ID)
+	_, err = s.db.Exec(`UPDATE squadrons SET name=?, subtitle=?, protective_marking=?, website_url=?, parade_weekdays=?, classifications=?, uniform_colours=? WHERE id=?`,
+		sq.Name, sq.Subtitle, sq.ProtectiveMarking, sq.WebsiteURL, string(paradeJSON), string(classJSON), string(coloursJSON), sq.ID)
 	return err
 }
 
@@ -142,10 +142,14 @@ func (s *Store) CreateProgramme(squadronID int64, year, month int, createdBy int
 	first := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	for d := first; d.Month() == first.Month(); d = d.AddDate(0, 0, 1) {
 		isParade := paradeSet[d.Weekday()]
-		label := ""
-		if isParade {
-			label = defaultDayLabels[d.Weekday()]
-		}
+		// Label is the actual calendar weekday, set once here and never
+		// touched again (see SaveDaysAndRows — day_label isn't in its
+		// UPDATE at all) — not just for parade days, so toggling "Parade"
+		// on for a day that started blank still has a correct label ready,
+		// with nothing to compute or submit. A user-editable version of
+		// this used to exist and could silently disagree with the day's
+		// real date; see TODO.md / git history for why that was a bug.
+		label := defaultDayLabels[d.Weekday()]
 		res, err := tx.Exec(`INSERT INTO programme_days (programme_id, date, is_parade, day_label, halves) VALUES (?, ?, ?, ?, 1)`,
 			programmeID, d.Format("2006-01-02"), boolToInt(isParade), label)
 		if err != nil {
@@ -278,7 +282,6 @@ type RowInput struct {
 type DayInput struct {
 	ID         int64
 	IsParade   bool
-	DayLabel   string
 	UniformKey string
 	Notes      string
 	Rows       []RowInput
@@ -307,9 +310,12 @@ func (s *Store) SaveDaysAndRows(squadronID, programmeID int64, days []DayInput) 
 	defer tx.Rollback()
 
 	for _, d := range days {
-		res, err := tx.Exec(`UPDATE programme_days SET is_parade=?, day_label=?, uniform_key=?, notes=?
+		// day_label is deliberately not writable here — see CreateProgramme's
+		// comment: it's set once from the real calendar date and never
+		// changes, so there's nothing for this save path to get wrong.
+		res, err := tx.Exec(`UPDATE programme_days SET is_parade=?, uniform_key=?, notes=?
 			WHERE id = ? AND programme_id = ?`,
-			boolToInt(d.IsParade), d.DayLabel, d.UniformKey, d.Notes, d.ID, programmeID)
+			boolToInt(d.IsParade), d.UniformKey, d.Notes, d.ID, programmeID)
 		if err != nil {
 			return fmt.Errorf("update day %d: %w", d.ID, err)
 		}
@@ -393,10 +399,46 @@ func (s *Store) AddHalf(squadronID, programmeID, dayID int64, classificationCoun
 
 	emptyTexts, _ := json.Marshal(make([]string, classificationCount))
 	for _, rt := range []string{"activity", "instructor"} {
+		// Clone half 1's text into half 2 as a starting point — the common
+		// case is both halves being the same or similar, not blank; falls
+		// back to empty if half 1 somehow has no row yet (shouldn't happen
+		// for a parade day, but don't fail the whole operation over it).
+		texts := string(emptyTexts)
+		var half1Texts string
+		if err := tx.QueryRow(`SELECT texts FROM programme_rows WHERE day_id = ? AND half = 1 AND row_type = ?`, dayID, rt).Scan(&half1Texts); err == nil {
+			texts = half1Texts
+		}
 		if _, err := tx.Exec(`INSERT OR IGNORE INTO programme_rows (day_id, half, row_type, texts) VALUES (?, 2, ?, ?)`,
-			dayID, rt, string(emptyTexts)); err != nil {
+			dayID, rt, texts); err != nil {
 			return fmt.Errorf("insert half-2 %s row: %w", rt, err)
 		}
+	}
+	return tx.Commit()
+}
+
+// RemoveHalf drops a parade night back to a single half, deleting half 2's
+// rows. Callers (see web.dayRemoveHalf) are responsible for warning the user
+// first if half 2's content actually differs from half 1's — this just does
+// the deletion once asked to.
+func (s *Store) RemoveHalf(squadronID, programmeID, dayID int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	res, err := tx.Exec(`UPDATE programme_days SET halves = 1
+		WHERE id = ? AND programme_id = ? AND programme_id IN (SELECT id FROM programmes WHERE squadron_id = ?)`,
+		dayID, programmeID, squadronID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+
+	if _, err := tx.Exec(`DELETE FROM programme_rows WHERE day_id = ? AND half = 2`, dayID); err != nil {
+		return fmt.Errorf("delete half-2 rows: %w", err)
 	}
 	return tx.Commit()
 }
@@ -618,8 +660,6 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 	// Both days must belong to this programme, and the programme to this
 	// squadron: ids from a forged request can't reach another tenant.
 	type dayRow struct {
-		date     string
-		label    string
 		isParade bool
 		halves   int
 	}
@@ -627,10 +667,10 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 	for _, id := range []int64{fromDayID, toDayID} {
 		var d dayRow
 		var parade int
-		err := tx.QueryRow(`SELECT pd.date, pd.day_label, pd.is_parade, pd.halves
+		err := tx.QueryRow(`SELECT pd.is_parade, pd.halves
 			FROM programme_days pd JOIN programmes p ON p.id = pd.programme_id
 			WHERE pd.id = ? AND pd.programme_id = ? AND p.squadron_id = ?`, id, programmeID, squadronID).
-			Scan(&d.date, &d.label, &parade, &d.halves)
+			Scan(&parade, &d.halves)
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		} else if err != nil {
@@ -711,18 +751,18 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 		return err
 	}
 
-	// Halves travel with the content; the target becomes a parade night and
-	// gets the usual weekday label if it has none.
-	label := to.label
-	if label == "" {
-		if t, err := time.Parse("2006-01-02", to.date); err == nil {
-			label = defaultDayLabels[t.Weekday()]
-		}
-	}
+	// Halves travel with the content, and the target becomes a parade night.
+	// (Day labels are set once from the calendar date and never change.)
 	if _, err := tx.Exec(`UPDATE programme_days SET halves = ? WHERE id = ?`, to.halves, fromDayID); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`UPDATE programme_days SET halves = ?, is_parade = 1, day_label = ? WHERE id = ?`, from.halves, label, toDayID); err != nil {
+	if _, err := tx.Exec(`UPDATE programme_days SET halves = ?, is_parade = 1 WHERE id = ?`, from.halves, toDayID); err != nil {
+		return err
+	}
+	// A one-half night must not keep spare half-2 rows: AddHalf only clones
+	// half 1 into rows that do not exist yet (INSERT OR IGNORE), so leftovers
+	// would make a later "add second half" start empty instead of copying.
+	if _, err := tx.Exec(`DELETE FROM programme_rows WHERE half = 2 AND day_id IN (SELECT id FROM programme_days WHERE halves = 1 AND id IN (?, ?))`, fromDayID, toDayID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(`UPDATE programmes SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, programmeID); err != nil {

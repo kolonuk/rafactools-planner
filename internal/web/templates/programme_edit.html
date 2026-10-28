@@ -12,6 +12,11 @@
        all — don't nest the input inside the label. -->
   <input type="checkbox" id="parade-only-toggle" class="parade-toggle-input">
   <label for="parade-only-toggle" class="parade-toggle-label">Show parade evenings only</label>
+  <!-- Native browser autocomplete, no JS: Instructor cells get list=
+       "instructor-options" below; the input stays free text either way. -->
+  <datalist id="instructor-options">
+    {{range .InstructorOptions}}<option value="{{.}}"></option>{{end}}
+  </datalist>
   <table class="grid">
     <thead>
       <tr>
@@ -39,7 +44,7 @@
                 <button type="submit" form="move-{{$day.ID}}">Move activities</button>
               </details>
             </td>
-            <td><input type="text" size="2" name="day_{{$day.ID}}_label" value="{{$day.DayLabel}}"></td>
+            <td>{{$day.DayLabel}}</td>
             <td><input type="checkbox" name="day_{{$day.ID}}_parade" value="1" checked></td>
             <td>
               <select name="day_{{$day.ID}}_uniform">
@@ -51,7 +56,11 @@
             <td></td><td></td><td></td><td></td>
           {{end}}
           <td class="row-label">{{$sub.RowType}}</td>
-          {{range $i, $t := $sub.Texts}}<td><input type="text" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}"></td>{{end}}
+          {{if eq $sub.RowType "Instructor"}}
+            {{range $i, $t := $sub.Texts}}<td><input type="text" list="instructor-options" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}"></td>{{end}}
+          {{else}}
+            {{range $i, $t := $sub.Texts}}<td><input type="text" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}"></td>{{end}}
+          {{end}}
           {{if eq $idx 0}}
             <td{{if gt (len $day.SubRows) 1}} rowspan="{{len $day.SubRows}}"{{end}}><textarea name="day_{{$day.ID}}_notes" rows="2">{{$day.Notes}}</textarea></td>
           {{end}}
@@ -65,10 +74,18 @@
           </td>
         </tr>
         {{end}}
+        {{if .ShowRemoveHalf}}
+        <tr data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
+          <td></td><td></td><td></td><td></td>
+          <td colspan="{{$.LabelClassColsCount}}">
+            <button type="submit" form="removehalf-{{.ID}}" class="link-button">&minus; Remove second half</button>
+          </td>
+        </tr>
+        {{end}}
       {{else}}
         <tr class="non-parade-row" data-day="{{.ID}}" data-label="{{.FullLabel}}">
           <td>{{.DateLabel}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
-          <td><input type="text" size="2" name="day_{{.ID}}_label" value="{{.DayLabel}}"></td>
+          <td>{{.DayLabel}}</td>
           <td><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}}></td>
           <td>
             <select name="day_{{.ID}}_uniform">
@@ -90,6 +107,11 @@
 <form id="move-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/move"}}" class="hidden-form">
   <input type="hidden" name="csrf" value="{{$.CSRF}}">
 </form>
+{{if .ShowRemoveHalf}}
+<form id="removehalf-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/remove-half"}}" class="hidden-form">
+  <input type="hidden" name="csrf" value="{{$.CSRF}}">
+</form>
+{{end}}
 {{if .ShowAddHalf}}
 <form id="addhalf-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/add-half"}}" class="hidden-form">
   <input type="hidden" name="csrf" value="{{$.CSRF}}">

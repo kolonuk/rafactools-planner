@@ -22,6 +22,17 @@ func TestOpenAppliesMigrations(t *testing.T) {
 		}
 	}
 
+	// Count applied migrations after the first Open — not hardcoded, since
+	// the real number grows every time a migration file is added (it's 2 as
+	// of writing: 0001_init.sql, 0002_squadron_website.sql).
+	var firstCount int
+	if err := database.QueryRow(`SELECT COUNT(*) FROM schema_migrations`).Scan(&firstCount); err != nil {
+		t.Fatalf("count schema_migrations after first Open: %v", err)
+	}
+	if firstCount == 0 {
+		t.Fatal("no migrations recorded after first Open")
+	}
+
 	// Re-opening (i.e. restarting the app) must not re-apply migrations or error.
 	database2, err := Open(path)
 	if err != nil {
@@ -29,12 +40,12 @@ func TestOpenAppliesMigrations(t *testing.T) {
 	}
 	defer database2.Close()
 
-	var count int
-	if err := database2.QueryRow(`SELECT COUNT(*) FROM schema_migrations`).Scan(&count); err != nil {
-		t.Fatalf("count schema_migrations: %v", err)
+	var secondCount int
+	if err := database2.QueryRow(`SELECT COUNT(*) FROM schema_migrations`).Scan(&secondCount); err != nil {
+		t.Fatalf("count schema_migrations after second Open: %v", err)
 	}
-	if count != 2 {
-		t.Errorf("schema_migrations has %d rows, want 2 (a migration re-applied, or a new one needs counting here)", count)
+	if secondCount != firstCount {
+		t.Errorf("schema_migrations had %d rows after first Open, %d after second — migration re-applied?", firstCount, secondCount)
 	}
 }
 

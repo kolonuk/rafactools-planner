@@ -168,6 +168,12 @@ button:active { filter: brightness(0.95); }
 }
 .link-button:hover { box-shadow: none; filter: none; opacity: 0.8; }
 
+/* The programme grid is wide (date/day/half/label + N classification
+   columns + notes + weekends) — on a narrow phone it needs to scroll
+   horizontally, not squeeze every column illegibly thin. */
+.grid-form { overflow-x: auto; }
+table.grid { min-width: 760px; }
+
 table.list, table.grid { border-collapse: collapse; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 8px; overflow: hidden; }
 table.list th, table.list td, table.grid th, table.grid td {
   border: 1px solid var(--md-outline-variant);

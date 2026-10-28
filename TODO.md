@@ -9,8 +9,8 @@ Built, tested and documented: moving a night's activities to another date
 (store, endpoint, no-script "Move" control, TypeScript drag-and-drop; checked in
 Chromium), plus the "Add a second half" fix. Still to do:
 
-- [ ] **Run the full suite with `-race`** and the new CI jobs on GitHub; only the
-  plain test run, `tsc` and the HTML validation were run locally this time.
+- [ ] **Watch the first CI run on GitHub.** The new jobs (staticcheck, gosec, tsc,
+  docs check, HTML validation) have only been run locally so far.
 - [ ] **Automated browser test** for the drag-and-drop script (it was verified by
   hand in Chromium only). Worth adding if the script grows.
 - [ ] **First docs snapshot** (`go run ./cmd/devtools docs-snapshot 1.<PR>`) once a
@@ -24,7 +24,10 @@ Chromium), plus the "Add a second half" fix. Still to do:
   dadock). Needs a human: `gh secret set RAFACTOOLS_SESSION_KEY --repo kolonuk/dadock --body "$(openssl rand -hex 32)"`.
   The app now refuses to start with a key under 32 characters.
 - [ ] **Branch protection.** Require the `CI` jobs to pass before merging to
-  `test` and `main` (GitHub repo setting).
+  `test` and `main`. Blocked: the API refuses it (403) because it needs GitHub
+  Pro or a public repo, the same limit that stops CodeQL results uploading.
+  The repo must stay private (see the PDF anonymisation history), so this needs
+  a plan upgrade.
 - [ ] **Privacy basics.** The app stores cadet names, so add a short privacy
   notice, a way to delete a squadron's data, and a retention rule for old
   programmes.
@@ -41,26 +44,24 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 ## Bugs and rough edges
 
-- [ ] **Day label should come from the date**, not a free-text field. A label
-  that disagrees with the real weekday has already broken week grouping once.
-  Derive it with `defaultDayLabels` and drop the editable input.
 - [ ] **Changing classifications breaks existing months.** Their headings
   follow the new list but each row keeps its old number of boxes. Either lock
   the list once a programme exists, or resize rows when it changes.
 - [ ] **Non-Latin-1 text breaks the PDF.** Smart quotes, em-dashes and
   accented letters come out as mojibake. Fix with an embedded Unicode font
   (`AddUTF8Font`).
-- [ ] **Second half of a parade night:** copy half 1's text when adding it,
-  and add a "remove second half" button that warns if half 2 differs.
+- [ ] **Cancel a parade night entirely** once it has rows. Unticking Parade
+  leaves the empty rows in the database (harmless, untidy).
 - [ ] **PDF:** multi-week closures and weekend events aren't true merged
   cells, and long words break mid-word in the Weekends column. Compare
   against `examples/pdfs/` after any `internal/pdfgen` change (see the
   `pdf-fidelity` skill).
-- [ ] **Mobile and accessibility pass:** the grid editor is a wide table;
-  icon-only delete buttons need labels; check focus states and swatch
-  contrast.
-- [ ] **Squadron crest/logo** in the PDF header. Needs a first upload path
-  (the app has none yet).
+- [ ] **Accessibility pass:** icon-only delete buttons need labels; check focus
+  states and uniform-swatch contrast. (The grid already scrolls sideways on a
+  phone; a real mobile layout is still open.)
+- [ ] **Squadron crest/logo image** in the PDF header. The website link is done;
+  an image needs a first upload path (storage plus an upload form), which the
+  app does not have yet.
 
 ## Planned improvements to existing screens
 
@@ -76,9 +77,11 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 Roughly ordered by value for the effort.
 
-1. **Instructors list.** A per-squadron list (name, rank, optional email)
-   plus "All Staff". Start with a native `<datalist>` on the Instructor row,
-   which needs no JavaScript. Also lets us set `display_name` on users.
+1. **Instructors list, next step.** The Instructor row already suggests "All
+   Staff" and each registered member (a native `<datalist>`), but members show
+   as their email address. Still to do: a per-squadron list of names (rank,
+   optional email) so instructors who have no login appear too, and a
+   `display_name` for users.
 2. **Activities and training classes library.** A per-squadron catalogue
    (title, syllabus/class, default instructor, notes) to pick from when
    filling the grid. A proper searchable popup needs a small first-party

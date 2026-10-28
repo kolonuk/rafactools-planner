@@ -227,7 +227,7 @@ func TestSaveDaysAndRows(t *testing.T) {
 			break
 		}
 	}
-	good := DayInput{ID: parade.ID, IsParade: true, DayLabel: "M", UniformKey: "green", Notes: "bring water",
+	good := DayInput{ID: parade.ID, IsParade: true, UniformKey: "green", Notes: "bring water",
 		Rows: []RowInput{{ID: parade.Rows[0].ID, Texts: []string{"Drill", "Drill", "Drill", "Drill"}}}}
 
 	t.Run("round trip", func(t *testing.T) {
@@ -469,7 +469,7 @@ func TestMakingANightAParadeNightSeedsRows(t *testing.T) {
 			break
 		}
 	}
-	in := DayInput{ID: plain.ID, IsParade: true, DayLabel: "F"}
+	in := DayInput{ID: plain.ID, IsParade: true}
 	for i := 0; i < 2; i++ { // saving again must not duplicate rows
 		if err := st.SaveDaysAndRows(1, p.ID, []DayInput{in}); err != nil {
 			t.Fatal(err)
@@ -554,7 +554,7 @@ func setTexts(t *testing.T, st *Store, sq, pid int64, day Day, activity, instruc
 		}
 		in = append(in, RowInput{ID: r.ID, Texts: txt})
 	}
-	if err := st.SaveDaysAndRows(sq, pid, []DayInput{{ID: day.ID, IsParade: true, DayLabel: day.DayLabel, Rows: in}}); err != nil {
+	if err := st.SaveDaysAndRows(sq, pid, []DayInput{{ID: day.ID, IsParade: true, Rows: in}}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -627,8 +627,8 @@ func TestMoveDayContentToANonParadeDayMakesItAParadeNight(t *testing.T) {
 	if text(gd, 1, "activity") != "Camp prep" || text(gd, 1, "instructor") != "Fg Off C" {
 		t.Errorf("target content = %q/%q", text(gd, 1, "activity"), text(gd, 1, "instructor"))
 	}
-	if gd.DayLabel == "" {
-		t.Error("new parade night has no day label")
+	if gd.DayLabel != plain[0].DayLabel || gd.DayLabel == "" {
+		t.Errorf("day label changed or empty: %q (was %q); labels come from the calendar date and must not move", gd.DayLabel, plain[0].DayLabel)
 	}
 	// The source stays a parade night, now empty, ready to be unticked or refilled.
 	if !gs.IsParade || text(gs, 1, "activity") != "" {
@@ -705,5 +705,34 @@ func TestMoveDayContentRefusals(t *testing.T) {
 	}
 	if after := snapshot(); after != before {
 		t.Error("a refused move changed data")
+	}
+}
+
+// A one-half night must not be left with spare half-2 rows after a move:
+// AddHalf only copies half 1 into rows that do not exist yet, so leftovers
+// would make a later "add second half" start empty instead of copying.
+func TestMoveLeavesNoSpareHalfTwoRowsAndAddHalfStillClones(t *testing.T) {
+	st, d := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	parade, plain := splitDays(t, st, 1, p.ID)
+	src, dst := parade[0], plain[0]
+	setTexts(t, st, 1, p.ID, src, "Drill", "Sgt A")
+
+	if err := st.MoveDayContent(1, p.ID, src.ID, dst.ID); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []int64{src.ID, dst.ID} {
+		var n int
+		d.QueryRow("SELECT COUNT(*) FROM programme_rows WHERE day_id = ? AND half = 2", id).Scan(&n)
+		if n != 0 {
+			t.Errorf("day %d has %d spare half-2 rows after a move", id, n)
+		}
+	}
+
+	if err := st.AddHalf(1, p.ID, dst.ID, 4); err != nil {
+		t.Fatal(err)
+	}
+	if got := text(dayByID(t, st, 1, p.ID, dst.ID), 2, "activity"); got != "Drill" {
+		t.Errorf("second half after a move = %q, want Drill (copied from half 1)", got)
 	}
 }
