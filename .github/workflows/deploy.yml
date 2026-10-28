@@ -47,11 +47,14 @@ jobs:
         run: |
           SHORT_SHA="$(echo "${{ github.sha }}" | cut -c1-12)"
           ENV_TAG="${{ github.ref_name }}"
+          # shellcheck disable=SC2153 # IMAGE_NAME is the workflow-level env var set in the `env:` block above, not a typo for IMAGE_BASE
           IMAGE_BASE="${REGISTRY}/${IMAGE_NAME}"
-          echo "short_sha=${SHORT_SHA}"                       >> "$GITHUB_OUTPUT"
-          echo "image_base=${IMAGE_BASE}"                     >> "$GITHUB_OUTPUT"
-          echo "image_ref=${IMAGE_BASE}:${ENV_TAG}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "env_tag=${ENV_TAG}"                           >> "$GITHUB_OUTPUT"
+          {
+            echo "short_sha=${SHORT_SHA}"
+            echo "image_base=${IMAGE_BASE}"
+            echo "image_ref=${IMAGE_BASE}:${ENV_TAG}-${SHORT_SHA}"
+            echo "env_tag=${ENV_TAG}"
+          } >> "$GITHUB_OUTPUT"
           # dadock's docker-compose.yml pins this service by a bare :latest
           # (same convention as johnwood/sbcwaste) — only main should ever
           # move that tag, so dev/test pushes don't silently become what
@@ -110,7 +113,7 @@ jobs:
             -e COOKIE_SECURE=false \
             "${{ steps.meta.outputs.image_ref }}"
           code=""
-          for i in $(seq 1 10); do
+          for _ in $(seq 1 10); do
             code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18081/health || true)"
             [ "$code" = "200" ] && break
             sleep 1
