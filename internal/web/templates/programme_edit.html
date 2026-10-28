@@ -134,7 +134,7 @@
           {{if $.CanEdit}}
           <form method="post" action="{{url "/programmes/" $.ProgrammeID "/closures/" .ID "/delete"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
-            <button type="submit" class="link-button">Delete</button>
+            <button type="submit" class="link-button" aria-label="Delete closure from {{.StartDate}} to {{.EndDate}}">Delete</button>
           </form>
           {{end}}
         </td>
@@ -165,7 +165,7 @@
           {{if $.CanEdit}}
           <form method="post" action="{{url "/programmes/" $.ProgrammeID "/weekend-notes/" .ID "/delete"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
-            <button type="submit" class="link-button">Delete</button>
+            <button type="submit" class="link-button" aria-label="Delete weekend note for {{.Date}}">Delete</button>
           </form>
           {{end}}
         </td>
@@ -190,7 +190,7 @@
       {{if $.CanEdit}}
       <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/delete"}}" class="inline">
         <input type="hidden" name="csrf" value="{{$.CSRF}}">
-        <button type="submit" class="link-button">Delete category</button>
+        <button type="submit" class="link-button" aria-label="Delete category {{$cat.Name}}">Delete category</button>
       </form>
       {{end}}
     </h3>
@@ -200,7 +200,7 @@
         {{if $.CanEdit}}
         <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/entries/" .ID "/delete"}}" class="inline">
           <input type="hidden" name="csrf" value="{{$.CSRF}}">
-          <button type="submit" class="link-button">x</button>
+          <button type="submit" class="link-button" aria-label="Remove this entry from {{$cat.Name}}">&times;</button>
         </form>
         {{end}}
       </li>

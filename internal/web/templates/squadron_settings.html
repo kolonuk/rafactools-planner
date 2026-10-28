@@ -51,13 +51,13 @@
               <option value="editor" {{if eq .Role "editor"}}selected{{end}}>Editor</option>
               <option value="viewer" {{if eq .Role "viewer"}}selected{{end}}>Viewer</option>
             </select>
-            <button type="submit">Set</button>
+            <button type="submit" aria-label="Set role for {{.Email}}">Set</button>
           </form>
         </td>
         <td>
           <form method="post" action="{{url "/squadron/members/" .ID "/remove"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
-            <button type="submit" class="link-button">Remove</button>
+            <button type="submit" class="link-button" aria-label="Remove {{.Email}} from the squadron">Remove</button>
           </form>
         </td>
       </tr>
@@ -79,7 +79,7 @@
         <td>
           <form method="post" action="{{url "/squadron/invites/" .Token "/revoke"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
-            <button type="submit" class="link-button">Revoke</button>
+            <button type="submit" class="link-button" aria-label="Revoke the invitation for {{.Email}}">Revoke</button>
           </form>
         </td>
       </tr>
