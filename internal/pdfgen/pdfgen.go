@@ -75,6 +75,11 @@ func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
 
+	// Re-encode all user text for the single-byte core fonts (smart quotes,
+	// dashes and accented letters survive; anything else prints as "?").
+	tr := pdf.UnicodeTranslatorFromDescriptor("")
+	sq, fp = mapStrings(sq, tr), mapStrings(fp, tr)
+
 	pageW, _ := pdf.GetPageSize()
 	left, _, right, _ := pdf.GetMargins()
 	usableWidth := pageW - left - right
@@ -140,14 +145,8 @@ const changelogURL = "https://github.com/kolonuk/rafactools-planner/blob/main/CH
 func drawVersionFooter(pdf *fpdf.Fpdf, usableWidth float64) {
 	pdf.SetFont("Helvetica", "", 6)
 	pdf.SetTextColor(120, 120, 120)
-	// Plain hyphen, not an em-dash: fpdf's core Helvetica font is
-	// WinAnsi/Latin-1, not UTF-8 — a Go string literal's em-dash (3 UTF-8
-	// bytes) gets drawn as three mojibake glyphs instead of transcoded. Same
-	// trap exists for any other non-Latin1 character reaching CellFormat/
-	// MultiCell anywhere in this file (a squadron name with a smart quote,
-	// say) — seen directly: rendered as "â€"" first time this line used "—".
-	// Not fixed project-wide here (would need an embedded Unicode TTF via
-	// AddUTF8Font); tracked in TODO.md.
+	// Plain hyphen: this text is drawn directly, not through Render's
+	// re-encoding of user text, and the core fonts are not UTF-8.
 	pdf.CellFormat(usableWidth, 3, "v"+version.Version+" - version history", "0", 1, "C", false, 0, changelogURL)
 	pdf.SetTextColor(0, 0, 0)
 }
@@ -254,7 +253,7 @@ func wrapLineCount(pdf *fpdf.Fpdf, text string, w float64) int {
 	if strings.TrimSpace(text) == "" {
 		return 1
 	}
-	lines := pdf.SplitText(text, w-2*cellPad)
+	lines := pdf.SplitText(byteRunes(text), w-2*cellPad)
 	if len(lines) < 1 {
 		return 1
 	}

@@ -4,6 +4,7 @@ order: 60
 summary: What the exported programme looks like.
 since: 1.0
 changed:
+  - next: Curly quotes, dashes and accented letters now print correctly; only characters outside Western European text print as a question mark.
   - next: The squadron website, if set, is printed under the subtitle as a clickable link.
   - next: A closure with unreadable dates can no longer make the export hang.
 ---
@@ -34,6 +35,6 @@ the editor before exporting.
 
 - The page is fixed at one page. Very long text makes the rows taller; there is
   no second page.
-- The built-in font covers Western European characters. Other characters (for
-  example curly quotes or dashes copied from a word processor) may print as
-  odd symbols. Type plain quotes and hyphens.
+- The built-in font covers Western European characters, including curly quotes,
+  dashes and accented letters copied from a word processor. Characters outside
+  that (for example Greek, Cyrillic or Chinese) print as a question mark.

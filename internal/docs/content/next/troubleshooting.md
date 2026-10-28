@@ -4,6 +4,7 @@ order: 90
 summary: What the messages mean and what to do.
 since: 1.0
 changed:
+  - next: Curly quotes and accents no longer print as odd symbols; other scripts print as a question mark.
   - next: Added the password reset, change password, last-owner, website, classification and report messages.
 ---
 # Troubleshooting
@@ -29,7 +30,7 @@ changed:
 | `We couldn't send your report just now.` | The planner could not hand your report to the email system. | Try again in a minute; what you typed is kept. If it keeps happening, tell the person who runs the site. |
 | `Please describe what went wrong.` | The report needs a description. | Type what happened, then send again. |
 | Closure dates rejected | Dates must be real, in order, and at most 366 days apart. | Check the dates: see [programmes](programmes). |
-| Odd characters in the PDF | Characters outside Western European text. | Use plain quotes and hyphens: see [PDF export](pdf-export). |
+| Question marks in the PDF | Characters outside Western European text, such as Greek, Cyrillic or Chinese. | Use Latin letters: see [PDF export](pdf-export). |
 
 ## The page says "Not found"
 
