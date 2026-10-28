@@ -7,6 +7,7 @@ changed:
   - next: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
   - next: Unknown email addresses now take as long to reject as real ones, so response time does not reveal which addresses have accounts.
   - next: Sign-in sessions and form tokens are unchanged, but the site refuses to start with a weak signing key.
+  - next: The browser is now allowed to run the site's own scripts (previously it was told to refuse all scripts); inline, third-party and eval scripts are still refused.
 ---
 # Security and privacy
 
@@ -47,7 +48,10 @@ site can read the database.
 - **Rate limiting:** the login, claim and invite pages allow 20 attempts per
   address in five minutes. After that they answer `Too many attempts` until the
   window passes.
-- **No scripts:** the site runs no JavaScript, and tells the browser to refuse any.
+- **Scripts:** the site tells the browser to run only scripts that come from
+  the site itself. Scripts written into a page (inline), scripts from other
+  websites and `eval` are all refused, which limits the damage if someone
+  manages to put text into a page.
 - **Pages are not cached** by the browser, so a shared computer does not keep
   old pages.
 - **Request size** is limited to 1 MB.

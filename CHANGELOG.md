@@ -21,6 +21,7 @@ baseline instead of per-entry.
   now get a clear message. Ticking "Parade" on a night that was not generated
   as one gave it no activity or instructor boxes; it now does. The
   check-your-email page no longer tells users to read TODO.md.
+- **chore**: the browser policy now allows the site's own JavaScript/TypeScript (`script-src 'self'`), still refusing inline, third-party and eval scripts; CI type-checks scripts with `tsc` instead of rejecting them.
 - **chore**: docs skill, docs snapshot script and a pull-request check that
   user-visible changes include a docs change.
 

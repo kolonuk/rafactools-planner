@@ -217,7 +217,7 @@ func TestDocsAreServedWithTheStrictHeaders(t *testing.T) {
 	c := app.login(app.owner("1110"))
 	resp := c.get("/docs/next/")
 	resp.Body.Close()
-	if !strings.Contains(resp.Header.Get("Content-Security-Policy"), "script-src 'none'") || resp.Header.Get("Cache-Control") != "no-store" {
+	if !strings.Contains(resp.Header.Get("Content-Security-Policy"), "script-src 'self'") || resp.Header.Get("Cache-Control") != "no-store" {
 		t.Errorf("docs lack the app's security headers: %v", resp.Header)
 	}
 	if resp.StatusCode != http.StatusOK {

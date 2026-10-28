@@ -28,8 +28,8 @@ a spreadsheet one person maintains.
 - **Backend**: Go (`cmd/server`, `internal/*`), no web framework — stdlib
   `net/http` with Go 1.22+ method+pattern routing.
 - **Docs**: `internal/docs` renders embedded Markdown (`goldmark`, raw HTML
-  disabled) inside the app layout; no JavaScript, so version switching and
-  comparison are plain links and GET forms.
+  disabled) inside the app layout. Version switching and comparison are
+  plain links and GET forms, so they work without any script.
 - **Storage**: SQLite (`modernc.org/sqlite`, pure Go, no CGO) — one file,
   mounted as a volume. Migrations are embedded SQL files applied on startup
   (`internal/db`).
@@ -47,7 +47,13 @@ a spreadsheet one person maintains.
   carried real cadets'/staff's names) — see `.claude/skills/pdf-fidelity`
   before touching it.
 - **Frontend**: server-rendered HTML forms (`internal/web/templates`), no JS
-  framework. Styled with a hand-rolled Material Design 3 theme
+  framework. **Scripts**: JavaScript and TypeScript are fine where they are
+  needed, as first-party files under `internal/web/static/js/` (the CSP is
+  `script-src 'self'`: no inline scripts or handlers, no third-party or `eval`
+  scripts). Pages should still work for the basic task without script where
+  that is reasonable. TypeScript sources go in `internal/web/ts/` and compile
+  into `static/js/` (compiled output committed, CI checks it is current);
+  `tsconfig.json` type-checks both strictly. Styled with a hand-rolled Material Design 3 theme
   (`internal/web/static/css/app.css`) that follows the system light/dark
   preference automatically.
 

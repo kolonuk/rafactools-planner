@@ -38,9 +38,10 @@ Decided once; do not relitigate without a reason that beats these:
 - Docs must sit **behind the app's login**, in the **same theme**, linking both
   ways with the app. A separate static site means separate hosting, separate auth
   and a second theme to keep in sync.
-- The CSP is `script-src 'none'` and the image is a single static binary with
-  embedded assets. Off-the-shelf generators lean on JavaScript (search, version
-  switchers, navigation) and need their own build toolchain in CI and the image.
+- The image is a single static binary with embedded assets and the CSP only
+  allows the site's own scripts. Off-the-shelf generators bring their own
+  JavaScript bundles and styling (search, version switchers, navigation) and
+  need their own build toolchain in CI and the image.
 - Version selector, compare and change notes are all small server-side features
   (Markdown → HTML with `goldmark`, a line diff). Writing them is less work than
   bending a generator to do them under this CSP.

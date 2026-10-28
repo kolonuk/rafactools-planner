@@ -159,10 +159,14 @@ func maxBody(limit int64, next http.Handler) http.Handler {
 	})
 }
 
-// securityHeaders sets a conservative baseline on every response. There's no
-// first-party JS and no third-party requests anywhere in this app (see
-// layout.html's comment on why Google Fonts was dropped), so the CSP can be
-// this strict without breaking anything.
+// securityHeaders sets a conservative baseline on every response. There are
+// no third-party requests anywhere in this app (see layout.html's comment on
+// why Google Fonts was dropped), so everything is limited to this origin.
+// JavaScript and TypeScript are welcome where they are needed, but only as
+// files served from /static/ (script-src 'self'): no inline <script>, no
+// inline event handlers, no eval and no third-party scripts. Do not add
+// 'unsafe-inline', 'unsafe-eval' or a host to script-src — a test fails if
+// you do.
 func (s *server) securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -171,7 +175,7 @@ func (s *server) securityHeaders(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=(), usb=()")
 		h.Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; img-src 'self' data:; "+
-			"script-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+			"script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
 		if !strings.HasPrefix(r.URL.Path, s.Cfg.BasePath+"/static/") {
 			h.Set("Cache-Control", "no-store")
 		}

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowJs": false,
+    "checkJs": false,
+    "rootDir": "internal/web/ts",
+    "outDir": "internal/web/static/js",
+    "removeComments": false
+  },
+  "include": ["internal/web/ts/**/*"]
+}

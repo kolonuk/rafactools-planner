@@ -56,9 +56,9 @@ Sections are in rough priority order. Anything done is deleted, not ticked —
 
 - [ ] **Copy last month forward:** requirement categories (not cadet names)
   and standing notes. Confirm with a real user first.
-- [ ] **Reorder rows with up/down buttons.** Simple and needs no JavaScript.
-  Real drag-and-drop would mean loosening the `script-src 'none'` CSP, so
-  only do that together with the picker below.
+- [ ] **Reorder rows:** drag-and-drop is now allowed (first-party scripts are
+  permitted, see `.claude/skills/docs/SKILL.md` and "Scripts" in the README).
+  Keep up/down buttons working without script as the fallback.
 - [ ] **Clearer classification grouping:** an explicit "these classes do the
   same thing" control instead of typing identical text to merge cells.
 
@@ -72,7 +72,8 @@ Roughly ordered by value for the effort.
 2. **Activities and training classes library.** A per-squadron catalogue
    (title, syllabus/class, default instructor, notes) to pick from when
    filling the grid. A proper searchable popup needs a small first-party
-   script, so decide on the CSP change once for this and for drag-and-drop.
+   script, which is now allowed (see the README's "Scripts" note); keep the
+   form usable without it where reasonable.
 3. **Ideas board** (reminder notes for future months). Each idea has a title,
    type, possible dates, contact details (e.g. RAF Careers), equipment needed,
    cost, status (idea / asked / confirmed / dropped) and a "use in programme"
@@ -121,7 +122,7 @@ Roughly ordered by value for the effort.
     with `go run ./cmd/devtools docs-snapshot 1.<PR number>` once a release is
     designated, so the version selector and compare view have something to
     compare; link relevant screens to their help page; images/screenshots
-    (not supported yet); in-docs search (needs the CSP decision above).
+    (not supported yet); in-docs search (a first-party script is now allowed).
 
 ## Reference
 
