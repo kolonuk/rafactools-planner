@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"rafactools-planner/internal/docs"
+	"rafactools-planner/internal/mail"
 	"regexp"
 	"strings"
 	"sync"
@@ -262,8 +263,11 @@ func testDocs(t *testing.T) *docs.Library {
 // emailed, so tests can follow the real links. Sending happens in the
 // background in the handlers, so reads wait briefly.
 type recordingMail struct {
-	mu   sync.Mutex
-	sent []sentMail
+	mu        sync.Mutex
+	sent      []sentMail
+	reports   []mail.IssueReport
+	reportTo  []string
+	reportErr error
 }
 
 type sentMail struct{ Kind, To, Token string }
@@ -281,6 +285,14 @@ func (m *recordingMail) SendVerification(to, _, token string) error {
 func (m *recordingMail) SendInvite(to, _, token, _, _ string) error {
 	return m.add("invite", to, token)
 }
+func (m *recordingMail) SendIssueReport(to string, r mail.IssueReport) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.reports = append(m.reports, r)
+	m.reportTo = append(m.reportTo, to)
+	return m.reportErr
+}
+
 func (m *recordingMail) SendPasswordReset(to, _, token string) error {
 	return m.add("reset", to, token)
 }

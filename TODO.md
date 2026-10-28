@@ -181,11 +181,15 @@ lines are built and tested. What is left, and why it is not done here:
   and shown in plain text. The password discussed in chat was 10 characters, under
   the app's 12-character minimum, so the app refuses it (and logs why); pick a
   longer one and treat the one that was pasted in chat as exposed.
-- [ ] **Issue reporting.** The master admin exists "to see issues reported in
-  other squadrons", but the app has no way to report an issue yet. Add a "Report
-  a problem" form (page, squadron and a message, no cadet data needed) that any
-  signed-in user can send, stored per squadron and listed in an inbox the master
-  admin sees across all squadrons, with a status (new / looking / done).
+- [x] **Issue reporting** (done: "Report a problem", emailed to `ISSUE_EMAIL`, not stored).
+- [ ] **Report diagnostics, next round**: a request ID shown in the page, the
+  response header, the log and the report so all three can be matched; DB
+  migration version and "SMTP configured" flags in the server section; an
+  anonymised shape of the programme being viewed (counts of nights, halves,
+  classifications; no text); failed fetch/network statuses and page timing;
+  a "can you repeat it?" and "how bad is it?" question; recent PDF-render
+  errors. Then, if wanted, store reports so the master admin has an inbox with
+  a status (new / looking / done) instead of only email.
 - [ ] **Two-factor sign-in for the master admin** before it is used on a real
   deployment: it can read every squadron, so a stolen password is the worst case.
 - [ ] **Let the master admin act as an editor or owner** in a squadron when

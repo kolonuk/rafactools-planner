@@ -196,7 +196,7 @@
     </h3>
     <ul>
       {{range .Entries}}
-      <li>{{.CadetName}} {{.Note}}
+      <li data-private>{{.CadetName}} {{.Note}}
         {{if $.CanEdit}}
         <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/entries/" .ID "/delete"}}" class="inline">
           <input type="hidden" name="csrf" value="{{$.CSRF}}">

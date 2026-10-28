@@ -1,0 +1,58 @@
+{{define "content"}}
+<h1>Report a problem</h1>
+<p class="muted">Tell us what went wrong and we'll look into it. Reports are emailed to the people who run this site; nothing is stored in the planner itself.</p>
+
+<form method="post" action="{{url "/report"}}" enctype="multipart/form-data" class="card" id="report-form"{{if .Masking}} data-masking="1"{{end}}>
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <input type="hidden" name="from" value="{{.From}}">
+  <input type="hidden" name="client_context" id="client-context" value="">
+
+  <label>What kind of problem is it?
+    <select name="category">
+      {{range .Categories}}<option value="{{.Value}}" {{if eq .Value $.Category}}selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </label>
+  <label>What happened?
+    <textarea name="description" rows="6" required maxlength="4000" placeholder="What were you doing, and what went wrong?">{{.Description}}</textarea>
+  </label>
+  <label>What did you expect to happen? (optional)
+    <textarea name="expected" rows="3" maxlength="2000">{{.Expected}}</textarea>
+  </label>
+
+  {{if .User}}
+  <label class="checkbox"><input type="checkbox" name="contact" value="1"> You may reply to me by email at {{.User.Email}}</label>
+  {{else}}
+  <label>Your email, if you'd like a reply (optional)
+    <input type="email" name="contact_email" maxlength="200" autocomplete="email">
+  </label>
+  {{end}}
+
+  <fieldset class="field" id="shot-section">
+    <legend>Screenshot (optional, but it helps a lot)</legend>
+    {{if .Masking}}
+    <p class="muted" id="shot-notice">Before you send, you can <strong>black out</strong> anything private, such as names. Parts of the page marked as private are already blacked out for you; check the picture and add more if needed. Only the picture you see here is sent.</p>
+    {{else}}
+    <p class="notice" id="shot-notice"><strong>Your screenshot is sent exactly as it is.</strong> It may show names and other details that are on the page. Only include it if you are happy for the people who run this site to see it.</p>
+    {{end}}
+    <p class="js-only muted" id="shot-status"></p>
+    <div id="shot-editor" hidden>
+      <p>
+        <label class="checkbox"><input type="checkbox" id="shot-include" checked> Include this screenshot</label>
+        {{if .Masking}}
+        <button type="button" id="mask-undo">Undo last black box</button>
+        <button type="button" id="mask-clear">Remove all black boxes</button>
+        <span class="muted">Drag on the picture to draw a black box.</span>
+        {{end}}
+      </p>
+      <canvas id="shot-canvas" role="img" aria-label="Screenshot preview"></canvas>
+    </div>
+    <label id="shot-file-label">Attach a screenshot file (PNG or JPEG)
+      <input type="file" name="screenshot" id="shot-file" accept="image/png,image/jpeg">
+    </label>
+  </fieldset>
+
+  <p class="muted">The report also includes the page you were on, your last few clicks and the server's last few requests (never anything you typed), your browser type and screen size, and any error messages. <a href="{{url "/docs/next/report-a-problem"}}">Exactly what is sent</a>.</p>
+  <button type="submit">Send report</button>
+</form>
+<script type="module" src="{{url "/static/js/gen/report-form.js"}}"></script>
+{{end}}

@@ -39,7 +39,7 @@
     <tbody>
     {{range .Members}}
       <tr>
-        <td>{{if .DisplayName}}{{.DisplayName}} <span class="muted">({{.Email}})</span>{{else}}{{.Email}}{{end}}</td>
+        <td data-private>{{if .DisplayName}}{{.DisplayName}} <span class="muted">({{.Email}})</span>{{else}}{{.Email}}{{end}}</td>
         <td>
           <!-- An explicit button, not an onchange auto-submit: inline event
                handlers are blocked by the CSP (see securityHeaders in web.go),
@@ -75,7 +75,7 @@
     <tbody>
     {{range .Invites}}
       <tr>
-        <td>{{.Email}}</td><td>{{.Role}}</td><td>{{.ExpiresAt}}</td>
+        <td data-private>{{.Email}}</td><td>{{.Role}}</td><td>{{.ExpiresAt}}</td>
         <td>
           <form method="post" action="{{url "/squadron/invites/" .Token "/revoke"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">

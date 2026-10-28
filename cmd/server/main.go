@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -21,6 +22,9 @@ import (
 )
 
 func main() {
+	// Keep a redacted tail of error lines for problem reports.
+	log.SetOutput(io.MultiWriter(os.Stderr, web.LogTee()))
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config: %v", err)

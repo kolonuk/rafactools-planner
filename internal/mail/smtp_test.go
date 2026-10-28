@@ -71,6 +71,8 @@ func (f *fakeSMTP) serve(c net.Conn) {
 				if err != nil || l == ".\r\n" {
 					break
 				}
+				// a real server removes the extra dot SMTP adds to lines starting with "."
+				l = strings.TrimPrefix(l, ".")
 				sb.WriteString(l)
 			}
 			f.mu.Lock()

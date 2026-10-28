@@ -35,6 +35,7 @@ type Mailer interface {
 	SendVerification(to, baseURL, token string) error
 	SendInvite(to, baseURL, token, squadronName, invitedByEmail string) error
 	SendPasswordReset(to, baseURL, token string) error
+	SendIssueReport(to string, r mail.IssueReport) error
 }
 
 var _ Mailer = mail.Sender{}
@@ -49,7 +50,8 @@ type Deps struct {
 
 type server struct {
 	*Deps
-	pages map[string]*template.Template
+	pages    map[string]*template.Template
+	activity *activityLog
 }
 
 // pageNames are the content templates under templates/, one per file
@@ -60,7 +62,7 @@ type server struct {
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
 	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half",
-	"docs_page", "docs_compare", "instructors", "account",
+	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -98,13 +100,16 @@ const (
 )
 
 func NewRouter(d *Deps) http.Handler {
-	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath)}
+	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog()}
 
 	// 20 attempts per 5 minutes per IP on the endpoints worth scripting an
 	// attack against (credential stuffing on login, mass squadron-claim
 	// spam, invite-token guessing). Generous enough not to lock out a
 	// fumbling human, tight enough to blunt automation.
 	authLimiter := newIPLimiter(20, 5*time.Minute)
+	// Reports carry an upload and send an email, and can be filed without
+	// signing in, so they get a tighter limit of their own.
+	reportLimiter := newIPLimiter(5, 10*time.Minute)
 
 	mux := http.NewServeMux()
 
@@ -115,6 +120,9 @@ func NewRouter(d *Deps) http.Handler {
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(staticSub)))
 
 	mux.HandleFunc("GET /health", s.health)
+
+	mux.HandleFunc("GET /report", s.withUserOptional(s.reportForm))
+	mux.HandleFunc("POST /report", reportLimiter.rateLimited(s.withUserOptional(s.reportSubmit)))
 
 	mux.HandleFunc("GET /claim", s.withUserOptional(s.claimForm))
 	mux.HandleFunc("POST /claim", authLimiter.rateLimited(s.withUserOptional(s.claimSubmit)))
@@ -172,15 +180,23 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries", s.requireEditor(s.reqEntryAdd))
 	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries/{entryID}/delete", s.requireEditor(s.reqEntryDelete))
 
-	return s.securityHeaders(maxBody(1<<20, mux)) // 1MB — every form here is tiny; no uploads exist
+	// 1MB for every form; only the problem report (which may carry a
+	// screenshot) is allowed more.
+	return s.securityHeaders(s.recordActivity(maxBody(1<<20, map[string]int64{"/report": maxReportBody}, mux)))
 }
 
 // maxBody caps request bodies so a POST can't exhaust memory/disk parsing an
 // oversized form — there's nothing in this app (no file uploads) that
 // legitimately needs more than a tiny form payload.
-func maxBody(limit int64, next http.Handler) http.Handler {
+func maxBody(limit int64, larger map[string]int64, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, limit)
+		l := limit
+		if r.Method == http.MethodPost {
+			if v, ok := larger[r.URL.Path]; ok {
+				l = v
+			}
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, l)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -199,10 +215,11 @@ func (s *server) securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "no-referrer")
-		h.Set("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=(), usb=()")
+		h.Set("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=(), usb=(), display-capture=(self)")
 		h.Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; img-src 'self' data:; "+
 			"script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
-		if !strings.HasPrefix(r.URL.Path, s.Cfg.BasePath+"/static/") {
+		// The router sees paths with any reverse-proxy prefix already stripped.
+		if !strings.HasPrefix(r.URL.Path, "/static/") {
 			h.Set("Cache-Control", "no-store")
 		}
 		// Only when the operator has told us we're reached over TLS
@@ -230,12 +247,13 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, page, title stri
 		return
 	}
 	data := map[string]any{
-		"Title":   title,
-		"User":    userFrom(r.Context()),
-		"CSRF":    s.csrfFor(r),
-		"Flash":   "",
-		"Error":   "",
-		"Version": version.Version,
+		"Title":         title,
+		"User":          userFrom(r.Context()),
+		"CSRF":          s.csrfFor(r),
+		"Flash":         "",
+		"Error":         "",
+		"Version":       version.Version,
+		"ReportEnabled": s.reportEnabled(),
 	}
 	for k, v := range extra {
 		data[k] = v

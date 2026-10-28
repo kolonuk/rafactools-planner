@@ -4,6 +4,7 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
+  - next: Added the Report a problem feature, and its limits.
   - next: Role changes, member removal, removing a second half and automatic day labels now exist, so they are no longer listed.
   - next: Password reset and change password now exist, and changing the classifications updates existing months;
   - next: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works; activities can be moved between dates.
@@ -36,5 +37,7 @@ These are not mistakes in how you are using the planner.
 - Characters outside Western European text may print incorrectly.
 
 **Site**
+- Problem reports are emailed, not kept in the planner: there is no list of past reports and no status to follow.
+- Taking a screenshot automatically needs a desktop browser that supports it; elsewhere attach a screenshot file.
 - No in-app deletion of a squadron's data.
 - Documentation is only available while signed in.

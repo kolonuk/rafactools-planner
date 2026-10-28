@@ -2,7 +2,7 @@
 <h1>Your details</h1>
 <form method="post" action="{{url "/account"}}" class="card">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
-  <label>Your name (optional)
+  <label data-private>Your name (optional)
     <input type="text" name="display_name" value="{{.DisplayName}}" maxlength="80" autocomplete="name" placeholder="Fg Off Smith">
   </label>
   <p class="muted">Shown to your squadron in the members list and as a suggestion in the programme grid's Instructor boxes. If you leave it blank, your email address is shown instead.</p>

@@ -4,6 +4,7 @@ order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
 changed:
+  - next: Added ISSUE_EMAIL and ISSUE_MASKING for the Report a problem feature.
   - next: Added the optional master admin account (MASTER_ADMIN_EMAIL and MASTER_ADMIN_PASSWORD).
   - next: Password reset emails also depend on the mail settings.
   - next: SESSION_KEY must now be at least 32 characters, or the site refuses to start.
@@ -23,6 +24,8 @@ configuration file. See `.env.template` in the repository for an annotated copy.
 | `CLAIM_DOMAIN` | `rafac.mod.gov.uk` | Email domain allowed to claim a squadron. |
 | `SKIP_EMAIL_VERIFICATION` | `false` | Marks every claimed squadron as confirmed immediately. **Development only**: it removes the proof that the address is real. |
 | `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD` | empty | The optional site-wide **master admin** (see below). Set both or neither. |
+| `ISSUE_EMAIL` | empty | Where **problem reports** are emailed, for example `issues@your-domain`. Empty switches reporting off: no link appears and `/report` does not exist. |
+| `ISSUE_MASKING` | `true` | `true` lets people black out parts of a screenshot before sending it. Set `false` only on a site you run for other people when you need to see exactly what they saw: the form then says plainly that screenshots are sent as they are. |
 | `SMTP_HOST` | empty | Mail server. Empty means no email is sent (see below). |
 | `SMTP_PORT` | `587` | Mail port. Port `465` uses TLS from the start; other ports use plain SMTP and upgrade with STARTTLS if the server offers it. |
 | `SMTP_USER`, `SMTP_PASS` | empty | Mail login, if the server needs one. |
@@ -38,6 +41,21 @@ With `SMTP_HOST` empty the site does not send mail. It writes the message,
 **including the confirmation or invitation link**, to its log instead. That is
 useful on a development machine. Anywhere else, treat the log as sensitive or
 configure real mail.
+
+## Problem reports
+
+With `ISSUE_EMAIL` set, every page has a **Report a problem** link and reports are emailed
+through the same SMTP settings as the other emails; see [report a problem](report-a-problem) for
+what people see and what a report contains. Notes for whoever receives them:
+
+- An invalid `ISSUE_EMAIL` stops the site starting, with a message naming it.
+- With `SMTP_HOST` empty the report, including its text, is written to the log instead.
+- Each address can send 5 reports per 10 minutes; a report may be up to 6 MB (a screenshot up to 4 MB).
+- Reports can be filed without signing in, so treat them as untrusted data: see [report a problem](report-a-problem).
+- The server keeps the last 20 requests per browser session in memory (method, path with any
+  secret code removed, and result code; never bodies, cookies or typed values) and the last 30
+  error-looking log lines (emails and codes removed) so a report can include them. Nothing is
+  written to disk.
 
 ## The master admin
 

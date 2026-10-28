@@ -27,6 +27,7 @@ print it as a one-page PDF.
 | [Instructors](instructors) | The instructor list, and setting your own name |
 | [PDF export](pdf-export) | What the PDF contains |
 | [Security and privacy](security-and-privacy) | What is stored, for how long, and who can see it |
+| [Report a problem](report-a-problem) | Reporting something that went wrong, screenshots, and what is sent |
 | [Known limits](known-limits) | Things the planner cannot do yet |
 | [Troubleshooting](troubleshooting) | Common problems and messages |
 | [Run your own copy](run-your-own) | Why to run it yourself, what you need, GitHub settings, or the free public site |

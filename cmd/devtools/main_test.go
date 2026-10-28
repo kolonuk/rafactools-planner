@@ -92,15 +92,30 @@ func TestDocsCheckRejectsNonHashRevisions(t *testing.T) {
 }
 
 func TestGithubSetupSettings(t *testing.T) {
-	s := masterAdminSettings("RAFACTOOLS_")
-	if len(s) != 2 || s[0].Kind != "variable" || s[1].Kind != "secret" {
-		t.Fatalf("settings = %+v: the email is a variable and the password a secret", s)
+	all := masterAdminSettings("RAFACTOOLS_")
+	byName := map[string]setting{}
+	for _, x := range all {
+		byName[x.Name] = x
 	}
-	if s[0].Name != "RAFACTOOLS_MASTER_ADMIN_EMAIL" || s[1].Name != "RAFACTOOLS_MASTER_ADMIN_PASSWORD" {
-		t.Errorf("names = %q, %q", s[0].Name, s[1].Name)
+	for name, kind := range map[string]string{
+		"RAFACTOOLS_MASTER_ADMIN_EMAIL": "variable", "RAFACTOOLS_MASTER_ADMIN_PASSWORD": "secret",
+		"RAFACTOOLS_ISSUE_EMAIL": "variable", "RAFACTOOLS_ISSUE_MASKING": "variable",
+	} {
+		if byName[name].Kind != kind {
+			t.Errorf("%s is %q, want %q", name, byName[name].Kind, kind)
+		}
 	}
-	if got := masterAdminSettings("")[1].Name; got != "MASTER_ADMIN_PASSWORD" {
-		t.Errorf("no-prefix name = %q", got)
+	if len(all) != 4 {
+		t.Errorf("%d settings, want 4", len(all))
+	}
+	for _, x := range all {
+		if x.Kind == "variable" && x.Placeholder == "" {
+			t.Errorf("variable %s has no placeholder", x.Name)
+		}
+	}
+	s := []setting{byName["RAFACTOOLS_MASTER_ADMIN_EMAIL"], byName["RAFACTOOLS_MASTER_ADMIN_PASSWORD"]}
+	if got := masterAdminSettings(""); got[len(got)-1].Name != "MASTER_ADMIN_PASSWORD" {
+		t.Errorf("no-prefix names = %+v", got)
 	}
 	// The password must never be on a command line, where it would show in
 	// process listings and shell history.

@@ -100,8 +100,14 @@ never put a password or key in a variable.
 | `BASE_URL`, `CLAIM_DOMAIN`, `COOKIE_SECURE` | variable | The address, your email domain, and `true`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM` | variable | Your email provider. |
 | `MASTER_ADMIN_EMAIL` | variable | Only if you want a master admin. |
+| `ISSUE_EMAIL` | variable | Where problem reports go (for example `issues@your-domain`); leave empty to switch reporting off. |
+| `ISSUE_MASKING` | variable | `true` (default) lets people black out parts of a screenshot; `false` only for a site you run for others. |
 
-A helper creates the master admin pair for you (it asks for the password privately, and
+On your **own** copy keep `ISSUE_MASKING` at `true`: your people can then hide names in a
+screenshot before it reaches you, and the reports go to an address you choose. See
+[report a problem](report-a-problem).
+
+A helper creates these settings for you (it asks for the password privately, and
 never puts it on a command line). Run it yourself, signed in with `gh auth login`:
 
 ```
