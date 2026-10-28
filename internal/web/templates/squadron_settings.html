@@ -102,4 +102,44 @@
     <button type="submit">Send invite</button>
   </form>
 </section>
+
+<section class="card">
+  <h2>Security log</h2>
+  <p class="muted">Who looked at or changed who can get into this squadron. The newest 50 entries from the last year.</p>
+  {{if .Audit}}
+  <table class="list">
+    <thead><tr><th scope="col">When (UTC)</th><th scope="col">Who</th><th scope="col">What</th><th scope="col">Detail</th></tr></thead>
+    <tbody>
+    {{range .Audit}}
+      <tr>
+        <td>{{.At.UTC.Format "2 Jan 2006 15:04"}}</td>
+        <td data-private>{{.ActorEmail}}</td>
+        <td>{{auditText .Action}}</td>
+        <td data-private>{{.Detail}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Nothing recorded yet.</p>
+  {{end}}
+</section>
+
+<section class="card danger">
+  <h2>Delete this squadron</h2>
+  <p>This permanently deletes <strong>everything</strong> your squadron has here: every member's
+    account, every programme, the requirements tracker (including cadets' names), the instructor list
+    and this security log. It cannot be undone and there is no backup to restore from. Export each
+    month's PDF first if you want to keep them.</p>
+  <form method="post" action="{{url "/squadron/delete"}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Type the squadron number (<strong>{{.Squadron.Number}}</strong>) to confirm
+      <input type="text" name="confirm_number" required autocomplete="off">
+    </label>
+    <label>Your password
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit">Delete the squadron and everything in it</button>
+  </form>
+</section>
 {{end}}

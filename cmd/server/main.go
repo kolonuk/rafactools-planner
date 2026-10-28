@@ -49,6 +49,13 @@ func main() {
 			log.Printf("ERROR master admin NOT configured: %v", err)
 		} else {
 			log.Printf("master admin: %s (%s)", result, cfg.MasterAdminEmail)
+			if cfg.MasterAdminReset2FA {
+				if changed, err := authSvc.ResetTOTPFor(cfg.MasterAdminEmail); err != nil {
+					log.Printf("ERROR master admin two-step reset: %v", err)
+				} else if changed {
+					log.Printf("master admin: two-step sign-in cleared (MASTER_ADMIN_RESET_2FA); remove that setting and set it up again")
+				}
+			}
 		}
 	}
 

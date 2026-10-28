@@ -4,6 +4,7 @@ order: 20
 summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
 changed:
+  - next: Your details now lists where you are signed in and can sign out other places; the master admin signs in for 8 hours and can use two-step sign-in.
   - next: Added Change password on the Your details page.
   - next: Added "Forgot your password?": a reset link by email.
   - next: Passwords longer than 72 characters are now refused with a clear message instead of an internal error.
@@ -18,6 +19,20 @@ addresses are not case-sensitive.
 You stay signed in for **30 days** on that browser, or until you choose
 **Log out**. Logging out ends the session on the server as well, so a copy of
 the session cannot be used afterwards.
+
+### Where you are signed in
+
+**Your details** lists every browser that is signed in as you: what kind of browser, when it
+signed in and when it expires (times are UTC). **Sign out** next to one ends only that session;
+**Sign out everywhere else** ends all of them except this browser. Use it if you forgot to log out
+of a shared computer or lost a device. To end this browser's session, use **Log out**.
+
+### The master admin
+
+The master admin signs in for **8 hours** rather than 30 days, and can turn on **two-step
+sign-in** on **Your details**: add the shown key to an authenticator app (as a time-based key),
+enter the 6-digit code to confirm, and from then on logging in also asks for a code in the
+**Authenticator code** box. Each code works once.
 
 ## Passwords
 

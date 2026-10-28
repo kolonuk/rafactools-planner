@@ -28,7 +28,89 @@
   <button type="submit">Back to my own squadron</button>
 </form>
 {{end}}
+{{if .MasterViews}}
+<h2>Squadrons you have looked at</h2>
+<section class="card">
+  <p class="muted">The newest 50. Each owner can see their own squadron's entries in its security log.</p>
+  <table class="list">
+    <thead><tr><th scope="col">When (UTC)</th><th scope="col">Squadron</th></tr></thead>
+    <tbody>
+    {{range .MasterViews}}<tr><td>{{.At.UTC.Format "2 Jan 2006 15:04"}}</td><td>{{.SquadronNum}}</td></tr>{{end}}
+    </tbody>
+  </table>
+</section>
 {{end}}
+{{end}}
+
+{{if .TwoStepOffered}}
+<h2>Two-step sign-in</h2>
+<section class="card">
+  {{if .TwoStepError}}<p class="error">{{.TwoStepError}}</p>{{end}}
+  {{if .TwoStepOn}}
+  <p><strong>On.</strong> Signing in needs your password and a 6-digit code from your authenticator app.</p>
+  <form method="post" action="{{url "/account/2fa/disable"}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Your password
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <label>Current code
+      <input type="text" name="code" required inputmode="numeric" autocomplete="one-time-code" maxlength="7">
+    </label>
+    <button type="submit">Turn off two-step sign-in</button>
+  </form>
+  {{else if .TwoStepSecret}}
+  <p>In an authenticator app (Google Authenticator, Aegis, 1Password, Authy and others) add an account
+    by entering this key by hand, as a <strong>time-based</strong> key:</p>
+  <p><code data-private>{{.TwoStepSecret}}</code></p>
+  <p class="muted">Phone apps can also open this address: <code data-private>{{.TwoStepURI}}</code></p>
+  <form method="post" action="{{url "/account/2fa/confirm"}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>The 6-digit code your app now shows
+      <input type="text" name="code" required inputmode="numeric" autocomplete="one-time-code" maxlength="7">
+    </label>
+    <button type="submit">Turn on two-step sign-in</button>
+  </form>
+  {{else}}
+  <p>This account can see every squadron, so protect it with a second step: a code from an
+    authenticator app, as well as the password. It is <strong>off</strong> now.</p>
+  <form method="post" action="{{url "/account/2fa/start"}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <button type="submit">Set up two-step sign-in</button>
+  </form>
+  {{end}}
+</section>
+{{end}}
+
+<h2>Where you are signed in</h2>
+<section class="card">
+  <table class="list">
+    <thead><tr><th scope="col">Browser</th><th scope="col">Signed in (UTC)</th><th scope="col">Expires (UTC)</th><th scope="col"></th></tr></thead>
+    <tbody>
+    {{range .Sessions}}
+      <tr>
+        <td>{{.Device}}{{if .Current}} <strong>(this browser)</strong>{{end}}</td>
+        <td>{{.CreatedAt.UTC.Format "2 Jan 2006 15:04"}}</td>
+        <td>{{.ExpiresAt.UTC.Format "2 Jan 2006 15:04"}}</td>
+        <td>
+          {{if not .Current}}
+          <form method="post" action="{{url "/account/sessions/" .ID "/signout"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button" aria-label="Sign out {{.Device}} signed in {{.CreatedAt.UTC.Format "2 Jan 2006 15:04"}}">Sign out</button>
+          </form>
+          {{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  <p class="muted">Not you, or a shared computer you forgot to log out of? Sign it out here.</p>
+  {{if .OtherSessions}}
+  <form method="post" action="{{url "/account/sessions/signout-others"}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <button type="submit">Sign out everywhere else</button>
+  </form>
+  {{end}}
+</section>
 
 <h2>Change password</h2>
 <form method="post" action="{{url "/account/password"}}" class="card">

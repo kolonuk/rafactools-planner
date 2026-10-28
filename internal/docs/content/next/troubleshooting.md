@@ -4,6 +4,7 @@ order: 90
 summary: What the messages mean and what to do.
 since: 1.0
 changed:
+  - next: Added the sign-up closed, authenticator code and delete-squadron messages, and the site refusing to start without mail.
   - next: Curly quotes and accents no longer print as odd symbols; other scripts print as a question mark.
   - next: Added the password reset, change password, last-owner, website, classification and report messages.
 ---
@@ -28,6 +29,9 @@ changed:
 | `can't remove or demote the squadron's only owner` | Every squadron must keep at least one owner. | Make someone else an owner first: see [roles and invites](roles-and-invites). |
 | `The website must be a full address starting with http:// or https://.` | The squadron website field only accepts web addresses. | Include `https://`, or leave it blank: see [squadron settings](squadron-settings). |
 | `We couldn't send your report just now.` | The planner could not hand your report to the email system. | Try again in a minute; what you typed is kept. If it keeps happening, tell the person who runs the site. |
+| `Sign-ups are closed` | This site has turned off claiming new squadrons. | Ask an owner of your squadron to invite you. |
+| `Enter the 6-digit code from your authenticator app...` | The account has two-step sign-in on and the code was missing, wrong or already used. | Wait for a new code, then enter it in **Authenticator code**. Five wrong codes lock it for 15 minutes. |
+| `Nothing was deleted: ...` | Deleting a squadron needs your password and its number typed exactly. | Check both and try again. |
 | `Please describe what went wrong.` | The report needs a description. | Type what happened, then send again. |
 | Closure dates rejected | Dates must be real, in order, and at most 366 days apart. | Check the dates: see [programmes](programmes). |
 | Question marks in the PDF | Characters outside Western European text, such as Greek, Cyrillic or Chinese. | Use Latin letters: see [PDF export](pdf-export). |

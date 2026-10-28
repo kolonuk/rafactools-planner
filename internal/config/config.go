@@ -37,11 +37,27 @@ type Config struct {
 	// IssueEmail is where "Report a problem" reports are emailed (for example
 	// issues@your-domain). Empty switches the feature off entirely.
 	IssueEmail string
+
+	// MasterAdminReset2FA clears the master admin's two-step sign-in at the next
+	// start, for an operator who has lost the authenticator app. Set it for one
+	// start, then remove it.
+	MasterAdminReset2FA bool
 	// IssueMasking lets people black out parts of their screenshot before
 	// sending it (default true). A site run for other people, whose operators
 	// need to see exactly what the user saw, sets it false; the report form
 	// then says plainly that the screenshot is sent as it is.
 	IssueMasking bool
+
+	// AllowLogMail lets the site start without SMTP, writing the emails it would
+	// send (confirmation, invite and password-reset links, problem reports) to
+	// the log instead. Those links are credentials: anyone who can read the log
+	// can use them, so this is for local development only and is off by default.
+	AllowLogMail bool
+
+	// DisableSignups closes the claim-a-squadron form, for example on a copy
+	// that holds real data. Existing accounts, invites and password resets
+	// still work.
+	DisableSignups bool
 
 	SMTPHost string
 	SMTPPort int
@@ -62,8 +78,11 @@ func Load() (Config, error) {
 		SkipEmailVerification: getenvBool("SKIP_EMAIL_VERIFICATION", false),
 		MasterAdminEmail:      strings.TrimSpace(os.Getenv("MASTER_ADMIN_EMAIL")),
 		MasterAdminPassword:   os.Getenv("MASTER_ADMIN_PASSWORD"),
+		MasterAdminReset2FA:   getenvBool("MASTER_ADMIN_RESET_2FA", false),
 		IssueEmail:            strings.TrimSpace(os.Getenv("ISSUE_EMAIL")),
 		IssueMasking:          getenvBool("ISSUE_MASKING", true),
+		AllowLogMail:          getenvBool("ALLOW_LOG_MAIL", false),
+		DisableSignups:        getenvBool("DISABLE_SIGNUPS", false),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPUser:              os.Getenv("SMTP_USER"),
 		SMTPPass:              os.Getenv("SMTP_PASS"),
@@ -74,6 +93,10 @@ func Load() (Config, error) {
 		if a, err := mail.ParseAddress(c.IssueEmail); err != nil || a.Address != c.IssueEmail {
 			return c, fmt.Errorf("ISSUE_EMAIL %q is not a valid email address", c.IssueEmail)
 		}
+	}
+
+	if c.SMTPHost == "" && !c.AllowLogMail {
+		return c, fmt.Errorf("SMTP_HOST is not set: without it, sign-in and reset links would be written to the log where anyone who can read it could use them; configure SMTP, or set ALLOW_LOG_MAIL=true for local development only")
 	}
 
 	if c.SessionKey == "" {
@@ -108,8 +131,8 @@ func Load() (Config, error) {
 }
 
 // HasSMTP reports whether outgoing mail is configured. When false, the mail
-// package logs verification links to stdout instead — fine for local dev,
-// never acceptable in test/prod (see TODO.md).
+// package logs verification links instead, which Load only allows when
+// ALLOW_LOG_MAIL is set (local development).
 func (c Config) HasSMTP() bool {
 	return c.SMTPHost != ""
 }

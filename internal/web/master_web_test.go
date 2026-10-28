@@ -135,7 +135,11 @@ func TestMasterAdminSwitchValidation(t *testing.T) {
 func TestMasterAdminDoesNotAppearInAnyMemberList(t *testing.T) {
 	ts, master, sqA, _ := masterApp(t)
 	wantRedirect(t, master.post("/account/switch", url.Values{"squadron_id": {strconv.FormatInt(sqA, 10)}}), "/")
-	if strings.Contains(body(ts.ownerA.get("/squadron")), "master@example.org") {
+	// The security log (below the members) is meant to name the master admin
+	// as the one who looked; the member and invite tables must not.
+	page := body(ts.ownerA.get("/squadron"))
+	members, _, _ := strings.Cut(page, "Security log")
+	if strings.Contains(members, "master@example.org") {
 		t.Error("the master admin is listed as a member of an ordinary squadron")
 	}
 	// the master admin cannot be invited-into or claimed via the normal flows

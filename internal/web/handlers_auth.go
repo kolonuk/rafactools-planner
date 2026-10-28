@@ -11,6 +11,22 @@ import (
 	"rafactools-planner/internal/auth"
 )
 
+func (s *server) privacyPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "privacy", "Privacy notice", nil)
+}
+
+// signupsOpen turns the claim form off when DISABLE_SIGNUPS is set. Invites,
+// sign-in and password reset are unaffected.
+func (s *server) signupsOpen(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.Cfg.DisableSignups {
+			s.renderError(w, r, http.StatusForbidden, "Sign-ups are closed", "New squadrons can't be claimed on this site. If your squadron already has an account, ask an owner to invite you.")
+			return
+		}
+		next(w, r)
+	}
+}
+
 func (s *server) claimForm(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "claim", "Claim your squadron", map[string]any{"ClaimDomain": s.Auth.ClaimDomain()})
 }
@@ -66,6 +82,8 @@ func (s *server) loginForm(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Query().Get("verified") == "1":
 		extra["Flash"] = "Email confirmed — you can log in now."
+	case r.URL.Query().Get("deleted") == "1":
+		extra["Flash"] = "Your squadron and all its data have been deleted."
 	case r.URL.Query().Get("reset") == "1":
 		extra["Flash"] = "Password changed. Log in with your new password."
 	case r.URL.Query().Get("claimed") == "1":
@@ -89,7 +107,20 @@ func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, expiresAt, err := s.Auth.CreateSession(user.ID)
+	// Second factor, for accounts that have turned it on. It is checked only
+	// after the password was right, so it says nothing about other addresses.
+	if s.Auth.TOTPEnabled(user.ID) {
+		if err := s.Auth.VerifyTOTP(user.ID, r.FormValue("code")); err != nil {
+			msg := "Enter the 6-digit code from your authenticator app. That code was missing, wrong or already used."
+			if errors.Is(err, auth.ErrTOTPLocked) {
+				msg = err.Error() + "."
+			}
+			s.renderError(w, r, http.StatusUnauthorized, "Log in", msg)
+			return
+		}
+	}
+
+	token, expiresAt, err := s.Auth.CreateSessionFor(user.ID, r.UserAgent())
 	if err != nil {
 		s.renderError(w, r, http.StatusInternalServerError, "Log in", "Something went wrong.")
 		return
@@ -136,7 +167,7 @@ func (s *server) inviteSubmit(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadRequest, "Invite", err.Error())
 		return
 	}
-	sessToken, expiresAt, err := s.Auth.CreateSession(userID)
+	sessToken, expiresAt, err := s.Auth.CreateSessionFor(userID, r.UserAgent())
 	if err != nil {
 		s.renderError(w, r, http.StatusInternalServerError, "Invite", "Account created — please log in.")
 		return

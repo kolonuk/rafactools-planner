@@ -300,3 +300,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input[type="checkb
   outline: 2px solid var(--md-primary);
   outline-offset: 2px;
 }
+
+/* A card for an action that cannot be undone. */
+.card.danger { border: 2px solid var(--md-error); }
+.card.danger h2 { color: var(--md-error); }

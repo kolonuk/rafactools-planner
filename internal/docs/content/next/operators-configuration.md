@@ -4,6 +4,8 @@ order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
 changed:
+  - next: SMTP_HOST is now required unless ALLOW_LOG_MAIL=true, so secret links are no longer logged by accident.
+  - next: Added DISABLE_SIGNUPS and MASTER_ADMIN_RESET_2FA; the master admin's sessions last 8 hours and can use two-step sign-in.
   - next: Added ISSUE_EMAIL and ISSUE_MASKING for the Report a problem feature.
   - next: Added the optional master admin account (MASTER_ADMIN_EMAIL and MASTER_ADMIN_PASSWORD).
   - next: Password reset emails also depend on the mail settings.
@@ -26,7 +28,10 @@ configuration file. See `.env.template` in the repository for an annotated copy.
 | `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD` | empty | The optional site-wide **master admin** (see below). Set both or neither. |
 | `ISSUE_EMAIL` | empty | Where **problem reports** are emailed, for example `issues@your-domain`. Empty switches reporting off: no link appears and `/report` does not exist. |
 | `ISSUE_MASKING` | `true` | `true` lets people black out parts of a screenshot before sending it. Set `false` only on a site you run for other people when you need to see exactly what they saw: the form then says plainly that screenshots are sent as they are. |
-| `SMTP_HOST` | empty | Mail server. Empty means no email is sent (see below). |
+| `SMTP_HOST` | none (**required**, see `ALLOW_LOG_MAIL`) | Mail server. Without it the site refuses to start, unless `ALLOW_LOG_MAIL` is set (see below). |
+| `ALLOW_LOG_MAIL` | `false` | **Development only.** Lets the site start without `SMTP_HOST`, writing the emails it would send, links included, to the log. |
+| `DISABLE_SIGNUPS` | `false` | `true` closes the claim-a-squadron form (it answers `403` and the login page stops linking to it). People already signed up, invitations and password resets keep working. Use it on a copy that holds real data. |
+| `MASTER_ADMIN_RESET_2FA` | `false` | Set to `true` for one start to clear the master admin's two-step sign-in if the authenticator app is lost; then remove it. |
 | `SMTP_PORT` | `587` | Mail port. Port `465` uses TLS from the start; other ports use plain SMTP and upgrade with STARTTLS if the server offers it. |
 | `SMTP_USER`, `SMTP_PASS` | empty | Mail login, if the server needs one. |
 | `MAIL_FROM` | `no-reply@rafactools-planner.local` | Sender address on emails. |
@@ -37,10 +42,10 @@ safe choice.
 
 ## When email is not configured
 
-With `SMTP_HOST` empty the site does not send mail. It writes the message,
-**including the confirmation or invitation link**, to its log instead. That is
-useful on a development machine. Anywhere else, treat the log as sensitive or
-configure real mail.
+The site **refuses to start** without `SMTP_HOST`, because without mail it would write
+each confirmation, invitation and password-reset link to its log, and anyone who can read the
+log could use them. Set `ALLOW_LOG_MAIL=true` to start anyway on a development machine; the
+messages, links included, then go to the log. Never set it where other people can read the log.
 
 ## Problem reports
 
@@ -91,8 +96,11 @@ What the master admin can do: sign in like anyone else, open **Your details**, a
 under **Switch squadron** pick any squadron. From then on, until they switch back
 (or sign out), they see that squadron **exactly as a viewer would**: read-only, with
 every edit refused, and a banner on every page says so. Each switch is written to
-the log as a line starting `AUDIT`. Other people in the squadron are not told, so
-see [security and privacy](security-and-privacy).
+the log as a line starting `AUDIT`, and the visit appears in that squadron's **security log**
+(Squadron settings, owners only), so owners can see it. The master admin signs in for **8 hours**
+(everyone else 30 days) and can turn on **two-step sign-in** (a code from an authenticator app)
+on **Your details**. If the authenticator is lost, start the site once with
+`MASTER_ADMIN_RESET_2FA=true`. See [security and privacy](security-and-privacy).
 
 If someone resets the master admin's password by email, the next start puts the
 configured password back.
@@ -110,6 +118,7 @@ The site checks its settings when it starts and exits with a non-zero status
 and a message naming the problem if:
 
 - `SESSION_KEY` is missing or shorter than 32 characters;
+- `SMTP_HOST` is empty and `ALLOW_LOG_MAIL` is not `true`;
 - `SMTP_PORT` is not a number, or `BASE_URL` is not a valid address;
 - the database cannot be opened (for example the folder in `DB_PATH` does not exist);
 - the port is already in use.

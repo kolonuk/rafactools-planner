@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/programme"
@@ -37,6 +38,11 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auditEntries, err := s.Auth.ListAudit(u.SquadronID, 50)
+	if err != nil {
+		log.Printf("list audit for squadron %d: %v", u.SquadronID, err)
+	}
+
 	paradeSet := map[int]bool{}
 	for _, d := range sq.ParadeWeekdays {
 		paradeSet[d] = true
@@ -58,6 +64,7 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 		"Squadron":            sq,
 		"Members":             members,
 		"Invites":             inviteRows,
+		"Audit":               auditEntries,
 		"WeekdayOptions":      weekdayOptions,
 		"ClassificationsText": strings.Join(sq.Classifications, "\n"),
 	})
@@ -143,6 +150,7 @@ func (s *server) inviteCreate(w http.ResponseWriter, r *http.Request) {
 	if sq != nil {
 		squadronName = sq.Name
 	}
+	s.audit(r, u.SquadronID, auth.AuditInviteSent, strings.TrimSpace(email)+" as "+role)
 	if err := s.Mail.SendInvite(email, s.Cfg.BaseURL, token, squadronName, u.Email); err != nil {
 		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Invite created, but the email failed to send.")
 		return
@@ -171,10 +179,12 @@ func (s *server) memberSetRole(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
 		return
 	}
+	target := s.memberEmail(u.SquadronID, memberID)
 	if err := s.Auth.SetMemberRole(u.SquadronID, memberID, r.FormValue("role")); err != nil {
 		s.memberError(w, r, err)
 		return
 	}
+	s.audit(r, u.SquadronID, auth.AuditMemberRole, target+" to "+r.FormValue("role"))
 	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }
 
@@ -189,10 +199,12 @@ func (s *server) memberRemove(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
 		return
 	}
+	target := s.memberEmail(u.SquadronID, memberID)
 	if err := s.Auth.RemoveMember(u.SquadronID, memberID); err != nil {
 		s.memberError(w, r, err)
 		return
 	}
+	s.audit(r, u.SquadronID, auth.AuditMemberRemove, target)
 	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }
 
@@ -227,4 +239,56 @@ func validWebsiteURL(raw string) bool {
 		return false
 	}
 	return u.Scheme == "http" || u.Scheme == "https"
+}
+
+// audit records a security-relevant event for a squadron's trail. A failure is
+// logged and otherwise ignored: the action being recorded has already happened
+// and must not be reported as failed because its log line could not be written.
+func (s *server) audit(r *http.Request, squadronID int64, action, detail string) {
+	u := userFrom(r.Context())
+	if err := s.Auth.Audit(squadronID, u.ID, u.Email, action, detail); err != nil {
+		log.Printf("audit %s for squadron %d: %v", action, squadronID, err)
+	}
+}
+
+// memberEmail is a member's address for the audit trail, or "a member" if the
+// id is not in the squadron.
+func (s *server) memberEmail(squadronID, memberID int64) string {
+	members, err := s.Auth.ListMembers(squadronID)
+	if err == nil {
+		for _, m := range members {
+			if m.ID == memberID {
+				return m.Email
+			}
+		}
+	}
+	return "a member"
+}
+
+// squadronDelete permanently deletes the owner's whole squadron. It is a
+// separate, deliberately awkward form: the owner must retype the squadron
+// number and their password. It shares the sign-in rate limit.
+func (s *server) squadronDelete(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	err := s.Auth.DeleteSquadron(u.SquadronID, u.ID, r.FormValue("password"), strings.TrimSpace(r.FormValue("confirm_number")))
+	switch {
+	case err == nil:
+	case errors.Is(err, auth.ErrWrongPassword), errors.Is(err, auth.ErrConfirmMismatch):
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Nothing was deleted: "+err.Error()+".")
+		return
+	case errors.Is(err, auth.ErrCannotDeleteHome), errors.Is(err, auth.ErrNoSuchSquadron):
+		s.renderError(w, r, http.StatusForbidden, "Squadron settings", "That squadron cannot be deleted.")
+		return
+	default:
+		log.Printf("delete squadron %d: %v", u.SquadronID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not delete the squadron. Nothing was changed.")
+		return
+	}
+	log.Printf("AUDIT squadron %d deleted by %s", u.SquadronID, u.Email)
+	s.setSessionCookie(w, "", time.Time{})
+	http.Redirect(w, r, s.url("/login?deleted=1"), http.StatusSeeOther)
 }
