@@ -153,6 +153,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /instructors/{id}/delete", s.requireEditor(s.instructorDelete))
 	mux.HandleFunc("GET /account", s.requireAuth(s.accountPage))
 	mux.HandleFunc("POST /account", s.requireAuth(s.accountSave))
+	mux.HandleFunc("POST /account/switch", s.requireAuth(s.accountSwitch))
 	mux.HandleFunc("POST /account/password", authLimiter.rateLimited(s.requireAuth(s.accountPassword)))
 
 	mux.HandleFunc("POST /programmes", s.requireEditor(s.programmeCreate))

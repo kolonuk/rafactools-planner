@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/programme"
@@ -92,6 +93,22 @@ func errorText(err error) string {
 func (s *server) accountPage(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r.Context())
 	extra := map[string]any{"DisplayName": u.DisplayName}
+	if u.IsMasterAdmin {
+		squadrons, err := s.Auth.ListSwitchableSquadrons()
+		if err != nil {
+			log.Printf("list squadrons for the master admin: %v", err)
+		}
+		type option struct {
+			ID       int64
+			Label    string
+			Selected bool
+		}
+		var opts []option
+		for _, q := range squadrons {
+			opts = append(opts, option{q.ID, q.Number + " – " + q.Name, u.ViewingOther && q.ID == u.SquadronID})
+		}
+		extra["Squadrons"] = opts
+	}
 	if r.URL.Query().Get("saved") == "1" {
 		extra["Flash"] = "Saved."
 	}
@@ -139,4 +156,43 @@ func (s *server) accountPassword(w http.ResponseWriter, r *http.Request) {
 		log.Printf("change password: %v", err)
 		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not change the password. Try again.")
 	}
+}
+
+// accountSwitch lets the master admin look at another squadron (read-only) or
+// go back to their own. Anyone else is refused, even if they post the form.
+func (s *server) accountSwitch(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Your details", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	if !u.IsMasterAdmin {
+		s.renderError(w, r, http.StatusForbidden, "Forbidden", "Only the master admin can switch squadrons.")
+		return
+	}
+	var target int64 // 0 = back to the master admin's own squadron
+	if r.FormValue("back") != "1" {
+		id, err := strconv.ParseInt(r.FormValue("squadron_id"), 10, 64)
+		if err != nil {
+			s.renderError(w, r, http.StatusBadRequest, "Your details", "Choose a squadron.")
+			return
+		}
+		target = id
+	}
+	switch err := s.Auth.SwitchSquadron(s.sessionToken(r), u.ID, target); {
+	case errors.Is(err, auth.ErrNoSuchSquadron):
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That squadron doesn't exist.")
+		return
+	case err != nil:
+		log.Printf("switch squadron: %v", err)
+		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not switch. Try again.")
+		return
+	}
+	// An audit trail: looking at another squadron's data is always logged.
+	log.Printf("AUDIT master admin %s switched to squadron id %d (0 = own)", u.Email, target)
+	if target == 0 {
+		http.Redirect(w, r, s.url("/account"), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
 }

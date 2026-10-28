@@ -9,6 +9,27 @@
   <button type="submit">Save</button>
 </form>
 
+{{if .Squadrons}}
+<h2>Switch squadron</h2>
+<form method="post" action="{{url "/account/switch"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <p class="muted">As master admin you can look at any squadron to see problems reported there. You see it exactly as a <strong>viewer</strong> would: read-only, and nothing you do changes their data. Switching is logged.</p>
+  <label>Squadron
+    <select name="squadron_id">
+      {{range .Squadrons}}<option value="{{.ID}}" {{if .Selected}}selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </label>
+  <button type="submit">Switch</button>
+</form>
+{{if .User.ViewingOther}}
+<form method="post" action="{{url "/account/switch"}}" class="inline">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <input type="hidden" name="back" value="1">
+  <button type="submit">Back to my own squadron</button>
+</form>
+{{end}}
+{{end}}
+
 <h2>Change password</h2>
 <form method="post" action="{{url "/account/password"}}" class="card">
   <input type="hidden" name="csrf" value="{{.CSRF}}">

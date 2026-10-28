@@ -28,6 +28,9 @@
       </nav>
     {{end}}
   </header>
+  {{if and .User .User.ViewingOther}}
+  <p class="docs-banner" role="status">Master admin: you are viewing <strong>{{.User.ViewedSquadronName}}</strong> read-only. <a href="{{url "/account"}}">Switch squadron or go back</a></p>
+  {{end}}
   <main class="container">
     {{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
     {{if .Error}}<p class="error">{{.Error}}</p>{{end}}

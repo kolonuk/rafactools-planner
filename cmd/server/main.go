@@ -33,6 +33,21 @@ func main() {
 	defer database.Close()
 
 	authSvc := auth.NewService(database, cfg.SessionKey, cfg.CookieSecure, cfg.ClaimDomain, cfg.SkipEmailVerification)
+	// Keep the master admin account in step with this deployment's settings.
+	// A bad setting is logged loudly but does not stop the site: the account
+	// simply is not created (never a weak or wrong one).
+	switch {
+	case cfg.MasterAdminEmail == "" && cfg.MasterAdminPassword == "":
+	case cfg.MasterAdminEmail == "" || cfg.MasterAdminPassword == "":
+		log.Printf("ERROR master admin: MASTER_ADMIN_EMAIL and MASTER_ADMIN_PASSWORD must both be set; no master admin configured")
+	default:
+		if result, err := authSvc.EnsureMasterAdmin(cfg.MasterAdminEmail, cfg.MasterAdminPassword); err != nil {
+			log.Printf("ERROR master admin NOT configured: %v", err)
+		} else {
+			log.Printf("master admin: %s (%s)", result, cfg.MasterAdminEmail)
+		}
+	}
+
 	store := programme.NewStore(database)
 	sender := mail.Sender{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.MailFrom}
 

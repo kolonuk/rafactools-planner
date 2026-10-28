@@ -68,6 +68,14 @@ type User struct {
 	DisplayName     string
 	Role            string // owner | editor | viewer
 	EmailVerifiedAt sql.NullTime
+
+	// IsMasterAdmin marks the one site-wide administrator account.
+	IsMasterAdmin bool
+	// ViewingOther is true while a master admin is looking at a squadron
+	// other than their own: SquadronID is then that squadron and Role is
+	// forced to viewer, so every existing role check makes it read-only.
+	ViewingOther       bool
+	ViewedSquadronName string
 }
 
 func (u User) Verified() bool { return u.EmailVerifiedAt.Valid }
@@ -504,11 +512,16 @@ func (s *Service) UserBySession(token string) (*User, error) {
 	}
 	var u User
 	var expiresAt time.Time
+	var acting sql.NullInt64
+	var actingName string
 	err := s.db.QueryRow(`
-		SELECT u.id, u.squadron_id, u.email, u.display_name, u.role, u.email_verified_at, se.expires_at
+		SELECT u.id, u.squadron_id, u.email, u.display_name, u.role, u.email_verified_at, se.expires_at,
+		       u.is_master_admin, se.acting_squadron_id, COALESCE(sq.name, '')
 		FROM sessions se JOIN users u ON u.id = se.user_id
+		LEFT JOIN squadrons sq ON sq.id = se.acting_squadron_id
 		WHERE se.token = ?`, token).
-		Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &u.EmailVerifiedAt, &expiresAt)
+		Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &u.EmailVerifiedAt, &expiresAt,
+			&u.IsMasterAdmin, &acting, &actingName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -517,6 +530,16 @@ func (s *Service) UserBySession(token string) (*User, error) {
 	if time.Now().After(expiresAt) {
 		_ = s.DeleteSession(token)
 		return nil, nil
+	}
+	// Only the master admin can have an acting squadron, and while they look
+	// at another squadron they are a viewer there: every handler that scopes
+	// by u.SquadronID and checks u.Role then shows that squadron read-only,
+	// with no other code needing to know.
+	if u.IsMasterAdmin && acting.Valid && acting.Int64 != u.SquadronID {
+		u.SquadronID = acting.Int64
+		u.Role = "viewer"
+		u.ViewingOther = true
+		u.ViewedSquadronName = actingName
 	}
 	return &u, nil
 }
