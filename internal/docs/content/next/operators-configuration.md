@@ -16,7 +16,7 @@ configuration file. See `.env.template` in the repository for an annotated copy.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `SESSION_KEY` | none (**required**) | Secret of at least **32 characters** that signs form tokens. Generate one with `openssl rand -hex 32`. Keep it secret and different in every environment. |
+| `SESSION_KEY` | none (**required**) | Secret of at least **32 characters** that signs form tokens. Generate one with `openssl rand -hex 32`. Keep it secret and different in every environment; set it once and reuse it on redeploys ([the signing key](run-your-own#the-signing-key)). |
 | `PORT` | `8080` | Port to listen on. |
 | `DB_PATH` | `/data/rafactools.db` | Where the SQLite database file lives. The directory must be writable. |
 | `BASE_URL` | `http://localhost:8080` | The public address, used in links inside emails. A path in it (for example `https://example.org/planner`) becomes the prefix of every link the site generates. |
