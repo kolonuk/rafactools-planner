@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/programme"
@@ -92,7 +93,7 @@ func errorText(err error) string {
 // lists and in the grid's Instructor suggestions.
 func (s *server) accountPage(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r.Context())
-	extra := map[string]any{"DisplayName": u.DisplayName}
+	extra := s.accountExtra(r, u)
 	if u.IsMasterAdmin {
 		squadrons, err := s.Auth.ListSwitchableSquadrons()
 		if err != nil {
@@ -108,12 +109,26 @@ func (s *server) accountPage(w http.ResponseWriter, r *http.Request) {
 			opts = append(opts, option{q.ID, q.Number + " – " + q.Name, u.ViewingOther && q.ID == u.SquadronID})
 		}
 		extra["Squadrons"] = opts
+		views, err := s.Auth.ListAuditAll(auth.AuditMasterView, 50)
+		if err != nil {
+			log.Printf("list master views: %v", err)
+		}
+		extra["MasterViews"] = views
 	}
 	if r.URL.Query().Get("saved") == "1" {
 		extra["Flash"] = "Saved."
 	}
 	if r.URL.Query().Get("changed") == "1" {
 		extra["Flash"] = "Password changed. Your other sessions were signed out."
+	}
+	switch r.URL.Query().Get("twostep") {
+	case "on":
+		extra["Flash"] = "Two-step sign-in is on. You will need a code each time you log in."
+	case "off":
+		extra["Flash"] = "Two-step sign-in is off."
+	}
+	if r.URL.Query().Get("signedout") == "1" {
+		extra["Flash"] = "Signed out."
 	}
 	s.render(w, r, "account", "Your details", extra)
 }
@@ -127,7 +142,9 @@ func (s *server) accountSave(w http.ResponseWriter, r *http.Request) {
 	if err := s.Auth.SetDisplayName(u.ID, r.FormValue("display_name")); err != nil {
 		if errors.Is(err, auth.ErrDisplayName) {
 			w.WriteHeader(http.StatusBadRequest)
-			s.render(w, r, "account", "Your details", map[string]any{"DisplayName": r.FormValue("display_name"), "Error": err.Error()})
+			extra := s.accountExtra(r, u)
+			extra["DisplayName"], extra["Error"] = r.FormValue("display_name"), err.Error()
+			s.render(w, r, "account", "Your details", extra)
 			return
 		}
 		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not save. Try again.")
@@ -151,7 +168,9 @@ func (s *server) accountPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	case errors.Is(err, auth.ErrWrongPassword), errors.Is(err, auth.ErrPasswordShort), errors.Is(err, auth.ErrPasswordLong):
 		w.WriteHeader(http.StatusBadRequest)
-		s.render(w, r, "account", "Your details", map[string]any{"DisplayName": u.DisplayName, "PasswordError": err.Error()})
+		extra := s.accountExtra(r, u)
+		extra["PasswordError"] = err.Error()
+		s.render(w, r, "account", "Your details", extra)
 	default:
 		log.Printf("change password: %v", err)
 		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not change the password. Try again.")
@@ -190,9 +209,138 @@ func (s *server) accountSwitch(w http.ResponseWriter, r *http.Request) {
 	}
 	// An audit trail: looking at another squadron's data is always logged.
 	log.Printf("AUDIT master admin %s switched to squadron id %d (0 = own)", u.Email, target)
+	if target != 0 {
+		s.audit(r, target, auth.AuditMasterView, "")
+	}
 	if target == 0 {
 		http.Redirect(w, r, s.url("/account"), http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
+}
+
+// accountExtra is what every render of the account page needs: the user's name
+// and the places they are signed in.
+func (s *server) accountExtra(r *http.Request, u *auth.User) map[string]any {
+	extra := map[string]any{"DisplayName": u.DisplayName}
+	sessions, err := s.Auth.ListSessions(u.ID, s.sessionToken(r))
+	if err != nil {
+		log.Printf("list sessions for user %d: %v", u.ID, err)
+	}
+	extra["Sessions"] = sessions
+	if u.IsMasterAdmin {
+		extra["TwoStepOffered"] = true
+		extra["TwoStepOn"] = s.Auth.TOTPEnabled(u.ID)
+		if secret, uri := s.Auth.PendingTOTP(u.ID); secret != "" {
+			extra["TwoStepSecret"], extra["TwoStepURI"] = groupSecret(secret), uri
+		}
+	}
+	extra["OtherSessions"] = len(sessions) > 1
+	return extra
+}
+
+// accountSessionSignOut ends one of the user's other sessions.
+func (s *server) accountSessionSignOut(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Your details", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	if err := s.Auth.RevokeSession(u.ID, r.PathValue("id"), s.sessionToken(r)); err != nil {
+		if errors.Is(err, auth.ErrNoSuchSession) {
+			s.renderError(w, r, http.StatusNotFound, "Not found", "That session doesn't exist (it may already have ended).")
+			return
+		}
+		log.Printf("sign out session for user %d: %v", u.ID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not sign that session out. Try again.")
+		return
+	}
+	http.Redirect(w, r, s.url("/account?signedout=1"), http.StatusSeeOther)
+}
+
+// accountSignOutOthers ends every session except this browser's.
+func (s *server) accountSignOutOthers(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Your details", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	if _, err := s.Auth.RevokeOtherSessions(u.ID, s.sessionToken(r)); err != nil {
+		log.Printf("sign out other sessions for user %d: %v", u.ID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not sign out your other sessions. Try again.")
+		return
+	}
+	http.Redirect(w, r, s.url("/account?signedout=1"), http.StatusSeeOther)
+}
+
+// groupSecret shows a base32 key in groups of four, which is easier to type.
+func groupSecret(s string) string {
+	var b strings.Builder
+	for i, r := range s {
+		if i > 0 && i%4 == 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// Two-step sign-in is offered to the master admin only for now: the account
+// that can read every squadron. Everyone else is refused, even if they post.
+func (s *server) twoStepGuard(w http.ResponseWriter, r *http.Request) (*auth.User, bool) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Your details", "Form expired, try again.")
+		return nil, false
+	}
+	u := userFrom(r.Context())
+	if !u.IsMasterAdmin {
+		s.renderError(w, r, http.StatusForbidden, "Forbidden", "Two-step sign-in is only available to the master admin for now.")
+		return nil, false
+	}
+	return u, true
+}
+
+func (s *server) twoStepError(w http.ResponseWriter, r *http.Request, u *auth.User, msg string) {
+	extra := s.accountExtra(r, u)
+	extra["TwoStepError"] = msg
+	w.WriteHeader(http.StatusBadRequest)
+	s.render(w, r, "account", "Your details", extra)
+}
+
+func (s *server) twoStepStart(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.twoStepGuard(w, r)
+	if !ok {
+		return
+	}
+	if _, _, err := s.Auth.BeginTOTP(u.ID); err != nil {
+		s.twoStepError(w, r, u, err.Error()+".")
+		return
+	}
+	http.Redirect(w, r, s.url("/account"), http.StatusSeeOther)
+}
+
+func (s *server) twoStepConfirm(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.twoStepGuard(w, r)
+	if !ok {
+		return
+	}
+	if err := s.Auth.ConfirmTOTP(u.ID, r.FormValue("code")); err != nil {
+		s.twoStepError(w, r, u, "Two-step sign-in is still off: "+err.Error()+".")
+		return
+	}
+	log.Printf("AUDIT master admin %s turned two-step sign-in on", u.Email)
+	http.Redirect(w, r, s.url("/account?twostep=on"), http.StatusSeeOther)
+}
+
+func (s *server) twoStepDisable(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.twoStepGuard(w, r)
+	if !ok {
+		return
+	}
+	if err := s.Auth.DisableTOTP(u.ID, r.FormValue("password"), r.FormValue("code")); err != nil {
+		s.twoStepError(w, r, u, "Two-step sign-in is still on: "+err.Error()+".")
+		return
+	}
+	log.Printf("AUDIT master admin %s turned two-step sign-in off", u.Email)
+	http.Redirect(w, r, s.url("/account?twostep=off"), http.StatusSeeOther)
 }

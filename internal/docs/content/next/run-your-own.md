@@ -65,7 +65,9 @@ and [backups](operators-backups). In short:
    `COOKIE_SECURE` at its default (`true`).
 3. Give the container a volume for `/data` and take regular backups.
 4. Put an HTTPS reverse proxy in front, and configure SMTP.
-5. Check the log after the first start: it reports a missing or weak setting.
+5. Check the log after the first start: it reports a missing or weak setting. The site
+   will not start without `SMTP_HOST`; for trying it out on one computer only, set
+   `ALLOW_LOG_MAIL=true` instead (see [configuration](operators-configuration)).
 
 ## Building and deploying with GitHub
 
@@ -97,7 +99,8 @@ never put a password or key in a variable.
 | `SMTP_PASS` | **secret** | Your email provider's password. |
 | `MASTER_ADMIN_PASSWORD` | **secret** | Only if you want a master admin; 12 to 72 characters. |
 | `BASE_URL`, `CLAIM_DOMAIN`, `COOKIE_SECURE` | variable | The address, your email domain, and `true`. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM` | variable | Your email provider. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM` | variable | Your email provider. `SMTP_HOST` is required. |
+| `DISABLE_SIGNUPS` | variable | `true` closes the claim form, for a copy holding real data. |
 | `MASTER_ADMIN_EMAIL` | variable | Only if you want a master admin. |
 | `ISSUE_EMAIL` | variable | Where problem reports go (for example `issues@your-domain`); leave empty to switch reporting off. |
 | `ISSUE_MASKING` | variable | `true` (default) lets people black out parts of a screenshot; `false` only for a site you run for others. |

@@ -4,6 +4,7 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
+  - next: Two-step sign-in exists for the master admin only.
   - next: A month can be reset to blank; months are deliberately never deleted.
   - next: Curly quotes, dashes and accents now print on the PDF; only non-Western-European characters do not.
   - next: Added the Report a problem feature, and its limits.
@@ -16,7 +17,7 @@ changed:
 These are not mistakes in how you are using the planner.
 
 **People**
-- No two-factor sign-in.
+- Two-step sign-in exists only for the master admin; ordinary accounts have a password only.
 
 **Programmes**
 - Months are never deleted (a month can be reset to blank), and their status stays `draft`.

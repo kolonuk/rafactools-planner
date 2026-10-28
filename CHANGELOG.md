@@ -13,6 +13,10 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **security**: the site refuses to start without `SMTP_HOST` unless `ALLOW_LOG_MAIL=true` (development), so confirmation, invite and reset links are no longer written to the log by accident; new `DISABLE_SIGNUPS` closes the claim form.
+- **security**: **Your details** lists where you are signed in (browser, start, expiry) and can sign out one session or all others; the master admin signs in for 8 hours instead of 30 days and can turn on two-step sign-in (authenticator app code, single use, locks after 5 wrong codes; `MASTER_ADMIN_RESET_2FA` to recover).
+- **security**: a per-squadron **security log** (master admin visits, invites, role changes, removals) shown to owners, and the master admin's own list of squadrons viewed; kept for a year.
+- **security/privacy**: a public **privacy notice** (footer link) and owners can **delete their whole squadron** (type its number and the password; permanent).
 - **feat**: "Reset this month" empties a programme (activities, notes, closures, weekend entries, tracker) after a confirmation page; the month, parade nights and second halves stay. Editor/owner only, squadron-scoped.
 - **fix**: accessibility: repeated Delete/Remove/Revoke/Set buttons now say which row they act on to screen readers (the tracker's bare "x" is a labelled "×"), and links, buttons and checkboxes show a visible keyboard focus ring.
 - **fix**: the PDF no longer shows curly quotes, dashes and accented letters as odd symbols; they are re-encoded for the built-in font. Other scripts print as `?`.

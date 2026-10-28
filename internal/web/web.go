@@ -62,7 +62,7 @@ type server struct {
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
 	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "confirm_reset_programme",
-	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent",
+	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -82,7 +82,7 @@ func urlFunc(basePath string) func(...any) string {
 }
 
 func loadPages(basePath string) map[string]*template.Template {
-	funcs := template.FuncMap{"url": urlFunc(basePath)}
+	funcs := template.FuncMap{"url": urlFunc(basePath), "auditText": auth.AuditText}
 	pages := make(map[string]*template.Template, len(pageNames)+1)
 	for _, name := range pageNames {
 		pages[name] = template.Must(template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+name+".html"))
@@ -124,8 +124,9 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /report", s.withUserOptional(s.reportForm))
 	mux.HandleFunc("POST /report", reportLimiter.rateLimited(s.withUserOptional(s.reportSubmit)))
 
-	mux.HandleFunc("GET /claim", s.withUserOptional(s.claimForm))
-	mux.HandleFunc("POST /claim", authLimiter.rateLimited(s.withUserOptional(s.claimSubmit)))
+	mux.HandleFunc("GET /privacy", s.withUserOptional(s.privacyPage))
+	mux.HandleFunc("GET /claim", s.withUserOptional(s.signupsOpen(s.claimForm)))
+	mux.HandleFunc("POST /claim", authLimiter.rateLimited(s.withUserOptional(s.signupsOpen(s.claimSubmit))))
 	mux.HandleFunc("GET /check-email", s.withUserOptional(s.checkEmail))
 	mux.HandleFunc("GET /verify", s.withUserOptional(s.verify))
 	mux.HandleFunc("GET /login", s.withUserOptional(s.loginForm))
@@ -151,6 +152,7 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
+	mux.HandleFunc("POST /squadron/delete", authLimiter.rateLimited(s.requireOwner(s.squadronDelete)))
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
 	mux.HandleFunc("POST /squadron/invites/{token}/revoke", s.requireOwner(s.inviteRevoke))
 	mux.HandleFunc("POST /squadron/members/{memberID}/role", s.requireOwner(s.memberSetRole))
@@ -162,6 +164,11 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /account", s.requireAuth(s.accountPage))
 	mux.HandleFunc("POST /account", s.requireAuth(s.accountSave))
 	mux.HandleFunc("POST /account/switch", s.requireAuth(s.accountSwitch))
+	mux.HandleFunc("POST /account/sessions/{id}/signout", s.requireAuth(s.accountSessionSignOut))
+	mux.HandleFunc("POST /account/sessions/signout-others", s.requireAuth(s.accountSignOutOthers))
+	mux.HandleFunc("POST /account/2fa/start", authLimiter.rateLimited(s.requireAuth(s.twoStepStart)))
+	mux.HandleFunc("POST /account/2fa/confirm", authLimiter.rateLimited(s.requireAuth(s.twoStepConfirm)))
+	mux.HandleFunc("POST /account/2fa/disable", authLimiter.rateLimited(s.requireAuth(s.twoStepDisable)))
 	mux.HandleFunc("POST /account/password", authLimiter.rateLimited(s.requireAuth(s.accountPassword)))
 
 	mux.HandleFunc("POST /programmes", s.requireEditor(s.programmeCreate))
@@ -256,6 +263,7 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, page, title stri
 		"Error":         "",
 		"Version":       version.Version,
 		"ReportEnabled": s.reportEnabled(),
+		"SignupsOpen":   !s.Cfg.DisableSignups,
 	}
 	for k, v := range extra {
 		data[k] = v

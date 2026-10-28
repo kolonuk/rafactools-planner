@@ -4,6 +4,7 @@ order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
+  - next: Added a privacy notice page, a security log for owners, the list of places you are signed in, deleting a squadron, and two-step sign-in for the master admin.
   - next: Added Report a problem, which can email a screenshot and recent activity to the site's operators.
   - next: Documented the optional master admin, who can view any squadron read-only.
   - next: Added the optional displayed name and the instructor list (name and rank only).
@@ -20,7 +21,8 @@ changed:
 | Data | Detail |
 | --- | --- |
 | Accounts | Email address, role, and a salted bcrypt hash of the password. The password itself is never stored. |
-| Sign-in sessions | A random token per browser, valid for 30 days or until logout. |
+| Sign-in sessions | A random token per browser, valid for 30 days (8 hours for the master admin) or until logout, with when it started and a coarse description of the browser such as "Firefox on Linux". |
+| Security log | When the master admin looks at a squadron, and when an owner invites, changes or removes a member: who, what and when. Kept for a year; owners can read their squadron's. |
 | Password reset requests | A SHA-256 hash of the emailed link, who it is for, and when it expires (1 hour). Deleted when used or replaced. |
 | Problem reports | **Not stored.** A report you send is emailed to the site's operators, and the server briefly remembers your last 20 requests (method, path and result code only, in memory) so that a report can include them. See [report a problem](report-a-problem). |
 | Names | The name each person chooses to display (optional), and your squadron's instructor list: a name and a rank each, no contact details. |
@@ -38,6 +40,8 @@ is the confirmation, invitation and password reset emails, and the problem repor
 a printed noticeboard.** Check what your unit's rules allow before entering
 names, medical notes or contact details.
 
+The same facts are on the public [privacy notice](app:/privacy) page.
+
 ## Who can see it
 
 Only signed-in members of the same squadron. Every page and every change is
@@ -48,7 +52,8 @@ site can read the database.
 The site can also have a **master admin**, a single site-wide account that can look
 at any squadron to investigate problems people report. It sees a squadron exactly
 as a viewer would (read-only; it cannot change anything), the page says so on every
-screen, and each time it switches squadron the site logs it. If you are not
+screen, and each time it switches squadron the site logs it and adds it to that squadron's
+security log, which its owners can read. If you are not
 comfortable with that, ask the person who runs the site whether it is enabled.
 See [configuration](operators-configuration).
 
@@ -56,7 +61,15 @@ See [configuration](operators-configuration).
 
 - **Passwords** are hashed with bcrypt; 12 to 72 characters are required.
 - **Sessions** are stored on the server. Logging out deletes them. Changing or
-  resetting your password signs out your other sessions.
+  resetting your password signs out your other sessions. **Your details** lists every
+  place you are signed in and can sign any of them out, or all but this one.
+- **Two-step sign-in** is available to the master admin, the account that can read every
+  squadron: after the password it asks for a 6-digit code from an authenticator app. Each code
+  works once, five wrong codes lock the account for 15 minutes, and turning it off needs the
+  password and a current code.
+- **Deleting a squadron:** an owner can delete the whole squadron and everything in it (members,
+  programmes, the tracker with cadets' names, instructors, its security log) from Squadron
+  settings. They must type the squadron number and their password. It cannot be undone.
 - **Password reset links** work once, expire after 1 hour, and only a scrambled
   (SHA-256) copy of each link is kept, so a copy of the database cannot be used
   to reset anyone's password. Only one link is live per person, a second request
@@ -79,7 +92,7 @@ See [configuration](operators-configuration).
 
 ## What it does not do
 
-- No two-factor sign-in.
+- No two-factor sign-in for ordinary accounts yet (only the master admin can turn it on).
 - No audit trail of who changed what.
 - No way to delete a squadron or a person from inside the planner.
 - No automatic deletion of old programmes.

@@ -97,6 +97,7 @@ type Service struct {
 	secure                bool
 	claimDomain           string
 	skipEmailVerification bool
+	totp                  totpGuard // wrong-code counter for two-step sign-in
 }
 
 func NewService(db *sql.DB, sessionKey string, cookieSecure bool, claimDomain string, skipEmailVerification bool) *Service {
@@ -489,14 +490,10 @@ var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("timing-equaliser"), bcryp
 
 const sessionTTL = 30 * 24 * time.Hour
 
+// CreateSession starts a session without recording a browser; the web layer
+// uses CreateSessionFor.
 func (s *Service) CreateSession(userID int64) (token string, expiresAt time.Time, err error) {
-	token, err = randomToken()
-	if err != nil {
-		return "", time.Time{}, err
-	}
-	expiresAt = time.Now().Add(sessionTTL)
-	_, err = s.db.Exec(`INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)`, token, userID, expiresAt)
-	return token, expiresAt, err
+	return s.CreateSessionFor(userID, "")
 }
 
 func (s *Service) DeleteSession(token string) error {

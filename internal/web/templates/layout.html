@@ -39,6 +39,7 @@
   <footer class="version-footer">
     v{{.Version}} ·
     <a href="https://github.com/kolonuk/rafactools-planner/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Version history</a>
+    · <a href="{{url "/privacy"}}">Privacy</a>
     {{if .ReportEnabled}}· <a href="{{url "/report"}}" data-report-link>Report a problem</a>{{end}}
   </footer>
   {{if .ReportEnabled}}<script type="module" src="{{url "/static/js/gen/report-capture.js"}}"></script>{{end}}

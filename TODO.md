@@ -30,19 +30,15 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 ## Before anyone relies on it
 
-- [ ] **[P1 security]** **Don't log secret links outside dev.** With `SMTP_HOST` unset the
-  app writes confirmation, invite and password-reset links (and problem reports) to
-  the log, which anyone who can read the log can use. Refuse to start without SMTP
-  unless an explicit dev setting (for example `ALLOW_LOG_MAIL=true`) is given, and
-  document it.
 - [ ] **[P1 security]** **Branch protection.** Require the `CI` jobs to pass before merging to
   `test` and `main`. Blocked: the API refuses it (403) because it needs GitHub
   Pro or a public repo, the same limit that stops CodeQL results uploading.
   The repo must stay private (see the PDF anonymisation history), so this needs
   a plan upgrade.
-- [ ] **[P1 security]** **Privacy basics.** The app stores cadet names, so add a short privacy
-  notice, a way to delete a squadron's data, and a retention rule for old
-  programmes.
+- [ ] **[P1 security]** **Retention rule for old programmes.** The privacy notice and
+  "Delete this squadron" exist; still to decide (ask the owner first): how long old
+  months, and above all the requirements tracker's cadet names, should be kept before
+  they are removed or blanked automatically.
 
 ## The app and its image
 
@@ -63,9 +59,6 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
      other tooling (a `devtools` subcommand), run by the workflow, with tests.
      Decide first, and ask the owner: where the version lives in the repo
      today, since it is currently computed at build time from the PR number.
-- [ ] **[P1 security]** **`DISABLE_SIGNUPS` flag:** an environment setting that turns
-  the claim form off, so a test copy running on realistic data cannot be signed
-  up to by strangers.
 
 ## Bugs and rough edges
 
@@ -146,8 +139,8 @@ Roughly ordered by value for the effort.
    same person is on two things at once.
 9. **[P3 usability]** **Audit trail:** "last edited by X at Y" on each programme, and an
     optional change log.
-10. **[P1 security]** **Account hygiene:** two-factor sign-in; sign out everywhere. (Change
-    password is done; see "Your details".)
+10. **[P1 security]** **Account hygiene:** two-step sign-in for ordinary accounts (see the master
+    admin section). Change password, the list of sessions and sign out everywhere are done.
 11. **[P2 helpful feature]** **Data export and backup:** download a squadron's data as JSON/CSV.
 12. **[P3 usability]** **Documentation, next steps.** The versioned in-app docs exist
     (`/docs`, see `.claude/skills/docs/SKILL.md`). Still to do: add pages for
@@ -164,10 +157,7 @@ Small gaps found while building and reviewing; each is a candidate to pick up.
 - **[P3 usability]** **Edit uniform colours** (names and colours) in squadron settings; today only
   the five defaults exist.
 - **[P3 usability]** **Resend an invite** (and see when it was sent); today you revoke and re-invite.
-- **[P1 security]** **Delete a squadron's data** (owner, with confirmation), the part of "Privacy
-  basics" that needs code.
 - **[P3 usability]** **Edit a closure or weekend note** instead of deleting and re-adding it.
-- **[P1 security]** **Sign-in session list** ("where am I signed in?") with per-session sign-out.
 - **[P4 nicety]** **Print-friendly programme page** (the PDF covers most of this).
 - **[P3 usability]** **Search** across programmes for an activity or a cadet's name.
 - **[P4 nicety]** **Last-seen / last-edited** on the dashboard, to spot stale programmes.
@@ -198,12 +188,13 @@ lines are built and tested. What is left, and why it is not done here:
   a "can you repeat it?" and "how bad is it?" question; recent PDF-render
   errors. Then, if wanted, store reports so the master admin has an inbox with
   a status (new / looking / done) instead of only email.
-- [ ] **[P1 security]** **Two-factor sign-in for the master admin** before it is used on a real
-  deployment: it can read every squadron, so a stolen password is the worst case.
+- [ ] **[P1 security]** **Security log, next round:** also record sign-ins (and failed ones), password
+  changes and resets, and squadron settings changes; let an owner download the log; alert owners by
+  email when the master admin views their squadron.
+- [ ] **[P1 security]** **Two-step sign-in for everyone else, and recovery codes.** Done for the master
+  admin (authenticator app, `MASTER_ADMIN_RESET_2FA` to recover). Still to do: offer it to ordinary
+  accounts (owners first), one-time recovery codes, and a QR code for the key (a small Go QR
+  encoder; today the key is typed in).
 - [ ] **[P3 usability]** **Let the master admin act as an editor or owner** in a squadron when
   helping fix something (today it is strictly read-only, on purpose). If added,
   make it an explicit second step with its own audit line.
-- [ ] **[P1 security]** **Show the audit trail** (who looked at which squadron, when) to the master
-  admin, and to a squadron's owners, instead of only writing it to the log.
-- [ ] **[P1 security]** **Shorter sessions for the master admin** (the normal 30 days is long for
-  this account).

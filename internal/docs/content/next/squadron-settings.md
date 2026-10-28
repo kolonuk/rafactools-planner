@@ -4,6 +4,7 @@ order: 40
 summary: Name, classifications, parade nights, members and invites (owners only).
 since: 1.0
 changed:
+  - next: Added the security log and the Delete this squadron section.
   - next: Changing the classifications now updates existing months; removing a classification that still has text is refused.
   - next: Added the Squadron website field, and owners can change roles and remove members from the Members table.
   - next: Parade weekdays outside Monday to Sunday are ignored, and an empty name keeps the existing name.
@@ -44,3 +45,16 @@ The page lists everyone in the squadron with their name (if they have set one, s
 [instructors](instructors)), their email and their role, and any pending
 invites. Owners can change a role or remove a person here, and invite new people.
 See [roles and invites](roles-and-invites).
+
+## Security log
+
+At the bottom of the page the **Security log** lists the newest 50 events of the last year:
+when the site's administrator looked at your squadron (read-only), and when an owner invited,
+changed the role of, or removed someone. Each line shows who, what and when (UTC).
+
+## Delete this squadron
+
+The last section permanently deletes the squadron and **everything in it**: every member's account,
+all programmes, the requirements tracker (including cadets' names), the instructor list and the
+security log. To do it you type the squadron number and your password. **It cannot be undone and
+there is no backup to restore from**, so export each month's PDF first.
