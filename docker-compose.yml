@@ -12,6 +12,12 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       MAIL_FROM: no-reply@rafactools-planner.local
+      # To try a real provider locally, remove the three lines above and set,
+      # for example (see the docs page "Set up email"):
+      #   MAIL_PROVIDER: cloudflare   # or gmail, google-workspace, ses, smtp
+      #   SMTP_PASS: ${SMTP_PASS}     # a secret: keep it in .env, never in this file
+      #   MAIL_FROM: no-reply@your-domain
+      #   SES_REGION: eu-west-2       # only for ses
     volumes:
       - app-data:/data
     depends_on:

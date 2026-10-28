@@ -1,0 +1,72 @@
+{{define "content"}}
+<h1>Email settings</h1>
+<p><a href="{{url "/account"}}">&larr; Your details</a></p>
+
+<p>These settings control how the site sends email (account confirmations, invitations, password
+  resets and problem reports). Each one starts from the value the server was started with. <strong>A value
+  you save here replaces it</strong>; leave a box empty to use the server's value again.</p>
+
+{{if .TestResult}}<p class="{{if .TestFailed}}error{{else}}notice{{end}}">{{.TestResult}}</p>{{end}}
+{{if .MailProblem}}<p class="error">{{.MailProblem}}</p>{{end}}
+
+{{with .Resolved}}
+<section class="card">
+  <h2>In use now</h2>
+  <table class="list">
+    <tbody>
+      <tr><th scope="row">Provider</th><td>{{.Provider}}</td></tr>
+      <tr><th scope="row">Server</th><td>{{if .Host}}{{.Host}}:{{.Port}}{{else}}<em>none</em>{{end}}</td></tr>
+      <tr><th scope="row">Login name</th><td>{{if .User}}{{.User}}{{else}}<em>none</em>{{end}}</td></tr>
+      <tr><th scope="row">Password</th><td>{{if .HasPass}}set{{else}}not set{{end}}</td></tr>
+      <tr><th scope="row">Sends as</th><td>{{.From}}</td></tr>
+    </tbody>
+  </table>
+  <form method="post" action="{{url "/admin/mail/test"}}">
+    <input type="hidden" name="csrf" value="{{$.CSRF}}">
+    <button type="submit">Send a test email to me</button>
+  </form>
+  <p class="muted">Sends to your own address with the settings above (save first if you have changed them).</p>
+</section>
+{{end}}
+
+<form method="post" action="{{url "/admin/mail"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <h2>Change the settings</h2>
+  {{range .Fields}}
+  <label>{{.Label}} <span class="muted">(now from the {{.Source}}{{if and (not .Secret) .Effective}}: {{.Effective}}{{end}})</span>
+    {{if .Options}}
+    <select name="{{.Name}}">
+      <option value="">use the server's value</option>
+      {{$saved := .Saved}}{{range .Options}}<option value="{{.}}" {{if eq . $saved}}selected{{end}}>{{.}}</option>{{end}}
+    </select>
+    {{else if .Secret}}
+    <input type="password" name="{{.Name}}" value="" autocomplete="new-password" placeholder="{{if .HasValue}}leave blank to keep the current one{{else}}not set{{end}}">
+    {{else}}
+    <input type="text" name="{{.Name}}" value="{{.Saved}}" autocomplete="off" maxlength="200" placeholder="{{.Effective}}">
+    {{end}}
+  </label>
+  <p class="muted">{{.Help}}</p>
+  {{if .Secret}}<label class="checkbox"><input type="checkbox" name="clear_{{.Name}}" value="1"> Remove the saved password</label>{{end}}
+  {{end}}
+  <button type="submit">Save</button>
+</form>
+
+<form method="post" action="{{url "/admin/mail/reset"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <h2>Go back to the server's settings</h2>
+  <p>Removes everything saved above, so the values the server was started with apply again.</p>
+  <button type="submit">Remove all saved email settings</button>
+</form>
+
+{{if .Changes}}
+<section class="card">
+  <h2>Recent changes</h2>
+  <table class="list">
+    <thead><tr><th scope="col">When (UTC)</th><th scope="col">Who</th><th scope="col">What</th></tr></thead>
+    <tbody>
+    {{range .Changes}}<tr><td>{{.At.UTC.Format "2 Jan 2006 15:04"}}</td><td data-private>{{.ActorEmail}}</td><td>{{.Detail}}</td></tr>{{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{end}}

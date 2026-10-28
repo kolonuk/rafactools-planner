@@ -13,6 +13,7 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **feat**: email settings. `MAIL_PROVIDER` presets for Cloudflare, Gmail, Google Workspace and Amazon SES (plus any SMTP server), and a master-admin **Email settings** page with fields, an encrypted password, a **Send a test email** button and a reset; saved values win over the environment, which stays the default. Every message now carries a Date and a unique Message-ID, and non-English subjects are encoded. Problem-report screenshots are capped at 3 MB so the email fits the 5 MiB some providers allow. New docs page "Set up email" with per-provider steps.
 - **security**: the site refuses to start without `SMTP_HOST` unless `ALLOW_LOG_MAIL=true` (development), so confirmation, invite and reset links are no longer written to the log by accident; new `DISABLE_SIGNUPS` closes the claim form.
 - **security**: **Your details** lists where you are signed in (browser, start, expiry) and can sign out one session or all others; the master admin signs in for 8 hours instead of 30 days and can turn on two-step sign-in (authenticator app code, single use, locks after 5 wrong codes; `MASTER_ADMIN_RESET_2FA` to recover).
 - **security**: a per-squadron **security log** (master admin visits, invites, role changes, removals) shown to owners, and the master admin's own list of squadrons viewed; kept for a year.

@@ -18,6 +18,7 @@ import (
 	"rafactools-planner/internal/docs"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/settings"
 	"rafactools-planner/internal/web"
 )
 
@@ -48,9 +49,15 @@ func runValidateHTML() error {
 	if err != nil {
 		return err
 	}
+	authSvc := auth.NewService(database, cfg.SessionKey, false, cfg.ClaimDomain, true)
+	siteSettings, err := settings.New(database, cfg.SessionKey, config.MailKeys, []string{"SMTP_PASS"})
+	if err != nil {
+		return err
+	}
 	srv := httptest.NewServer(web.NewRouter(&web.Deps{
-		Auth:  auth.NewService(database, cfg.SessionKey, false, cfg.ClaimDomain, true),
+		Auth:  authSvc,
 		Store: programme.NewStore(database), Mail: mail.Sender{}, Docs: lib, Cfg: cfg,
+		Settings: siteSettings, Env: func(string) string { return "" },
 	}))
 	defer srv.Close()
 
@@ -153,6 +160,51 @@ func runValidateHTML() error {
 			path = "/docs/next/"
 		}
 		if err := save("docs-"+p.Slug, path); err != nil {
+			return err
+		}
+	}
+
+	// The master admin's pages (a separate sign-in, so a separate cookie jar).
+	const masterPW = "a long master admin password"
+	if _, err := authSvc.EnsureMasterAdmin("master@example.org", masterPW); err != nil {
+		return err
+	}
+	mjar, _ := cookiejar.New(nil)
+	mclient := &http.Client{Jar: mjar, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	mget := func(path string) (string, error) {
+		resp, err := mclient.Get(srv.URL + path)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("GET %s as master admin -> %d", path, resp.StatusCode)
+		}
+		return string(b), nil
+	}
+	loginPage, err := mget("/login")
+	if err != nil {
+		return err
+	}
+	m := csrfRe.FindStringSubmatch(loginPage)
+	if m == nil {
+		return fmt.Errorf("no csrf token on /login")
+	}
+	resp, err = mclient.PostForm(srv.URL+"/login", url.Values{"csrf": {m[1]}, "email": {"master@example.org"}, "password": {masterPW}})
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		return fmt.Errorf("master admin login -> %d", resp.StatusCode)
+	}
+	for name, path := range map[string]string{"master-account": "/account", "admin-mail": "/admin/mail"} {
+		page, err := mget(path)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(pagesDir, name+".html"), []byte(page), 0o600); err != nil {
 			return err
 		}
 	}

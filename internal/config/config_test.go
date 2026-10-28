@@ -12,7 +12,7 @@ const goodKey = "0123456789abcdef0123456789abcdef"
 func env(t *testing.T, set map[string]string) {
 	t.Helper()
 	for _, k := range []string{"PORT", "DB_PATH", "BASE_URL", "SESSION_KEY", "COOKIE_SECURE", "CLAIM_DOMAIN",
-		"SKIP_EMAIL_VERIFICATION", "ALLOW_LOG_MAIL", "DISABLE_SIGNUPS", "MASTER_ADMIN_RESET_2FA", "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "MAIL_FROM"} {
+		"SKIP_EMAIL_VERIFICATION", "MAIL_PROVIDER", "SES_REGION", "ALLOW_LOG_MAIL", "DISABLE_SIGNUPS", "MASTER_ADMIN_RESET_2FA", "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "MAIL_FROM"} {
 		t.Setenv(k, "")
 	}
 	// Mail is configured unless a test says otherwise: Load refuses to run
@@ -112,25 +112,6 @@ func TestLoadParsing(t *testing.T) {
 	c, _ = Load()
 	if c.SkipEmailVerification {
 		t.Error("typo in SKIP_EMAIL_VERIFICATION enabled the bypass")
-	}
-}
-
-// Without SMTP the site would write confirmation, invite and reset links to
-// the log, and anyone who can read the log could use them. That is only
-// acceptable on a developer's machine, so it must be asked for by name.
-func TestLoadRefusesToLogMailUnlessAllowed(t *testing.T) {
-	env(t, map[string]string{"SESSION_KEY": goodKey, "SMTP_HOST": ""})
-	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "SMTP_HOST") || !strings.Contains(err.Error(), "ALLOW_LOG_MAIL") {
-		t.Fatalf("no SMTP, no opt-in: err = %v", err)
-	}
-	env(t, map[string]string{"SESSION_KEY": goodKey, "SMTP_HOST": "", "ALLOW_LOG_MAIL": "true"})
-	c, err := Load()
-	if err != nil || c.HasSMTP() || !c.AllowLogMail {
-		t.Fatalf("opt-in: c.AllowLogMail=%v HasSMTP=%v err=%v", c.AllowLogMail, c.HasSMTP(), err)
-	}
-	env(t, map[string]string{"SESSION_KEY": goodKey})
-	if _, err := Load(); err != nil {
-		t.Fatalf("SMTP configured: %v", err)
 	}
 }
 

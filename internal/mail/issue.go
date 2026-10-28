@@ -110,11 +110,11 @@ func (s Sender) SendIssueReport(to string, r IssueReport) error {
 	}
 
 	var head bytes.Buffer
-	fmt.Fprintf(&head, "From: %s\r\nTo: %s\r\n", s.From, to)
+	fmt.Fprintf(&head, "From: %s\r\nTo: %s\r\n%s", s.From, to, s.stdHeaders())
 	if r.ReplyTo != "" {
 		fmt.Fprintf(&head, "Reply-To: %s\r\n", r.ReplyTo)
 	}
 	fmt.Fprintf(&head, "Subject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=%q\r\n\r\n",
-		mime.QEncoding.Encode("utf-8", subject), mw.Boundary())
+		encodeSubject(subject), mw.Boundary())
 	return s.deliver(to, append(head.Bytes(), buf.Bytes()...))
 }

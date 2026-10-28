@@ -4,6 +4,7 @@ order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
+  - next: The site's email password can be saved on the website by the master admin; it is stored encrypted.
   - next: Added a privacy notice page, a security log for owners, the list of places you are signed in, deleting a squadron, and two-step sign-in for the master admin.
   - next: Added Report a problem, which can email a screenshot and recent activity to the site's operators.
   - next: Documented the optional master admin, who can view any squadron read-only.
@@ -22,6 +23,7 @@ changed:
 | --- | --- |
 | Accounts | Email address, role, and a salted bcrypt hash of the password. The password itself is never stored. |
 | Sign-in sessions | A random token per browser, valid for 30 days (8 hours for the master admin) or until logout, with when it started and a coarse description of the browser such as "Firefox on Linux". |
+| Email settings | If the master admin saves them on the website: the mail server, login, sender and password. The password is **encrypted** (with a key derived from the site's signing key) and never shown again. |
 | Security log | When the master admin looks at a squadron, and when an owner invites, changes or removes a member: who, what and when. Kept for a year; owners can read their squadron's. |
 | Password reset requests | A SHA-256 hash of the emailed link, who it is for, and when it expires (1 hour). Deleted when used or replaced. |
 | Problem reports | **Not stored.** A report you send is emailed to the site's operators, and the server briefly remembers your last 20 requests (method, path and result code only, in memory) so that a report can include them. See [report a problem](report-a-problem). |

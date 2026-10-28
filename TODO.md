@@ -74,6 +74,14 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
 - [ ] **[P3 usability]** **Mobile layout.** Check uniform-swatch contrast. The grid scrolls sideways
   on a phone; a real mobile layout is still open. (Screen-reader and keyboard
   walk-throughs are not wanted for now; focus on usable features and bugs.)
+- [ ] **[P3 usability]** **More site settings on the website.** The Email settings page
+  (database over environment, encrypted password, test button) is built for mail only.
+  Candidates for the same page: `ISSUE_EMAIL` and `ISSUE_MASKING` (they are read once
+  at start-up today, so the report link needs a restart), the claim domain, and
+  `DISABLE_SIGNUPS`. Also: a "mail not set up" mode that lets the master admin sign in
+  and configure mail on a brand-new site without `ALLOW_LOG_MAIL`.
+- [ ] **[P3 usability]** **Alibaba Cloud DirectMail preset** if wanted (the request said
+  "Cloudflare Ali"; read as the Cloudflare API/SMTP). Needs its regional SMTP host.
 - [ ] **[P4 nicety]** **Squadron crest/logo image** in the PDF header. The website link is done;
   an image needs a first upload path (storage plus an upload form), which the
   app does not have yet.

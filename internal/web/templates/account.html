@@ -43,6 +43,9 @@
 {{end}}
 
 {{if .TwoStepOffered}}
+<h2>Site settings</h2>
+<p><a href="{{url "/admin/mail"}}">Email settings</a>: choose how the site sends email, change the login, and send a test message.</p>
+
 <h2>Two-step sign-in</h2>
 <section class="card">
   {{if .TwoStepError}}<p class="error">{{.TwoStepError}}</p>{{end}}

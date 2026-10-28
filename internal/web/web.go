@@ -20,6 +20,7 @@ import (
 	"rafactools-planner/internal/docs"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/settings"
 	"rafactools-planner/internal/version"
 )
 
@@ -36,9 +37,10 @@ type Mailer interface {
 	SendInvite(to, baseURL, token, squadronName, invitedByEmail string) error
 	SendPasswordReset(to, baseURL, token string) error
 	SendIssueReport(to string, r mail.IssueReport) error
+	SendTest(to string) error
 }
 
-var _ Mailer = mail.Sender{}
+var _ Mailer = mail.Dynamic{}
 
 type Deps struct {
 	Auth  *auth.Service
@@ -46,6 +48,12 @@ type Deps struct {
 	Mail  Mailer
 	Docs  *docs.Library
 	Cfg   config.Config
+
+	// Settings holds the site settings the master admin edits on the website
+	// (nil disables that page). Env reads the environment's defaults; the
+	// database wins over it. See package settings.
+	Settings *settings.Store
+	Env      func(string) string
 }
 
 type server struct {
@@ -62,7 +70,7 @@ type server struct {
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
 	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "confirm_reset_programme",
-	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy",
+	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -169,6 +177,10 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /account/2fa/start", authLimiter.rateLimited(s.requireAuth(s.twoStepStart)))
 	mux.HandleFunc("POST /account/2fa/confirm", authLimiter.rateLimited(s.requireAuth(s.twoStepConfirm)))
 	mux.HandleFunc("POST /account/2fa/disable", authLimiter.rateLimited(s.requireAuth(s.twoStepDisable)))
+	mux.HandleFunc("GET /admin/mail", s.requireMasterAdmin(s.mailShow))
+	mux.HandleFunc("POST /admin/mail", authLimiter.rateLimited(s.requireMasterAdmin(s.mailSave)))
+	mux.HandleFunc("POST /admin/mail/reset", authLimiter.rateLimited(s.requireMasterAdmin(s.mailReset)))
+	mux.HandleFunc("POST /admin/mail/test", authLimiter.rateLimited(s.requireMasterAdmin(s.mailTest)))
 	mux.HandleFunc("POST /account/password", authLimiter.rateLimited(s.requireAuth(s.accountPassword)))
 
 	mux.HandleFunc("POST /programmes", s.requireEditor(s.programmeCreate))
