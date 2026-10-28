@@ -11,6 +11,7 @@ const (
 	AuditMemberRole   = "member.role"   // an owner changed someone's role
 	AuditMemberRemove = "member.remove" // an owner removed someone
 	AuditInviteSent   = "invite.sent"   // an owner invited someone
+	AuditSettingsMail = "settings.mail" // the master admin changed the email settings
 )
 
 const (
@@ -89,6 +90,8 @@ func AuditText(action string) string {
 		return "Removed a member"
 	case AuditInviteSent:
 		return "Sent an invitation"
+	case AuditSettingsMail:
+		return "Changed the site's email settings"
 	}
 	return "Changed something"
 }

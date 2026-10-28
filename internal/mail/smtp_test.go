@@ -3,10 +3,12 @@ package mail
 import (
 	"bufio"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // fakeSMTP is a minimal in-process SMTP server that records what it is sent,
@@ -176,5 +178,63 @@ func TestSendPasswordResetOnTheWire(t *testing.T) {
 		if !strings.Contains(f.data, want) {
 			t.Errorf("reset email missing %q:\n%s", want, f.data)
 		}
+	}
+}
+
+func TestEveryMessageCarriesDateAndAUniqueMessageIDInTheSendersDomain(t *testing.T) {
+	f := newFakeSMTP(t)
+	ids := map[string]bool{}
+	for i := 0; i < 3; i++ {
+		if err := f.sender().SendTest("a@example.org"); err != nil {
+			t.Fatal(err)
+		}
+		f.mu.Lock()
+		data := f.data
+		f.mu.Unlock()
+		m := regexp.MustCompile(`(?m)^Message-ID: <([0-9a-f]{24})@rafactools\.example>\r$`).FindStringSubmatch(data)
+		if m == nil {
+			t.Fatalf("no Message-ID in the sender's domain:\n%s", data)
+		}
+		if ids[m[1]] {
+			t.Errorf("Message-ID %s repeated", m[1])
+		}
+		ids[m[1]] = true
+		dm := regexp.MustCompile(`(?m)^Date: (.+)\r$`).FindStringSubmatch(data)
+		if dm == nil {
+			t.Fatalf("no Date header:\n%s", data)
+		}
+		if _, err := time.Parse(time.RFC1123Z, dm[1]); err != nil {
+			t.Errorf("Date %q is not RFC 5322: %v", dm[1], err)
+		}
+	}
+}
+
+func TestNonASCIISubjectsAreEncodedNotSentRaw(t *testing.T) {
+	f := newFakeSMTP(t)
+	if err := f.sender().SendInvite("a@example.org", "https://x.example", "tok", "Squadron Zoë – Cadets", "o@example.org"); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	head, _, _ := strings.Cut(f.data, "\r\n\r\n")
+	for i := 0; i < len(head); i++ {
+		if head[i] > 126 {
+			t.Fatalf("a raw non-ASCII byte in the headers:\n%s", head)
+		}
+	}
+	if !strings.Contains(head, "Subject: =?utf-8?q?") {
+		t.Errorf("subject not Q-encoded:\n%s", head)
+	}
+}
+
+func TestSendTestOnTheWire(t *testing.T) {
+	f := newFakeSMTP(t)
+	if err := f.sender().SendTest("me@example.org"); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if !strings.Contains(f.data, "Subject: RAFACTools Planner test email") || !strings.Contains(f.data, "the site can send email") {
+		t.Errorf("test message:\n%s", f.data)
 	}
 }

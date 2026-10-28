@@ -35,7 +35,7 @@ A picture of the page is the single most useful thing you can add.
 - **Automatic:** in browsers that can do it, the planner asks your browser for a picture of
   the **current tab only** at the moment you select the link. Your browser always asks you
   first, and you can say no. Phones and some browsers cannot do this.
-- **Your own file:** you can instead attach a PNG or JPEG (up to 4 MB). It is shown in the
+- **Your own file:** you can instead attach a PNG or JPEG (up to 3 MB). It is shown in the
   form first, in exactly the same way.
 - You always see the picture before it is sent, and you can untick **Include this
   screenshot**.

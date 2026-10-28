@@ -5,7 +5,7 @@
 import { KEY_ERRORS, KEY_PAGE, KEY_SHOT, KEY_TRAIL, SHOT_MAX_AGE_MS, load, pageInfo, } from "./report-shared.js";
 const MAX_WIDTH = 1600;
 const MIN_BOX = 6;
-const MAX_FILE_BYTES = 4 * 1024 * 1024; // the server's limit for a screenshot
+const MAX_FILE_BYTES = 3 * 1024 * 1024; // the server's limit for a screenshot
 function el(id, type) {
     const found = document.getElementById(id);
     return found instanceof type ? found : null;
@@ -84,7 +84,7 @@ function init(form, canvas, editor, include, fileInput, contextField) {
         if (!file)
             return;
         if (file.size > MAX_FILE_BYTES) {
-            setStatus("That file is larger than 4 MB. Please attach a smaller screenshot.");
+            setStatus("That file is larger than 3 MB. Please attach a smaller screenshot.");
             fileInput.value = "";
             return;
         }

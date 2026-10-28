@@ -37,7 +37,7 @@ squadron's data, run your own copy, or keep personal details out of the planner.
 | **A computer that is on when people use it**, with **Docker** (or Go 1.26 if you build from source). | The planner is one small program; the container needs nothing else. |
 | **Somewhere to keep the data**: a folder or volume that survives restarts. | Everything is one SQLite file ([backups](operators-backups)). |
 | **A web address with HTTPS** if people will use it from outside your own network, usually through a reverse proxy. | Logins must not travel unencrypted ([running the site](operators-running)). |
-| **An email provider (SMTP)**, for confirmation, invitation and password reset emails. | Without it the links are only written to a log ([configuration](operators-configuration)). |
+| **An email provider (SMTP)**, for confirmation, invitation and password reset emails: Cloudflare, Gmail, Google Workspace, Amazon SES or any other ([set up email](operators-email)). | Without it the links are only written to a log ([configuration](operators-configuration)). |
 | **An email domain for claiming squadrons**, set as `CLAIM_DOMAIN`. | Only an address like `snco.<number>@<that domain>` or `oc.<number>@<that domain>` can claim a squadron. The default is the RAFAC domain; change it if yours is different. |
 
 ## Try it on your own computer
@@ -99,7 +99,8 @@ never put a password or key in a variable.
 | `SMTP_PASS` | **secret** | Your email provider's password. |
 | `MASTER_ADMIN_PASSWORD` | **secret** | Only if you want a master admin; 12 to 72 characters. |
 | `BASE_URL`, `CLAIM_DOMAIN`, `COOKIE_SECURE` | variable | The address, your email domain, and `true`. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM` | variable | Your email provider. `SMTP_HOST` is required. |
+| `MAIL_PROVIDER`, `SES_REGION` | variable | `cloudflare`, `gmail`, `google-workspace`, `ses` or `smtp`; see [set up email](operators-email). |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM` | variable | Your email provider (the presets fill most of these in). A mail server is required from here or from the website. |
 | `DISABLE_SIGNUPS` | variable | `true` closes the claim form, for a copy holding real data. |
 | `MASTER_ADMIN_EMAIL` | variable | Only if you want a master admin. |
 | `ISSUE_EMAIL` | variable | Where problem reports go (for example `issues@your-domain`); leave empty to switch reporting off. |

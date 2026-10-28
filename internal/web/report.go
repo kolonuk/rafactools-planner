@@ -29,8 +29,8 @@ import (
 // knows. See the "Report a problem" docs page for what a report contains.
 
 const (
-	maxReportBody       = 6 << 20 // whole request, screenshot included
-	maxScreenshotBytes  = 4 << 20
+	maxReportBody       = 5 << 20 // whole request, screenshot included
+	maxScreenshotBytes  = 3 << 20 // under 5 MiB once base64-encoded into the email (Cloudflare's limit)
 	maxScreenshotSide   = 10000
 	maxScreenshotPixels = 40_000_000
 	maxContextBytes     = 60 << 10

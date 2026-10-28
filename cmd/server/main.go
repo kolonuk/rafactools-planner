@@ -18,6 +18,7 @@ import (
 	"rafactools-planner/internal/docs"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/settings"
 	"rafactools-planner/internal/web"
 )
 
@@ -60,7 +61,33 @@ func main() {
 	}
 
 	store := programme.NewStore(database)
-	sender := mail.Sender{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.MailFrom}
+
+	// Mail settings come from the environment, overridden by anything the
+	// master admin saved on the website. They are resolved afresh at every
+	// send, so a saved change needs no restart.
+	siteSettings, err := settings.New(database, cfg.SessionKey, config.MailKeys, []string{"SMTP_PASS"})
+	if err != nil {
+		log.Fatalf("settings: %v", err)
+	}
+	resolveMail := func() (mail.Sender, error) {
+		get, gerr := siteSettings.Getter(os.Getenv)
+		if gerr != nil {
+			log.Printf("WARNING %v", gerr)
+		}
+		ms, err := config.ResolveMail(get)
+		if err != nil {
+			return mail.Sender{}, err
+		}
+		return mail.Sender{Host: ms.Host, Port: ms.Port, User: ms.User, Pass: ms.Pass, From: ms.From}, nil
+	}
+	first, err := resolveMail()
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
+	if err := config.RequireMail(config.MailSettings{Host: first.Host}, cfg.AllowLogMail); err != nil {
+		log.Fatalf("config: %v", err)
+	}
+	sender := mail.Dynamic{Resolve: resolveMail, AllowLog: cfg.AllowLogMail}
 
 	// Fail at startup, not on a reader's first click, if the embedded docs
 	// are malformed (CI runs the same validation).
@@ -69,7 +96,7 @@ func main() {
 		log.Fatalf("docs: %v", err)
 	}
 
-	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg})
+	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg, Settings: siteSettings, Env: os.Getenv})
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -81,7 +108,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("listening on :%s (SMTP configured: %v)", cfg.Port, cfg.HasSMTP())
+		log.Printf("listening on :%s (SMTP configured: %v)", cfg.Port, first.Host != "")
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("serve: %v", err)
 		}

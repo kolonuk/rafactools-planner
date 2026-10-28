@@ -23,6 +23,7 @@ import (
 	"rafactools-planner/internal/config"
 	"rafactools-planner/internal/db"
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/settings"
 )
 
 const testPassword = "correct horse battery staple"
@@ -36,13 +37,15 @@ func TestMain(m *testing.M) {
 // by httptest. Nothing is mocked: tests exercise middleware, handlers,
 // templates, auth and storage together, the way a browser would.
 type testApp struct {
-	t     *testing.T
-	srv   *httptest.Server
-	db    *sql.DB
-	auth  *auth.Service
-	store *programme.Store
-	cfg   config.Config
-	mail  *recordingMail
+	t        *testing.T
+	srv      *httptest.Server
+	db       *sql.DB
+	settings *settings.Store
+	env      map[string]string // the "environment" the settings page sees
+	auth     *auth.Service
+	store    *programme.Store
+	cfg      config.Config
+	mail     *recordingMail
 }
 
 func newApp(t *testing.T, tweak ...func(*config.Config)) *testApp {
@@ -67,7 +70,13 @@ func newAppWithDocs(t *testing.T, lib *docs.Library, tweak ...func(*config.Confi
 	a := &testApp{t: t, db: database, cfg: cfg, mail: &recordingMail{}}
 	a.auth = auth.NewService(database, cfg.SessionKey, cfg.CookieSecure, cfg.ClaimDomain, cfg.SkipEmailVerification)
 	a.store = programme.NewStore(database)
-	a.srv = httptest.NewServer(NewRouter(&Deps{Auth: a.auth, Store: a.store, Mail: a.mail, Docs: lib, Cfg: cfg}))
+	a.settings, err = settings.New(database, cfg.SessionKey, config.MailKeys, []string{"SMTP_PASS"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.env = map[string]string{}
+	a.srv = httptest.NewServer(NewRouter(&Deps{Auth: a.auth, Store: a.store, Mail: a.mail, Docs: lib, Cfg: cfg,
+		Settings: a.settings, Env: func(k string) string { return a.env[k] }}))
 	t.Cleanup(func() { a.srv.Close(); database.Close() })
 	return a
 }
@@ -268,6 +277,8 @@ type recordingMail struct {
 	reports   []mail.IssueReport
 	reportTo  []string
 	reportErr error
+	tests     []string
+	testErr   error
 }
 
 type sentMail struct{ Kind, To, Token string }
@@ -285,6 +296,13 @@ func (m *recordingMail) SendVerification(to, _, token string) error {
 func (m *recordingMail) SendInvite(to, _, token, _, _ string) error {
 	return m.add("invite", to, token)
 }
+func (m *recordingMail) SendTest(to string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tests = append(m.tests, to)
+	return m.testErr
+}
+
 func (m *recordingMail) SendIssueReport(to string, r mail.IssueReport) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

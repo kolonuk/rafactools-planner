@@ -56,8 +56,8 @@ func (s Sender) send(to, subject, body string) error {
 		return nil
 	}
 
-	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
-		s.From, to, subject, body)
+	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\n%sSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
+		s.From, to, s.stdHeaders(), encodeSubject(subject), body)
 	return s.deliver(to, msg)
 }
 

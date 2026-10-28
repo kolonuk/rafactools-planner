@@ -32,6 +32,7 @@ print it as a one-page PDF.
 | [Troubleshooting](troubleshooting) | Common problems and messages |
 | [Run your own copy](run-your-own) | Why to run it yourself, what you need, GitHub settings, or the free public site |
 | [Configuration](operators-configuration) | For whoever runs the site: settings |
+| [Set up email](operators-email) | For whoever runs the site: Cloudflare, Gmail, Google Workspace, Amazon SES, and the Email settings page |
 | [Running the site](operators-running) | For whoever runs the site: starting, stopping, health |
 | [Backups](operators-backups) | For whoever runs the site: protecting the data |
 | [Automated checks](operators-checks) | For contributors: what runs on every change |

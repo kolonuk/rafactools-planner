@@ -20,7 +20,7 @@ import {
 
 const MAX_WIDTH = 1600;
 const MIN_BOX = 6;
-const MAX_FILE_BYTES = 4 * 1024 * 1024; // the server's limit for a screenshot
+const MAX_FILE_BYTES = 3 * 1024 * 1024; // the server's limit for a screenshot
 
 function el<T extends HTMLElement>(id: string, type: { new (): T }): T | null {
   const found = document.getElementById(id);
@@ -112,7 +112,7 @@ function init(
     const file = fileInput.files?.[0];
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) {
-      setStatus("That file is larger than 4 MB. Please attach a smaller screenshot.");
+      setStatus("That file is larger than 3 MB. Please attach a smaller screenshot.");
       fileInput.value = "";
       return;
     }

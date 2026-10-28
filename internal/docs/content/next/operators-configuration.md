@@ -4,6 +4,7 @@ order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
 changed:
+  - next: Added MAIL_PROVIDER and SES_REGION, and the master admin's Email settings page, whose saved values win over these.
   - next: SMTP_HOST is now required unless ALLOW_LOG_MAIL=true, so secret links are no longer logged by accident.
   - next: Added DISABLE_SIGNUPS and MASTER_ADMIN_RESET_2FA; the master admin's sessions last 8 hours and can use two-step sign-in.
   - next: Added ISSUE_EMAIL and ISSUE_MASKING for the Report a problem feature.
@@ -28,7 +29,9 @@ configuration file. See `.env.template` in the repository for an annotated copy.
 | `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD` | empty | The optional site-wide **master admin** (see below). Set both or neither. |
 | `ISSUE_EMAIL` | empty | Where **problem reports** are emailed, for example `issues@your-domain`. Empty switches reporting off: no link appears and `/report` does not exist. |
 | `ISSUE_MASKING` | `true` | `true` lets people black out parts of a screenshot before sending it. Set `false` only on a site you run for other people when you need to see exactly what they saw: the form then says plainly that screenshots are sent as they are. |
-| `SMTP_HOST` | none (**required**, see `ALLOW_LOG_MAIL`) | Mail server. Without it the site refuses to start, unless `ALLOW_LOG_MAIL` is set (see below). |
+| `MAIL_PROVIDER` | `smtp` | A mail preset: `cloudflare`, `gmail`, `google-workspace` or `ses` fill in the host and port; `smtp` assumes nothing. See [set up email](operators-email). |
+| `SES_REGION` | empty | Only for `MAIL_PROVIDER=ses`: the AWS region, for example `eu-west-2`. |
+| `SMTP_HOST` | none (**required** unless `MAIL_PROVIDER` or the website supplies it, or `ALLOW_LOG_MAIL`) | Mail server. Without any, the site refuses to start (see below). |
 | `ALLOW_LOG_MAIL` | `false` | **Development only.** Lets the site start without `SMTP_HOST`, writing the emails it would send, links included, to the log. |
 | `DISABLE_SIGNUPS` | `false` | `true` closes the claim-a-squadron form (it answers `403` and the login page stops linking to it). People already signed up, invitations and password resets keep working. Use it on a copy that holds real data. |
 | `MASTER_ADMIN_RESET_2FA` | `false` | Set to `true` for one start to clear the master admin's two-step sign-in if the authenticator app is lost; then remove it. |
@@ -42,7 +45,10 @@ safe choice.
 
 ## When email is not configured
 
-The site **refuses to start** without `SMTP_HOST`, because without mail it would write
+All the mail variables above are only **defaults**: the master admin can save different values on the website
+(**Your details**, **Email settings**) and a saved value wins. See [set up email](operators-email).
+
+The site **refuses to start** with no mail server from either source, because without mail it would write
 each confirmation, invitation and password-reset link to its log, and anyone who can read the
 log could use them. Set `ALLOW_LOG_MAIL=true` to start anyway on a development machine; the
 messages, links included, then go to the log. Never set it where other people can read the log.
@@ -55,7 +61,7 @@ what people see and what a report contains. Notes for whoever receives them:
 
 - An invalid `ISSUE_EMAIL` stops the site starting, with a message naming it.
 - With `SMTP_HOST` empty the report, including its text, is written to the log instead.
-- Each address can send 5 reports per 10 minutes; a report may be up to 6 MB (a screenshot up to 4 MB).
+- Each address can send 5 reports per 10 minutes; a report may be up to 5 MB (a screenshot up to 3 MB, so the email stays under the 5 MB some providers allow).
 - Reports can be filed without signing in, so treat them as untrusted data: see [report a problem](report-a-problem).
 - The server keeps the last 20 requests per browser session in memory (method, path with any
   secret code removed, and result code; never bodies, cookies or typed values) and the last 30

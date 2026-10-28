@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -54,6 +55,16 @@ type Config struct {
 	// can use them, so this is for local development only and is off by default.
 	AllowLogMail bool
 
+	// MailProvider (MAIL_PROVIDER) picks an SMTP preset: smtp (default, nothing
+	// assumed), cloudflare, gmail, google-workspace or ses. SESRegion is the AWS
+	// region for ses. See mailprovider.go.
+	MailProvider string
+	SESRegion    string
+	// MailEnvError is why the environment's mail settings alone do not resolve
+	// (for example MAIL_PROVIDER=ses without a region). Not fatal by itself: the
+	// master admin may have saved the rest in the database.
+	MailEnvError error
+
 	// DisableSignups closes the claim-a-squadron form, for example on a copy
 	// that holds real data. Existing accounts, invites and password resets
 	// still work.
@@ -95,10 +106,6 @@ func Load() (Config, error) {
 		}
 	}
 
-	if c.SMTPHost == "" && !c.AllowLogMail {
-		return c, fmt.Errorf("SMTP_HOST is not set: without it, sign-in and reset links would be written to the log where anyone who can read it could use them; configure SMTP, or set ALLOW_LOG_MAIL=true for local development only")
-	}
-
 	if c.SessionKey == "" {
 		return c, fmt.Errorf("SESSION_KEY must be set (random 32+ byte string used to sign CSRF tokens)")
 	}
@@ -120,12 +127,24 @@ func Load() (Config, error) {
 	}
 	c.BasePath = strings.TrimSuffix(parsedBase.Path, "/")
 
-	port := getenv("SMTP_PORT", "587")
-	p, err := strconv.Atoi(port)
-	if err != nil {
-		return c, fmt.Errorf("SMTP_PORT: %w", err)
+	// The mail settings are validated once the database is open, because the
+	// master admin can override them there (see ResolveMail). Here they only
+	// provide the environment's defaults.
+	// Typos that nothing in the database could fix fail fast.
+	if v := strings.TrimSpace(os.Getenv("SMTP_PORT")); v != "" {
+		if p, err := strconv.Atoi(v); err != nil || p < 1 || p > 65535 {
+			return c, fmt.Errorf("SMTP_PORT %q is not a port number", v)
+		}
 	}
-	c.SMTPPort = p
+	if p := strings.ToLower(strings.TrimSpace(os.Getenv("MAIL_PROVIDER"))); p != "" && !slices.Contains(MailProviders, p) {
+		return c, fmt.Errorf("MAIL_PROVIDER %q is not one of: %s", p, strings.Join(MailProviders, ", "))
+	}
+	c.SMTPPort = 587
+	if m, err := ResolveMail(os.Getenv); err == nil {
+		c.MailProvider, c.SMTPHost, c.SMTPPort, c.SMTPUser, c.SMTPPass, c.MailFrom, c.SESRegion = m.Provider, m.Host, m.Port, m.User, m.Pass, m.From, m.SESRegion
+	} else {
+		c.MailEnvError = err
+	}
 
 	return c, nil
 }

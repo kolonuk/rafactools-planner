@@ -112,3 +112,15 @@ func (s *server) requireOwner(next http.HandlerFunc) http.HandlerFunc {
 		next(w, r)
 	})
 }
+
+// requireMasterAdmin allows only the site-wide master admin, whichever
+// squadron they are currently looking at.
+func (s *server) requireMasterAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return s.requireAuth(func(w http.ResponseWriter, r *http.Request) {
+		if !userFrom(r.Context()).IsMasterAdmin {
+			s.renderError(w, r, http.StatusForbidden, "Forbidden", "Only the master admin can do that.")
+			return
+		}
+		next(w, r)
+	})
+}
