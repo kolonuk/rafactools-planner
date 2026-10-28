@@ -145,3 +145,45 @@ func (s *Service) ResetPassword(token, newPassword string) error {
 	}
 	return tx.Commit()
 }
+
+// ErrWrongPassword is returned when the "current password" given to
+// ChangePassword is not the account's password.
+var ErrWrongPassword = errors.New("your current password is not correct")
+
+// ChangePassword sets a new password for a signed-in user who proves they
+// know the current one. Every OTHER session of that user is signed out
+// (someone else holding an old session loses access); the session making the
+// change, keepSessionToken, stays signed in. Any pending reset links are
+// cancelled.
+func (s *Service) ChangePassword(userID int64, keepSessionToken, current, newPassword string) error {
+	var hash string
+	err := s.db.QueryRow(`SELECT password_hash FROM users WHERE id = ?`, userID).Scan(&hash)
+	if err != nil {
+		return fmt.Errorf("lookup user: %w", err)
+	}
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(current)) != nil {
+		return ErrWrongPassword
+	}
+	if err := checkPassword(newPassword); err != nil {
+		return err
+	}
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, string(newHash), userID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = ? AND token != ?`, userID, keepSessionToken); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM password_resets WHERE user_id = ?`, userID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}

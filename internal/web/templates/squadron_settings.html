@@ -17,16 +17,17 @@
     <label>Squadron website (blank to disable) — shown on the dashboard and PDF
       <input type="url" name="website_url" value="{{.Squadron.WebsiteURL}}" placeholder="https://2491aircadets.example">
     </label>
-    <label>Classifications, in progression order, one per line
+    <label>Classifications, in progression order, one per line (add new ones at the end: text stays in its column when you rename or reorder)
       <textarea name="classifications" rows="5">{{.ClassificationsText}}</textarea>
     </label>
-    <label>Parade weekdays
+    <fieldset class="field">
+      <legend>Parade weekdays</legend>
       <span class="checkbox-row">
         {{range .WeekdayOptions}}
           <label class="checkbox"><input type="checkbox" name="parade_weekdays" value="{{.Value}}" {{if .Checked}}checked{{end}}> {{.Label}}</label>
         {{end}}
       </span>
-    </label>
+    </fieldset>
     <button type="submit">Save</button>
   </form>
 </section>
@@ -38,7 +39,7 @@
     <tbody>
     {{range .Members}}
       <tr>
-        <td>{{.Email}}</td>
+        <td>{{if .DisplayName}}{{.DisplayName}} <span class="muted">({{.Email}})</span>{{else}}{{.Email}}{{end}}</td>
         <td>
           <!-- An explicit button, not an onchange auto-submit: inline event
                handlers are blocked by the CSP (see securityHeaders in web.go),

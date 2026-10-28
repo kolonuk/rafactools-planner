@@ -24,6 +24,7 @@ print it as a one-page PDF.
 | [Roles and invites](roles-and-invites) | Owner, editor and viewer; inviting people |
 | [Squadron settings](squadron-settings) | Name, classifications, parade nights, members |
 | [Programmes](programmes) | Creating and editing a month |
+| [Instructors](instructors) | The instructor list, and setting your own name |
 | [PDF export](pdf-export) | What the PDF contains |
 | [Security and privacy](security-and-privacy) | What is stored, for how long, and who can see it |
 | [Known limits](known-limits) | Things the planner cannot do yet |

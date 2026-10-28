@@ -1,0 +1,25 @@
+{{define "content"}}
+<h1>Your details</h1>
+<form method="post" action="{{url "/account"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label>Your name (optional)
+    <input type="text" name="display_name" value="{{.DisplayName}}" maxlength="80" autocomplete="name" placeholder="Fg Off Smith">
+  </label>
+  <p class="muted">Shown to your squadron in the members list and as a suggestion in the programme grid's Instructor boxes. If you leave it blank, your email address is shown instead.</p>
+  <button type="submit">Save</button>
+</form>
+
+<h2>Change password</h2>
+<form method="post" action="{{url "/account/password"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  {{if .PasswordError}}<p class="error">{{.PasswordError}}</p>{{end}}
+  <label>Current password
+    <input type="password" name="current_password" required autocomplete="current-password">
+  </label>
+  <label>New password
+    <input type="password" name="new_password" required minlength="12" maxlength="72" autocomplete="new-password">
+  </label>
+  <p class="muted">12 to 72 characters. Your other sessions on other browsers are signed out; this one stays signed in. Forgotten it? <a href="{{url "/forgot"}}">Reset it by email</a> instead.</p>
+  <button type="submit">Change password</button>
+</form>
+{{end}}

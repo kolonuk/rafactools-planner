@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -201,5 +202,52 @@ func TestSquadronSettingsPage(t *testing.T) {
 	}
 	if b := body(c.get("/squadron")); !strings.Contains(b, "Renamed Sqn") {
 		t.Error("settings page does not show the saved name")
+	}
+}
+
+// Changing the classification list used to leave existing months with headings
+// and text boxes that no longer lined up.
+func TestChangingClassificationsKeepsExistingMonthsConsistent(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1601")
+	c := app.login(email)
+	sq := app.squadronID(email)
+	p, _ := app.store.CreateProgramme(sq, 2030, 4, 1)
+	pid := strconv.FormatInt(p.ID, 10)
+	app.db.Exec(`UPDATE programme_rows SET texts = '["Drill","","",""]' WHERE id = (SELECT MIN(id) FROM programme_rows)`)
+
+	inputsPerRow := func() int {
+		page := body(c.get("/programmes/" + pid))
+		first := strings.Index(page, `name="row_`)
+		end := strings.Index(page[first:], "</tr>")
+		return strings.Count(page[first:first+end], `name="row_`)
+	}
+	headings := func() int {
+		page := body(c.get("/programmes/" + pid))
+		return len(regexp.MustCompile(`<th[ >]`).FindAllString(page[strings.Index(page, "<thead>"):strings.Index(page, "</thead>")], -1)) - 5
+	}
+
+	wantRedirect(t, c.post("/squadron", url.Values{"name": {"N"}, "classifications": {"A\nB\nC\nD\nE\nF"}}), "/squadron")
+	if inputsPerRow() != 6 || headings() != 6 {
+		t.Errorf("after growing to 6: %d boxes, %d headings", inputsPerRow(), headings())
+	}
+	wantStatus(t, c.get("/programmes/"+pid+"/pdf"), 200)
+
+	// Shrinking over empty boxes works; over typed text it is refused with the reason.
+	wantRedirect(t, c.post("/squadron", url.Values{"name": {"N"}, "classifications": {"A\nB\nC\nD"}}), "/squadron")
+	if inputsPerRow() != 4 {
+		t.Errorf("after shrinking to 4: %d boxes", inputsPerRow())
+	}
+	app.db.Exec(`UPDATE programme_rows SET texts = '["x","y","z","Senior text"]' WHERE id = (SELECT MIN(id) FROM programme_rows)`)
+	resp := c.post("/squadron", url.Values{"name": {"N"}, "classifications": {"A\nB"}})
+	page := body(resp)
+	if resp.StatusCode != 400 || !strings.Contains(page, "still have text") || !strings.Contains(page, "D") {
+		t.Errorf("refusal: %d\n%.400s", resp.StatusCode, page)
+	}
+	if strings.Contains(page, "invalid input:") {
+		t.Error("internal error prefix leaked")
+	}
+	if got, _ := app.store.GetSquadron(sq); len(got.Classifications) != 4 {
+		t.Errorf("classification list changed despite the refusal: %v", got.Classifications)
 	}
 }

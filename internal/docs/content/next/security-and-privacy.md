@@ -4,6 +4,7 @@ order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
+  - next: Added the optional displayed name and the instructor list (name and rank only).
   - next: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
   - next: Added password reset (see above); reset links are stored only as hashes.
   - next: Unknown email addresses now take as long to reject as real ones, so response time does not reveal which addresses have accounts.
@@ -19,6 +20,7 @@ changed:
 | Accounts | Email address, role, and a salted bcrypt hash of the password. The password itself is never stored. |
 | Sign-in sessions | A random token per browser, valid for 30 days or until logout. |
 | Password reset requests | A SHA-256 hash of the emailed link, who it is for, and when it expires (1 hour). Deleted when used or replaced. |
+| Names | The name each person chooses to display (optional), and your squadron's instructor list: a name and a rank each, no contact details. |
 | Programmes | Everything you type: activities, instructor names, notes, closures, weekend notes. |
 | Requirements tracker | **Cadets' names** and notes. |
 | Squadron | Name, subtitle, protective marking, classifications, parade nights. |
@@ -43,7 +45,8 @@ site can read the database.
 ## Protections
 
 - **Passwords** are hashed with bcrypt; 12 to 72 characters are required.
-- **Sessions** are stored on the server. Logging out deletes them.
+- **Sessions** are stored on the server. Logging out deletes them. Changing or
+  resetting your password signs out your other sessions.
 - **Password reset links** work once, expire after 1 hour, and only a scrambled
   (SHA-256) copy of each link is kept, so a copy of the database cannot be used
   to reset anyone's password. Only one link is live per person, a second request

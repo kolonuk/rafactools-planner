@@ -4,6 +4,7 @@ order: 40
 summary: Name, classifications, parade nights, members and invites (owners only).
 since: 1.0
 changed:
+  - next: Changing the classifications now updates existing months; removing a classification that still has text is refused.
   - next: Added the Squadron website field, and owners can change roles and remove members from the Members table.
   - next: Parade weekdays outside Monday to Sunday are ignored, and an empty name keeps the existing name.
 ---
@@ -24,21 +25,22 @@ Only owners can open [Squadron settings](app:/squadron).
 
 Select **Save** to apply.
 
-## Change these before you create a month
-
-Parade weekdays and classifications are used **when a programme is created**.
+## Changing parade weekdays and classifications
 
 - **Parade weekdays:** months that already exist keep the nights they were
   created with. You can still tick or untick **Parade** night by night: see
   [programmes](programmes).
-- **Classifications:** the column headings of an existing month follow the new
-  list, but the boxes already in that month do not change. If the number of
-  classifications changed, the headings and boxes of that month no longer line
-  up. Set your classifications **before** you create months, and do not change
-  the number afterwards. See [known limits](known-limits).
+- **Classifications:** existing months are updated to match. Adding a
+  classification adds a blank box to every row of every programme. Removing one
+  removes its boxes, but **only if they are empty**: if any programme still has
+  text in a column that would be removed, nothing is changed and you are told
+  which classifications to clear first, so typed text is never silently deleted.
+  Text stays in its column position when you **rename or reorder**
+  classifications, so add new ones at the end of the list.
 
 ## Members and invites
 
-The page lists everyone in the squadron with their role, and any pending
+The page lists everyone in the squadron with their name (if they have set one, see
+[instructors](instructors)), their email and their role, and any pending
 invites. Owners can change a role or remove a person here, and invite new people.
 See [roles and invites](roles-and-invites).

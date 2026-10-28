@@ -44,9 +44,6 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 ## Bugs and rough edges
 
-- [ ] **Changing classifications breaks existing months.** Their headings
-  follow the new list but each row keeps its old number of boxes. Either lock
-  the list once a programme exists, or resize rows when it changes.
 - [ ] **Non-Latin-1 text breaks the PDF.** Smart quotes, em-dashes and
   accented letters come out as mojibake. Fix with an embedded Unicode font
   (`AddUTF8Font`).
@@ -77,11 +74,9 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 Roughly ordered by value for the effort.
 
-1. **Instructors list, next step.** The Instructor row already suggests "All
-   Staff" and each registered member (a native `<datalist>`), but members show
-   as their email address. Still to do: a per-squadron list of names (rank,
-   optional email) so instructors who have no login appear too, and a
-   `display_name` for users.
+1. **Instructors list, next step.** The list (name and rank) and display names
+   exist. Still to do: rename an entry (today you remove and re-add), and
+   per-instructor availability (see the duty rota idea below).
 2. **Activities and training classes library.** A per-squadron catalogue
    (title, syllabus/class, default instructor, notes) to pick from when
    filling the grid. A proper searchable popup needs a small first-party
@@ -126,8 +121,8 @@ Roughly ordered by value for the effort.
    same person is on two things at once.
 9. **Audit trail:** "last edited by X at Y" on each programme, and an
     optional change log.
-10. **Account hygiene:** change password, sign out everywhere, optional
-    two-factor.
+10. **Account hygiene:** two-factor sign-in; sign out everywhere. (Change
+    password is done; see "Your details".)
 11. **Data export and backup:** download a squadron's data as JSON/CSV.
 12. **Documentation, next steps.** The versioned in-app docs exist
     (`/docs`, see `.claude/skills/docs/SKILL.md`). Still to do: add pages for
@@ -136,6 +131,24 @@ Roughly ordered by value for the effort.
     designated, so the version selector and compare view have something to
     compare; link relevant screens to their help page; images/screenshots
     (not supported yet); in-docs search (a first-party script is now allowed).
+
+### Missing features spotted along the way
+
+Small gaps found while building and reviewing; each is a candidate to pick up.
+
+- **Delete a programme** and a **status** that means something (draft / final).
+  The database has both, but the screen can't delete a month and the status is
+  always "draft".
+- **Edit uniform colours** (names and colours) in squadron settings; today only
+  the five defaults exist.
+- **Resend an invite** (and see when it was sent); today you revoke and re-invite.
+- **Delete a squadron's data** (owner, with confirmation), the part of "Privacy
+  basics" that needs code.
+- **Edit a closure or weekend note** instead of deleting and re-adding it.
+- **Sign-in session list** ("where am I signed in?") with per-session sign-out.
+- **Print-friendly programme page** (the PDF covers most of this).
+- **Search** across programmes for an activity or a cadet's name.
+- **Last-seen / last-edited** on the dashboard, to spot stale programmes.
 
 ## Reference
 

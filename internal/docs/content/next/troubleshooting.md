@@ -4,7 +4,7 @@ order: 90
 summary: What the messages mean and what to do.
 since: 1.0
 changed:
-  - next: Added the password reset, last-owner and website messages.
+  - next: Added the password reset, change password, last-owner, website and classification messages.
 ---
 # Troubleshooting
 
@@ -14,6 +14,8 @@ changed:
 | `That password reset link is invalid or has expired.` | The link was used, is older than 1 hour, or a newer one replaced it. | Ask for a new link on the [reset page](app:/forgot). |
 | `Confirm your email first` | You claimed a squadron but never opened the confirmation link. | Open the link in the email (valid 24 hours). If it expired, ask whoever runs the site. |
 | `Form expired, try again.` | The page you were on is too old, or you were signed out. | Reload the page and repeat the change. |
+| `your current password is not correct` | The **current password** you typed on **Your details** is wrong. | Retype it, or [reset it by email](signing-in) if you have forgotten it. |
+| `these classifications still have text in your programmes, so they can't be removed yet: …` | You removed a classification from [squadron settings](squadron-settings) but some programme still has text in its column. | Clear that text in the named columns, or keep the classification. |
 | `Too many attempts` | Too many tries from your network in five minutes. | Wait five minutes. Many people behind one network share the limit. |
 | `email must be your squadron's snco.<number>@ or oc.<number>@ address` | Only those addresses can claim a squadron. | Use your squadron's own address, or ask the owner for an [invite](roles-and-invites). |
 | `that squadron number has already been claimed` | Someone from your squadron already did. | Ask them to invite you. |

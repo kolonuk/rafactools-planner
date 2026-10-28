@@ -17,7 +17,8 @@
     <a class="brand" href="{{url "/"}}">RAFACTools Planner</a>
     {{if .User}}
       <nav aria-label="Account and help">
-        <span class="muted">{{.User.Email}} ({{.User.Role}})</span>
+        <a href="{{url "/account"}}" class="muted">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Email}}{{end}} ({{.User.Role}})</a>
+        {{if ne .User.Role "viewer"}}<a href="{{url "/instructors"}}">Instructors</a>{{end}}
         {{if eq .User.Role "owner"}}<a href="{{url "/squadron"}}">Squadron settings</a>{{end}}
         <a href="{{url "/docs"}}">Help</a>
         <form method="post" action="{{url "/logout"}}" class="inline">

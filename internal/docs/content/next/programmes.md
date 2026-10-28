@@ -6,7 +6,7 @@ since: 1.0
 changed:
   - next: The day label is worked out from the date and can no longer be edited.
   - next: A new second half starts as a copy of the first, and a second half can be removed (with a warning if the halves differ).
-  - next: Instructor boxes suggest All Staff and your members as you type.
+  - next: Instructor boxes suggest All Staff, your instructor list and your members as you type.
   - next: Activities can be moved to another date, by dragging or with the Move control.
   - next: "+ Add a second half to this night" now works in the browser (it previously saved the grid instead).
   - next: Closure and weekend-note dates are checked when saved; a closure must end on or after its start and last at most 366 days.
@@ -43,9 +43,9 @@ Open **Edit** on a month. For each day you can set:
 
 Select **Save programme** to keep your changes. Nothing is saved until you do.
 
-As you type in an **Instructor** box the browser suggests **All Staff** and each
-member of your squadron (by their email address). They are only suggestions: you
-can type any name.
+As you type in an **Instructor** box the browser suggests **All Staff**, the people in
+your [instructor list](instructors) and each member of your squadron. They are only
+suggestions: you can type any name.
 
 On a narrow screen the grid scrolls sideways rather than squeezing its columns.
 

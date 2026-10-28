@@ -1,0 +1,35 @@
+{{define "content"}}
+<p><a href="{{url "/"}}">&larr; Dashboard</a></p>
+<h1>Instructors</h1>
+<p class="muted">People you can pick from in the programme grid's Instructor boxes, including staff who don't have a login. The Instructor boxes also suggest <em>All Staff</em> and your members. It is only a list of suggestions: you can always type any name.</p>
+
+<section class="card">
+  <h2>Your list</h2>
+  {{if .Instructors}}
+  <table class="list">
+    <thead><tr><th scope="col">Name</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {{range .Instructors}}
+      <tr>
+        <td>{{.Display}}</td>
+        <td>
+          <form method="post" action="{{url "/instructors/" .ID "/delete"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button" aria-label="Remove {{.Display}} from the list">Remove</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Nobody yet: add the first person below.</p>{{end}}
+
+  <h3>Add someone</h3>
+  <form method="post" action="{{url "/instructors"}}" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Rank (optional) <input type="text" name="rank" maxlength="40" placeholder="Fg Off"></label>
+    <label>Name <input type="text" name="name" required maxlength="80" placeholder="Smith"></label>
+    <button type="submit">Add</button>
+  </form>
+</section>
+{{end}}
