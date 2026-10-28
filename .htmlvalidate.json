@@ -3,6 +3,7 @@
   "rules": {
     "doctype-style": "off",
     "no-trailing-whitespace": "off",
-    "no-inline-style": "error"
+    "no-inline-style": "error",
+    "form-dup-name": "off"
   }
 }

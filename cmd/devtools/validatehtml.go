@@ -120,6 +120,24 @@ func runValidateHTML() error {
 	if err := post("/login"); err != nil {
 		return err
 	}
+	// The programme editor is the most complex page (a large grid form with
+	// controls that belong to separate forms), so validate it too.
+	tok, err := token("/")
+	if err != nil {
+		return err
+	}
+	resp, err := client.PostForm(srv.URL+"/programmes", url.Values{"csrf": {tok}, "year": {"2030"}, "month": {"4"}})
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	loc := resp.Header.Get("Location")
+	if resp.StatusCode != http.StatusSeeOther || loc == "" {
+		return fmt.Errorf("create programme -> %d", resp.StatusCode)
+	}
+	if err := save("programme-edit", loc); err != nil {
+		return err
+	}
 	next, _ := lib.Version(docs.Next)
 	for _, p := range next.Pages {
 		path := "/docs/next/" + p.Slug

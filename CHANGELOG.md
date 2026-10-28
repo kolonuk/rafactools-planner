@@ -17,6 +17,8 @@ baseline instead of per-entry.
   pages for users and operators, a version selector, a compare view and
   per-page "first appeared in / changed in" notes. Embedded in the binary;
   validated at build time and at startup. A "Help" link is in the top bar.
+- **feat**: move a parade night's activities to another date, by drag-and-drop (TypeScript, `internal/web/ts/programme-grid.ts`, compiled into `static/js/gen/`) or with a plain "Move" control that works without scripts, with the keyboard and on touch screens. It swaps the two dates so nothing is overwritten, and saves other pending edits first.
+- **fix**: "+ Add a second half to this night" did nothing in a real browser (a form nested in a form made it submit the whole grid); fixed, and the programme editor is now part of the rendered-HTML validation. Table headers have `scope` for screen readers.
 - **fix**: passwords over 72 bytes were refused with a raw bcrypt error; they
   now get a clear message. Ticking "Parade" on a night that was not generated
   as one gave it no activity or instructor boxes; it now does. The

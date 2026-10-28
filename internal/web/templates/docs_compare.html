@@ -35,7 +35,7 @@
     <p class="muted">Pages that were added, removed or changed between <strong>{{.FromDisplay}}</strong> and <strong>{{.ToDisplay}}</strong>.</p>
     {{if .Rows}}
     <table class="list">
-      <thead><tr><th>Page</th><th>What happened</th></tr></thead>
+      <thead><tr><th scope="col">Page</th><th scope="col">What happened</th></tr></thead>
       <tbody>{{range .Rows}}<tr><td><a href="{{.URL}}">{{.Title}}</a></td><td>{{.Status}}</td></tr>{{end}}</tbody>
     </table>
     {{else}}<p>No differences.</p>{{end}}

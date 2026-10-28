@@ -15,9 +15,9 @@
   <table class="grid">
     <thead>
       <tr>
-        <th>Date</th><th>Day</th><th>Parade</th><th></th>
-        {{range .Classifications}}<th>{{.}}</th>{{end}}
-        <th>Notes</th>
+        <th scope="col">Date</th><th scope="col">Day</th><th scope="col">Parade</th><th scope="col"></th>
+        {{range .Classifications}}<th scope="col">{{.}}</th>{{end}}
+        <th scope="col">Notes</th>
       </tr>
     </thead>
     <tbody>
@@ -25,9 +25,20 @@
       {{$day := .}}
       {{if .SubRows}}
         {{range $idx, $sub := .SubRows}}
-        <tr{{if eq $idx 0}} class="day-start"{{end}}>
+        <tr{{if eq $idx 0}} class="day-start"{{end}} data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
           {{if eq $idx 0}}
-            <td>{{$day.DateLabel}}<input type="hidden" name="day_{{$day.ID}}_present" value="1"></td>
+            <td>{{$day.DateLabel}}<input type="hidden" name="day_{{$day.ID}}_present" value="1">
+              <button type="button" class="drag-handle" draggable="true" data-day="{{$day.ID}}" aria-label="Drag to move the activities from {{$day.FullLabel}} to another date">&#8942;&#8942;</button>
+              <details class="move">
+                <summary>Move</summary>
+                <label>To
+                  <select name="target_day" form="move-{{$day.ID}}">
+                    {{range $.DayOptions}}{{if ne .ID $day.ID}}<option value="{{.ID}}">{{.Label}}</option>{{end}}{{end}}
+                  </select>
+                </label>
+                <button type="submit" form="move-{{$day.ID}}">Move activities</button>
+              </details>
+            </td>
             <td><input type="text" size="2" name="day_{{$day.ID}}_label" value="{{$day.DayLabel}}"></td>
             <td><input type="checkbox" name="day_{{$day.ID}}_parade" value="1" checked></td>
             <td>
@@ -47,18 +58,15 @@
         </tr>
         {{end}}
         {{if .ShowAddHalf}}
-        <tr>
+        <tr data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
           <td></td><td></td><td></td><td></td>
           <td colspan="{{$.LabelClassColsCount}}">
-            <form method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/add-half"}}" class="inline">
-              <input type="hidden" name="csrf" value="{{$.CSRF}}">
-              <button type="submit" class="link-button">+ Add a second half to this night</button>
-            </form>
+            <button type="submit" form="addhalf-{{.ID}}" class="link-button">+ Add a second half to this night</button>
           </td>
         </tr>
         {{end}}
       {{else}}
-        <tr class="non-parade-row">
+        <tr class="non-parade-row" data-day="{{.ID}}" data-label="{{.FullLabel}}">
           <td>{{.DateLabel}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
           <td><input type="text" size="2" name="day_{{.ID}}_label" value="{{.DayLabel}}"></td>
           <td><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}}></td>
@@ -78,12 +86,24 @@
   </table>
   <button type="submit">Save programme</button>
 </form>
+{{range .Days}}{{if .SubRows}}
+<form id="move-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/move"}}" class="hidden-form">
+  <input type="hidden" name="csrf" value="{{$.CSRF}}">
+</form>
+{{if .ShowAddHalf}}
+<form id="addhalf-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/add-half"}}" class="hidden-form">
+  <input type="hidden" name="csrf" value="{{$.CSRF}}">
+</form>
+{{end}}
+{{end}}{{end}}
+<p id="grid-status" class="muted" role="status" aria-live="polite"></p>
+<script type="module" src="{{url "/static/js/gen/programme-grid.js"}}"></script>
 {{end}}
 
 <section class="card">
   <h2>Closures</h2>
   <table class="list">
-    <thead><tr><th>From</th><th>To</th><th>Message</th><th></th></tr></thead>
+    <thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col">Message</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .Closures}}
       <tr>
@@ -114,7 +134,7 @@
 <section class="card">
   <h2>Weekend notes</h2>
   <table class="list">
-    <thead><tr><th>Date</th><th>Text</th><th></th></tr></thead>
+    <thead><tr><th scope="col">Date</th><th scope="col">Text</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .WeekendNotes}}
       <tr>

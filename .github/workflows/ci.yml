@@ -102,13 +102,13 @@ jobs:
             echo "No first-party scripts yet."
           fi
       # TypeScript sources live in internal/web/ts/ and compile into
-      # internal/web/static/js/, which is committed (the Docker build needs
+      # internal/web/static/js/gen/, which is committed (the Docker build needs
       # no Node). Fail if the committed output is stale.
       - name: Compiled TypeScript is up to date
         run: |
           if [ -d internal/web/ts ]; then
             npx --yes -p typescript@5.6.3 tsc -p tsconfig.build.json
-            git diff --exit-code -- internal/web/static/js
+            git diff --exit-code -- internal/web/static/js/gen
           else
             echo "No TypeScript sources."
           fi

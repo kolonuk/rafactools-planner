@@ -256,3 +256,24 @@ a { color: var(--md-primary); }
   .docs { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .docs-side { position: static; }
 }
+
+/* --- Moving activities between dates ---------------------------------- */
+.hidden-form { display: none; }
+.drag-handle {
+  display: none;
+  margin-left: 4px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--md-on-surface-variant);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: grab;
+}
+.js .drag-handle { display: inline-block; }
+.drag-handle:active { cursor: grabbing; }
+tr.dragging { opacity: 0.5; }
+tr.drop-target td { background: var(--md-primary-container); }
+details.move { font-size: 0.8rem; margin-top: 4px; }
+details.move summary { cursor: pointer; color: var(--md-primary); }
+details.move label { display: block; margin: 4px 0; }

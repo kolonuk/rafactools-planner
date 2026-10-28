@@ -89,8 +89,8 @@ docker rm -f rt-lint
 
 ```sh
 npx --yes -p typescript@5.6.3 tsc -p tsconfig.json         # strict type-check of JS (JSDoc) and TS
-npx --yes -p typescript@5.6.3 tsc -p tsconfig.build.json   # compile TS into static/js, then:
-git diff --exit-code -- internal/web/static/js             # committed output must be current
+npx --yes -p typescript@5.6.3 tsc -p tsconfig.build.json   # compile TS into static/js/gen, then:
+git diff --exit-code -- internal/web/static/js/gen         # committed output must be current
 ```
 
 The CSP is `script-src 'self'`: no inline `<script>`, no inline `on…=` handlers, no `javascript:` URLs.

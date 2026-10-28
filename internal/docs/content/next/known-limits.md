@@ -4,7 +4,7 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
-  - next: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works.
+  - next: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works; activities can be moved between dates.
 ---
 # Known limits
 
@@ -19,6 +19,8 @@ These are not mistakes in how you are using the planner.
 - Programmes cannot be deleted from the screen, and their status stays `draft`.
 - A second half on a parade night cannot be removed once added.
 - The second half starts empty; it does not copy the first half.
+- Moving activities swaps two dates; there is no way to move one night's
+  activities to several dates at once.
 - Parade weekdays and the number of classifications are fixed when a month is
   created. Changing the classifications afterwards makes an existing month's
   headings and text boxes not line up. Parade nights of an existing month can

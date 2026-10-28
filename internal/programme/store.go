@@ -595,3 +595,138 @@ func isoWeekdayToTime(iso int) time.Weekday {
 func isUnique(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "UNIQUE")
 }
+
+// MoveDayContent moves one parade night's activities onto another date of the
+// same programme. It is a swap, so nothing is ever overwritten: an empty
+// target simply receives the content and the source is left empty, while a
+// target that already has activities trades places with the source.
+//
+// What moves is the Activity and Instructor text of both halves and how many
+// halves the night has. The night itself (date, day label, uniform, notes)
+// stays where it is. A target that was not a parade night becomes one.
+// All-or-nothing: any failure changes nothing.
+func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64) error {
+	if fromDayID == toDayID {
+		return fmt.Errorf("%w: choose a different date", ErrInvalidInput)
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Both days must belong to this programme, and the programme to this
+	// squadron: ids from a forged request can't reach another tenant.
+	type dayRow struct {
+		date     string
+		label    string
+		isParade bool
+		halves   int
+	}
+	days := map[int64]dayRow{}
+	for _, id := range []int64{fromDayID, toDayID} {
+		var d dayRow
+		var parade int
+		err := tx.QueryRow(`SELECT pd.date, pd.day_label, pd.is_parade, pd.halves
+			FROM programme_days pd JOIN programmes p ON p.id = pd.programme_id
+			WHERE pd.id = ? AND pd.programme_id = ? AND p.squadron_id = ?`, id, programmeID, squadronID).
+			Scan(&d.date, &d.label, &parade, &d.halves)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		} else if err != nil {
+			return err
+		}
+		d.isParade = parade != 0
+		days[id] = d
+	}
+	from, to := days[fromDayID], days[toDayID]
+	if !from.isParade {
+		return fmt.Errorf("%w: only a parade night has activities to move", ErrInvalidInput)
+	}
+
+	var classJSON string
+	if err := tx.QueryRow(`SELECT classifications FROM squadrons WHERE id = ?`, squadronID).Scan(&classJSON); err != nil {
+		return err
+	}
+	var classes []string
+	if err := json.Unmarshal([]byte(classJSON), &classes); err != nil {
+		return fmt.Errorf("parse classifications: %w", err)
+	}
+	empty, _ := json.Marshal(make([]string, len(classes)))
+
+	// Make sure both days have all four rows so the swap below is uniform.
+	// Spare half-2 rows on a one-half night are invisible and harmless.
+	for _, id := range []int64{fromDayID, toDayID} {
+		for half := 1; half <= 2; half++ {
+			for _, rt := range []string{"activity", "instructor"} {
+				if _, err := tx.Exec(`INSERT OR IGNORE INTO programme_rows (day_id, half, row_type, texts) VALUES (?, ?, ?, ?)`,
+					id, half, rt, string(empty)); err != nil {
+					return fmt.Errorf("prepare rows: %w", err)
+				}
+			}
+		}
+	}
+
+	type rowKey struct {
+		half int
+		rt   string
+	}
+	read := func(id int64) (map[rowKey]string, error) {
+		rows, err := tx.Query(`SELECT half, row_type, texts FROM programme_rows WHERE day_id = ?`, id)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+		out := map[rowKey]string{}
+		for rows.Next() {
+			var k rowKey
+			var texts string
+			if err := rows.Scan(&k.half, &k.rt, &texts); err != nil {
+				return nil, err
+			}
+			out[k] = texts
+		}
+		return out, rows.Err()
+	}
+	fromTexts, err := read(fromDayID)
+	if err != nil {
+		return err
+	}
+	toTexts, err := read(toDayID)
+	if err != nil {
+		return err
+	}
+	write := func(id int64, texts map[rowKey]string) error {
+		for k, val := range texts {
+			if _, err := tx.Exec(`UPDATE programme_rows SET texts = ? WHERE day_id = ? AND half = ? AND row_type = ?`, val, id, k.half, k.rt); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := write(fromDayID, toTexts); err != nil {
+		return err
+	}
+	if err := write(toDayID, fromTexts); err != nil {
+		return err
+	}
+
+	// Halves travel with the content; the target becomes a parade night and
+	// gets the usual weekday label if it has none.
+	label := to.label
+	if label == "" {
+		if t, err := time.Parse("2006-01-02", to.date); err == nil {
+			label = defaultDayLabels[t.Weekday()]
+		}
+	}
+	if _, err := tx.Exec(`UPDATE programme_days SET halves = ? WHERE id = ?`, to.halves, fromDayID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`UPDATE programme_days SET halves = ?, is_parade = 1, day_label = ? WHERE id = ?`, from.halves, label, toDayID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`UPDATE programmes SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, programmeID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
