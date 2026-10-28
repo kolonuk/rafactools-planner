@@ -353,9 +353,11 @@ var (
 	ErrInvalidRole = errors.New("invalid role")
 )
 
-func (s *Service) ownerCount(squadronID int64) (int, error) {
+func ownerCount(q interface {
+	QueryRow(query string, args ...any) *sql.Row
+}, squadronID int64) (int, error) {
 	var n int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM users WHERE squadron_id = ? AND role = 'owner'`, squadronID).Scan(&n)
+	err := q.QueryRow(`SELECT COUNT(*) FROM users WHERE squadron_id = ? AND role = 'owner'`, squadronID).Scan(&n)
 	return n, err
 }
 
@@ -369,16 +371,24 @@ func (s *Service) SetMemberRole(squadronID, targetUserID int64, newRole string) 
 		return ErrInvalidRole
 	}
 
+	// One transaction for the check and the change. The app uses a single
+	// database connection, so nothing else can run in between: two owners
+	// demoting each other at the same moment cannot both pass the check.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	var currentRole string
-	err := s.db.QueryRow(`SELECT role FROM users WHERE id = ? AND squadron_id = ?`, targetUserID, squadronID).Scan(&currentRole)
+	err = tx.QueryRow(`SELECT role FROM users WHERE id = ? AND squadron_id = ?`, targetUserID, squadronID).Scan(&currentRole)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotMember
 	} else if err != nil {
 		return fmt.Errorf("lookup member: %w", err)
 	}
-
 	if currentRole == "owner" && newRole != "owner" {
-		n, err := s.ownerCount(squadronID)
+		n, err := ownerCount(tx, squadronID)
 		if err != nil {
 			return err
 		}
@@ -386,25 +396,32 @@ func (s *Service) SetMemberRole(squadronID, targetUserID int64, newRole string) 
 			return ErrLastOwner
 		}
 	}
-
-	_, err = s.db.Exec(`UPDATE users SET role = ? WHERE id = ? AND squadron_id = ?`, newRole, targetUserID, squadronID)
-	return err
+	if _, err := tx.Exec(`UPDATE users SET role = ? WHERE id = ? AND squadron_id = ?`, newRole, targetUserID, squadronID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // RemoveMember deletes a member from a squadron (cascades to their sessions
 // — see the users FK). Refuses to remove the last owner, same reasoning as
 // SetMemberRole.
 func (s *Service) RemoveMember(squadronID, targetUserID int64) error {
+	// Check and delete in one transaction, for the same reason as SetMemberRole.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	var role string
-	err := s.db.QueryRow(`SELECT role FROM users WHERE id = ? AND squadron_id = ?`, targetUserID, squadronID).Scan(&role)
+	err = tx.QueryRow(`SELECT role FROM users WHERE id = ? AND squadron_id = ?`, targetUserID, squadronID).Scan(&role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotMember
 	} else if err != nil {
 		return fmt.Errorf("lookup member: %w", err)
 	}
-
 	if role == "owner" {
-		n, err := s.ownerCount(squadronID)
+		n, err := ownerCount(tx, squadronID)
 		if err != nil {
 			return err
 		}
@@ -414,14 +431,9 @@ func (s *Service) RemoveMember(squadronID, targetUserID int64) error {
 	}
 
 	// Rows that point at this user without a cascade would make the delete
-	// fail (programmes.created_by, invites.invited_by), so clear them first,
-	// in the same transaction: the programmes stay, just without a creator,
-	// and invites this person sent are withdrawn.
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	// fail (programmes.created_by, invites.invited_by), so clear them first:
+	// the programmes stay, just without a creator, and invites this person
+	// sent are withdrawn.
 	if _, err := tx.Exec(`UPDATE programmes SET created_by = NULL WHERE created_by = ?`, targetUserID); err != nil {
 		return fmt.Errorf("detach programmes: %w", err)
 	}
@@ -522,15 +534,21 @@ func (s *Service) ValidCSRF(sessionToken, submitted string) bool {
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(submitted)) == 1
 }
 
+// Password rule violations, as values so callers can recognise them.
+var (
+	ErrPasswordShort = errors.New("password must be at least 12 characters")
+	ErrPasswordLong  = errors.New("password must be at most 72 characters")
+)
+
 // checkPassword enforces 12-72 bytes. bcrypt silently ignores everything past
 // 72 bytes (and newer x/crypto refuses outright), so a longer password would
 // either be weaker than it looks or fail with an internal error message.
 func checkPassword(password string) error {
 	switch {
 	case len(password) < 12:
-		return errors.New("password must be at least 12 characters")
+		return ErrPasswordShort
 	case len(password) > 72:
-		return errors.New("password must be at most 72 characters")
+		return ErrPasswordLong
 	}
 	return nil
 }
@@ -541,4 +559,24 @@ func randomToken() (string, error) {
 		return "", fmt.Errorf("generate token: %w", err)
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// ErrDisplayName is returned for a display name that is too long or contains
+// control characters.
+var ErrDisplayName = errors.New("your name must be at most 80 characters, with no control characters")
+
+// SetDisplayName sets how a person appears in member lists and in the
+// grid's Instructor suggestions. Blank clears it (their email is shown).
+func (s *Service) SetDisplayName(userID int64, name string) error {
+	name = strings.Join(strings.Fields(name), " ")
+	if len([]rune(name)) > 80 {
+		return ErrDisplayName
+	}
+	for _, r := range name {
+		if r < ' ' || r == 0x7f {
+			return ErrDisplayName
+		}
+	}
+	_, err := s.db.Exec(`UPDATE users SET display_name = ? WHERE id = ?`, name, userID)
+	return err
 }

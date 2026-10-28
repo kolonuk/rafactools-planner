@@ -5,7 +5,7 @@ summary: Things the planner cannot do yet, so you do not waste time looking for 
 since: 1.0
 changed:
   - next: Role changes, member removal, removing a second half and automatic day labels now exist, so they are no longer listed.
-  - next: Password reset now exists;
+  - next: Password reset and change password now exist, and changing the classifications updates existing months;
   - next: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works; activities can be moved between dates.
 ---
 # Known limits
@@ -13,7 +13,6 @@ changed:
 These are not mistakes in how you are using the planner.
 
 **People**
-- No change-password screen for when you are already logged in (use **Forgot your password?** to set a new one).
 - No two-factor sign-in.
 
 **Programmes**
@@ -22,14 +21,14 @@ These are not mistakes in how you are using the planner.
   hidden; there is no "cancel this night" action.
 - Moving activities swaps two dates; there is no way to move one night's
   activities to several dates at once.
-- Parade weekdays and the number of classifications are fixed when a month is
-  created. Changing the classifications afterwards makes an existing month's
-  headings and text boxes not line up. Parade nights of an existing month can
-  be ticked or unticked night by night.
+- Parade weekdays are applied when a month is created; the nights of an
+  existing month can be ticked or unticked one by one.
+- Renaming or reordering classifications does not move the text already typed:
+  it stays in the same column position.
 - Uniform colours and their names cannot be edited in the app.
-- Activities are free text. There is no saved list of activities to choose from,
-  and the Instructor suggestions are only All Staff and your members' email
-  addresses (there is no list of instructors who do not have a login).
+- Activities are free text. There is no saved list of activities to choose from.
+- The [instructor list](instructors) holds only a name and a rank: there is no
+  contact detail, availability or duty rota.
 
 **Output**
 - The PDF is one A4 page. There is no calendar file or other export.

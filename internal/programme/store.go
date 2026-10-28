@@ -69,6 +69,13 @@ func (s *Store) GetSquadron(squadronID int64) (*Squadron, error) {
 	return &sq, nil
 }
 
+// UpdateSquadronSettings saves a squadron's settings. Every programme row has
+// one text box per classification, so when the classification list changes
+// the rows are brought back to the new length in the same transaction:
+// growing adds blank boxes, shrinking drops boxes only if they are empty.
+// If a box that would be dropped has text, nothing is changed and an
+// ErrInvalidInput names the columns to clear first. (Text stays in its
+// column position when classifications are renamed or reordered.)
 func (s *Store) UpdateSquadronSettings(sq *Squadron) error {
 	paradeJSON, err := json.Marshal(sq.ParadeWeekdays)
 	if err != nil {
@@ -82,9 +89,99 @@ func (s *Store) UpdateSquadronSettings(sq *Squadron) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.Exec(`UPDATE squadrons SET name=?, subtitle=?, protective_marking=?, website_url=?, parade_weekdays=?, classifications=?, uniform_colours=? WHERE id=?`,
-		sq.Name, sq.Subtitle, sq.ProtectiveMarking, sq.WebsiteURL, string(paradeJSON), string(classJSON), string(coloursJSON), sq.ID)
-	return err
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var oldJSON string
+	if err := tx.QueryRow(`SELECT classifications FROM squadrons WHERE id = ?`, sq.ID).Scan(&oldJSON); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	var oldNames []string
+	if err := json.Unmarshal([]byte(oldJSON), &oldNames); err != nil {
+		return fmt.Errorf("parse classifications: %w", err)
+	}
+	if err := resizeRows(tx, sq.ID, oldNames, len(sq.Classifications)); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(`UPDATE squadrons SET name=?, subtitle=?, protective_marking=?, website_url=?, parade_weekdays=?, classifications=?, uniform_colours=? WHERE id=?`,
+		sq.Name, sq.Subtitle, sq.ProtectiveMarking, sq.WebsiteURL, string(paradeJSON), string(classJSON), string(coloursJSON), sq.ID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// resizeRows makes every row of the squadron's programmes have exactly
+// `want` text boxes. It refuses (changing nothing) if that would drop text.
+func resizeRows(tx *sql.Tx, squadronID int64, oldNames []string, want int) error {
+	rows, err := tx.Query(`SELECT r.id, r.texts FROM programme_rows r
+		JOIN programme_days pd ON pd.id = r.day_id
+		JOIN programmes p ON p.id = pd.programme_id WHERE p.squadron_id = ?`, squadronID)
+	if err != nil {
+		return err
+	}
+	type change struct {
+		id    int64
+		texts string
+	}
+	var changes []change
+	lost := map[int]bool{} // column indexes that hold text but would be dropped
+	for rows.Next() {
+		var id int64
+		var raw string
+		if err := rows.Scan(&id, &raw); err != nil {
+			rows.Close()
+			return err
+		}
+		var texts []string
+		if err := json.Unmarshal([]byte(raw), &texts); err != nil {
+			rows.Close()
+			return fmt.Errorf("parse row %d texts: %w", id, err)
+		}
+		if len(texts) == want {
+			continue
+		}
+		for i := want; i < len(texts); i++ {
+			if strings.TrimSpace(texts[i]) != "" {
+				lost[i] = true
+			}
+		}
+		resized := make([]string, want)
+		copy(resized, texts)
+		out, _ := json.Marshal(resized)
+		changes = append(changes, change{id, string(out)})
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	if len(lost) > 0 {
+		var names []string
+		for i := want; i < len(oldNames); i++ {
+			if lost[i] {
+				names = append(names, oldNames[i])
+			}
+		}
+		if len(names) == 0 {
+			names = []string{"the columns being removed"}
+		}
+		return fmt.Errorf("%w: these classifications still have text in your programmes, so they can't be removed yet: %s. Clear that text first", ErrInvalidInput, strings.Join(names, ", "))
+	}
+	for _, c := range changes {
+		if _, err := tx.Exec(`UPDATE programme_rows SET texts = ? WHERE id = ?`, c.texts, c.id); err != nil {
+			return fmt.Errorf("resize row %d: %w", c.id, err)
+		}
+	}
+	return nil
 }
 
 // --- Programmes --------------------------------------------------------

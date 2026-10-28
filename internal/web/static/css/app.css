@@ -283,3 +283,7 @@ tr.drop-target td { background: var(--md-primary-container); }
 details.move { font-size: 0.8rem; margin-top: 4px; }
 details.move summary { cursor: pointer; color: var(--md-primary); }
 details.move label { display: block; margin: 4px 0; }
+
+/* a labelled group of controls (fieldset) that looks like the other fields */
+fieldset.field { border: 0; padding: 0; margin: 0; }
+fieldset.field legend { padding: 0; font-size: 0.85rem; color: var(--md-on-surface-variant); }

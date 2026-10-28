@@ -137,6 +137,20 @@ func buildDayViews(days []programme.Day, canEdit bool) []dayView {
 // list — the input stays free text, so anything not listed still works.
 func (s *server) instructorOptions(squadronID int64) []string {
 	options := []string{"All Staff"}
+	seen := map[string]bool{"All Staff": true}
+	add := func(name string) {
+		if name != "" && !seen[name] {
+			seen[name] = true
+			options = append(options, name)
+		}
+	}
+	if list, err := s.Store.ListInstructors(squadronID); err != nil {
+		log.Printf("list instructors for options: %v", err)
+	} else {
+		for _, i := range list {
+			add(i.Display())
+		}
+	}
 	members, err := s.Auth.ListMembers(squadronID)
 	if err != nil {
 		log.Printf("list members for instructor options: %v", err)
@@ -147,7 +161,7 @@ func (s *server) instructorOptions(squadronID int64) []string {
 		if name == "" {
 			name = m.Email
 		}
-		options = append(options, name)
+		add(name)
 	}
 	return options
 }

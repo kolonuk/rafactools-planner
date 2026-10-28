@@ -4,6 +4,7 @@ order: 30
 summary: What owners, editors and viewers can do, and how to invite people.
 since: 1.0
 changed:
+  - next: Editors and owners can keep an instructor list; everyone can set a displayed name.
   - next: Owners can change a member's role and remove members.
 ---
 # Roles and invites
@@ -15,6 +16,8 @@ Every person has one role in their squadron.
 | See the dashboard and programmes | Yes | Yes | Yes |
 | Export a PDF | Yes | Yes | Yes |
 | Create and edit programmes (grid, closures, weekend notes, requirements tracker) | No | Yes | Yes |
+| Keep the [instructor list](instructors) | No | Yes | Yes |
+| Set your own displayed name | Yes | Yes | Yes |
 | Open [squadron settings](squadron-settings) | No | No | Yes |
 | Invite people and revoke invites | No | No | Yes |
 

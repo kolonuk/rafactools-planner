@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"rafactools-planner/internal/auth"
+	"rafactools-planner/internal/programme"
 )
 
 var weekdayNames = []struct {
@@ -111,6 +112,12 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 	sq.ParadeWeekdays = weekdays
 
 	if err := s.Store.UpdateSquadronSettings(sq); err != nil {
+		if errors.Is(err, programme.ErrInvalidInput) {
+			// e.g. removing a classification that still has text in a programme
+			s.renderError(w, r, http.StatusBadRequest, "Squadron settings", errorText(err))
+			return
+		}
+		log.Printf("save squadron settings: %v", err)
 		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not save.")
 		return
 	}

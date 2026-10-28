@@ -60,7 +60,7 @@ type server struct {
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
 	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half",
-	"docs_page", "docs_compare",
+	"docs_page", "docs_compare", "instructors", "account",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -147,6 +147,13 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /squadron/invites/{token}/revoke", s.requireOwner(s.inviteRevoke))
 	mux.HandleFunc("POST /squadron/members/{memberID}/role", s.requireOwner(s.memberSetRole))
 	mux.HandleFunc("POST /squadron/members/{memberID}/remove", s.requireOwner(s.memberRemove))
+
+	mux.HandleFunc("GET /instructors", s.requireEditor(s.instructorsPage))
+	mux.HandleFunc("POST /instructors", s.requireEditor(s.instructorAdd))
+	mux.HandleFunc("POST /instructors/{id}/delete", s.requireEditor(s.instructorDelete))
+	mux.HandleFunc("GET /account", s.requireAuth(s.accountPage))
+	mux.HandleFunc("POST /account", s.requireAuth(s.accountSave))
+	mux.HandleFunc("POST /account/password", authLimiter.rateLimited(s.requireAuth(s.accountPassword)))
 
 	mux.HandleFunc("POST /programmes", s.requireEditor(s.programmeCreate))
 	mux.HandleFunc("GET /programmes/{id}", s.requireAuth(s.programmeEdit))

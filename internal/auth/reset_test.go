@@ -153,3 +153,56 @@ func TestPasswordResetRequestRules(t *testing.T) {
 		}
 	})
 }
+
+func TestChangePassword(t *testing.T) {
+	s, d := newService(t, false)
+	email, uid := claimVerified(t, s, "94")
+	here, _, _ := s.CreateSession(uid)
+	elsewhere, _, _ := s.CreateSession(uid)
+	_, otherUID := claimVerified(t, s, "95")
+	otherSession, _, _ := s.CreateSession(otherUID)
+	s.RequestPasswordReset(email) // a pending reset link
+
+	t.Run("wrong current password changes nothing", func(t *testing.T) {
+		if err := s.ChangePassword(uid, here, "not my password!", "a brand new password"); err != ErrWrongPassword {
+			t.Errorf("err = %v", err)
+		}
+		if _, err := s.Authenticate(email, goodPW); err != nil {
+			t.Errorf("password changed by a wrong attempt: %v", err)
+		}
+	})
+	t.Run("a refused new password changes nothing", func(t *testing.T) {
+		for _, bad := range []string{"short", strings.Repeat("a", 73)} {
+			if err := s.ChangePassword(uid, here, goodPW, bad); err == nil || err == ErrWrongPassword {
+				t.Errorf("%d-byte password: %v", len(bad), err)
+			}
+		}
+		if _, err := s.Authenticate(email, goodPW); err != nil {
+			t.Errorf("password changed by a refused attempt: %v", err)
+		}
+	})
+
+	if err := s.ChangePassword(uid, here, goodPW, "a brand new password"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Authenticate(email, "a brand new password"); err != nil {
+		t.Errorf("new password: %v", err)
+	}
+	if _, err := s.Authenticate(email, goodPW); err != ErrInvalidCredentials {
+		t.Errorf("old password still works: %v", err)
+	}
+	if u, _ := s.UserBySession(here); u == nil {
+		t.Error("the session that made the change was signed out")
+	}
+	if u, _ := s.UserBySession(elsewhere); u != nil {
+		t.Error("another session of the same user survived")
+	}
+	if u, _ := s.UserBySession(otherSession); u == nil {
+		t.Error("another user's session was killed")
+	}
+	var n int
+	d.QueryRow(`SELECT COUNT(*) FROM password_resets WHERE user_id = ?`, uid).Scan(&n)
+	if n != 0 {
+		t.Error("a reset link issued before the change is still valid")
+	}
+}

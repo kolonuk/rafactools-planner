@@ -138,6 +138,11 @@ func runValidateHTML() error {
 	if err := save("programme-edit", loc); err != nil {
 		return err
 	}
+	for name, path := range map[string]string{"instructors": "/instructors", "account": "/account", "squadron-settings": "/squadron"} {
+		if err := save(name, path); err != nil {
+			return err
+		}
+	}
 	next, _ := lib.Version(docs.Next)
 	for _, p := range next.Pages {
 		path := "/docs/next/" + p.Slug

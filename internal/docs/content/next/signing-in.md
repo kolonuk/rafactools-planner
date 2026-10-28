@@ -4,6 +4,7 @@ order: 20
 summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
 changed:
+  - next: Added Change password on the Your details page.
   - next: Added "Forgot your password?": a reset link by email.
   - next: Passwords longer than 72 characters are now refused with a clear message instead of an internal error.
 ---
@@ -28,6 +29,18 @@ the session cannot be used afterwards.
   (`Invalid email or password.`), so the page does not reveal which email
   addresses have accounts.
 - If you have not yet confirmed your email you are told to do that first.
+
+## Changing your password
+
+Select your name (or email) in the top bar to open **Your details**. Under
+**Change password**, enter your **current password** and a new one (12 to 72
+characters) and select **Change password**.
+
+- You stay signed in on this browser. Every **other** place you were signed in is
+  signed out, which is what you want if someone else may have your old password.
+- A wrong current password is refused and nothing changes. Wrong attempts count
+  towards the same limit as logging in (see [security and privacy](security-and-privacy)).
+- Any password reset link you had requested before is cancelled.
 
 ## If you forget your password
 

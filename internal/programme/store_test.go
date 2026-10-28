@@ -2,8 +2,11 @@ package programme
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -735,4 +738,116 @@ func TestMoveLeavesNoSpareHalfTwoRowsAndAddHalfStillClones(t *testing.T) {
 	if got := text(dayByID(t, st, 1, p.ID, dst.ID), 2, "activity"); got != "Drill" {
 		t.Errorf("second half after a move = %q, want Drill (copied from half 1)", got)
 	}
+}
+
+// --- changing the classification list --------------------------------------
+
+func rowCounts(t *testing.T, d *sql.DB, sqID int64) map[int]int {
+	t.Helper()
+	rows, err := d.Query(`SELECT r.texts FROM programme_rows r JOIN programme_days pd ON pd.id = r.day_id
+		JOIN programmes p ON p.id = pd.programme_id WHERE p.squadron_id = ?`, sqID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	out := map[int]int{}
+	for rows.Next() {
+		var j string
+		rows.Scan(&j)
+		var a []string
+		json.Unmarshal([]byte(j), &a)
+		out[len(a)]++
+	}
+	return out
+}
+
+func TestChangingClassificationsKeepsEveryRowInStep(t *testing.T) {
+	st, d := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	other := mustProg(t, st, 2, 2030, 4)
+	parade, _ := splitDays(t, st, 1, p.ID)
+	setTexts(t, st, 1, p.ID, parade[0], "Drill", "Sgt A") // 4 columns, all filled
+
+	sq, _ := st.GetSquadron(1)
+	if err := st.UpdateSquadronSettings(&Squadron{ID: 1, Name: sq.Name, Subtitle: sq.Subtitle, ParadeWeekdays: sq.ParadeWeekdays,
+		Classifications: append(append([]string{}, sq.Classifications...), "Staff Cadets", "Cadet NCOs"), UniformColours: sq.UniformColours}); err != nil {
+		t.Fatalf("growing the list: %v", err)
+	}
+	if got := rowCounts(t, d, 1); len(got) != 1 || got[6] == 0 {
+		t.Fatalf("after growing to 6, row sizes = %v, want all 6", got)
+	}
+	fp, _ := st.GetFullProgramme(1, p.ID)
+	for _, day := range fp.Days {
+		if day.ID == parade[0].ID {
+			r, _ := day.RowByHalfType(1, "activity")
+			if r.Texts[0] != "Drill" || r.Texts[3] != "Drill" || r.Texts[4] != "" || r.Texts[5] != "" {
+				t.Errorf("existing text moved or lost, new boxes not blank: %q", r.Texts)
+			}
+		}
+	}
+	if got := rowCounts(t, d, 2); len(got) != 1 || got[4] == 0 {
+		t.Errorf("another squadron's rows were resized: %v", got)
+	}
+	_ = other
+
+	// Shrinking over empty columns is fine and trims the rows.
+	sq, _ = st.GetSquadron(1)
+	sq.Classifications = sq.Classifications[:4]
+	if err := st.UpdateSquadronSettings(sq); err != nil {
+		t.Fatalf("shrinking over empty columns: %v", err)
+	}
+	if got := rowCounts(t, d, 1); len(got) != 1 || got[4] == 0 {
+		t.Errorf("after shrinking to 4, row sizes = %v", got)
+	}
+}
+
+func TestShrinkingClassificationsNeverDiscardsText(t *testing.T) {
+	st, d := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	parade, _ := splitDays(t, st, 1, p.ID)
+	setTexts(t, st, 1, p.ID, parade[0], "Drill", "Sgt A") // fills all 4 columns
+
+	sq, _ := st.GetSquadron(1)
+	before := rowCounts(t, d, 1)
+	sq.Classifications = sq.Classifications[:2] // would drop two filled columns
+	err := st.UpdateSquadronSettings(sq)
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("err = %v, want ErrInvalidInput", err)
+	}
+	for _, name := range []string{"Leading Cadets", "Senior Cadets"} {
+		if !strings.Contains(err.Error(), name) {
+			t.Errorf("message does not name the column %q that has text: %v", name, err)
+		}
+	}
+	if got := st.mustClassificationCount(t, 1); got != 4 {
+		t.Errorf("classification list changed to %d columns despite the refusal", got)
+	}
+	if after := rowCounts(t, d, 1); fmt.Sprint(after) != fmt.Sprint(before) {
+		t.Errorf("rows changed despite the refusal: %v -> %v", before, after)
+	}
+}
+
+func (s *Store) mustClassificationCount(t *testing.T, id int64) int {
+	t.Helper()
+	sq, err := s.GetSquadron(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return len(sq.Classifications)
+}
+
+// Rows that already disagree with the list (created before this was enforced)
+// are brought back into line the next time settings are saved.
+func TestSavingSettingsHealsMismatchedRows(t *testing.T) {
+	st, d := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	d.Exec(`UPDATE programme_rows SET texts = '["a","b"]'`) // legacy damage: 2 boxes, 4 headings
+	sq, _ := st.GetSquadron(1)
+	if err := st.UpdateSquadronSettings(sq); err != nil {
+		t.Fatal(err)
+	}
+	if got := rowCounts(t, d, 1); len(got) != 1 || got[4] == 0 {
+		t.Errorf("row sizes after healing = %v, want all 4", got)
+	}
+	_ = p
 }
