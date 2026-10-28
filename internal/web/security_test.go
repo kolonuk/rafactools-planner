@@ -205,9 +205,19 @@ func TestSecurityHeaders(t *testing.T) {
 				}
 			}
 			csp := h.Get("Content-Security-Policy")
-			for _, must := range []string{"default-src 'self'", "script-src 'none'", "frame-ancestors 'none'", "object-src 'none'", "form-action 'self'"} {
+			for _, must := range []string{"default-src 'self'", "script-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "form-action 'self'"} {
 				if !strings.Contains(csp, must) {
 					t.Errorf("%s: CSP missing %q: %s", path, must, csp)
+				}
+			}
+			// Own-origin scripts are allowed; anything that would let
+			// injected markup run script is not.
+			for _, never := range []string{"unsafe-inline", "unsafe-eval", "unsafe-hashes", "http:", "https:", "data:", "blob:", "*"} {
+				for _, directive := range strings.Split(csp, ";") {
+					d := strings.TrimSpace(directive)
+					if strings.HasPrefix(d, "script-src") && strings.Contains(d, never) {
+						t.Errorf("%s: script-src contains %q: %s", path, never, d)
+					}
 				}
 			}
 			if hsts := h.Get("Strict-Transport-Security"); secure != (hsts != "") {

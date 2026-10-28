@@ -84,3 +84,13 @@ docker rm -f rt-lint
 - CodeQL and the Trivy filesystem/image scans also run in CI but need more
   setup locally — CI is the backstop for those.
 - This applies to every branch (dev/test/main), not just main.
+
+## Scripts (only when `internal/web/static/js/` or `internal/web/ts/` exist)
+
+```sh
+npx --yes -p typescript@5.6.3 tsc -p tsconfig.json         # strict type-check of JS (JSDoc) and TS
+npx --yes -p typescript@5.6.3 tsc -p tsconfig.build.json   # compile TS into static/js, then:
+git diff --exit-code -- internal/web/static/js             # committed output must be current
+```
+
+The CSP is `script-src 'self'`: no inline `<script>`, no inline `on…=` handlers, no `javascript:` URLs.

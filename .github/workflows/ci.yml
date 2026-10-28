@@ -82,15 +82,35 @@ jobs:
       # this boots the server and validates the rendered public pages.
       - name: html-validate (rendered pages)
         run: go run ./cmd/devtools validate-html
-      # The app ships no JavaScript and its CSP is script-src 'none'. Fail
-      # if any appears so it's a conscious decision (add ESLint and a CSP
-      # review at the same time).
-      - name: No unreviewed JavaScript
+      # JavaScript and TypeScript are allowed as first-party files, but the
+      # CSP is script-src 'self': inline <script>, inline event handlers and
+      # javascript: URLs would be blocked by browsers, so catch them here.
+      - name: No inline scripts or handlers in templates
         run: |
-          js="$(git ls-files '*.js' '*.mjs' '*.ts' || true)"
-          if [ -n "$js" ]; then echo "JavaScript added; add ESLint to this job and review the CSP:"; echo "$js"; exit 1; fi
-          if grep -rEn '<script|javascript:| on[a-z]+="' internal/web/templates; then
-            echo "Inline script/handlers in templates conflict with the CSP"; exit 1
+          if grep -rEn '<script' internal/web/templates | grep -v 'src="'; then
+            echo "Inline <script> is blocked by the CSP; put it in internal/web/static/js/ and load it with src="; exit 1
+          fi
+          if grep -rEn 'javascript:| on[a-z]+="' internal/web/templates; then
+            echo "Inline event handlers / javascript: URLs are blocked by the CSP; attach handlers from a script file"; exit 1
+          fi
+      # Strict type-check of all first-party JS (via JSDoc types) and TS.
+      - name: Type-check JavaScript and TypeScript (when present)
+        run: |
+          if [ -n "$(git ls-files 'internal/web/static/js/*' 'internal/web/ts/*')" ]; then
+            npx --yes -p typescript@5.6.3 tsc -p tsconfig.json
+          else
+            echo "No first-party scripts yet."
+          fi
+      # TypeScript sources live in internal/web/ts/ and compile into
+      # internal/web/static/js/, which is committed (the Docker build needs
+      # no Node). Fail if the committed output is stale.
+      - name: Compiled TypeScript is up to date
+        run: |
+          if [ -d internal/web/ts ]; then
+            npx --yes -p typescript@5.6.3 tsc -p tsconfig.build.json
+            git diff --exit-code -- internal/web/static/js
+          else
+            echo "No TypeScript sources."
           fi
 
   docs-check:

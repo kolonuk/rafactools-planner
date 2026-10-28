@@ -20,7 +20,7 @@ For people changing the code. Every push and pull request runs these in GitHub.
 | CodeQL | Further security analysis of the Go code. |
 | Stylelint | Mistakes in the CSS. |
 | HTML validation | Starts the site and validates the pages it renders. |
-| JavaScript guard | Fails if any script appears, because the site's security policy forbids scripts. |
+| Script rules | Fails on inline scripts, inline event handlers or `javascript:` links in the templates (the security policy refuses them). When the site has its own JavaScript or TypeScript, type-checks it strictly, and checks that committed compiled TypeScript is up to date. |
 | actionlint | Mistakes in the workflow files. |
 | Docs check | Embedded docs are valid, links resolve, and user-visible code changes come with a docs change. |
 | Fuzzing | A short random-input run against the claim-email checker. |
