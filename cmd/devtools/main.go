@@ -4,6 +4,7 @@
 //	go run ./cmd/devtools docs-check            PR gate: docs must change with user-visible code
 //	go run ./cmd/devtools docs-snapshot 1.42    freeze the working docs as release 1.42
 //	go run ./cmd/devtools validate-html         validate rendered pages with html-validate
+//	go run ./cmd/devtools github-setup [-apply] create the master admin variable and secret on GitHub
 //
 // See .claude/skills/docs/SKILL.md for when each is used.
 package main
@@ -28,6 +29,8 @@ func main() {
 		err = runDocsSnapshot(os.Args[2])
 	case "validate-html":
 		err = runValidateHTML()
+	case "github-setup":
+		err = runGithubSetup(os.Args[2:])
 	default:
 		usage()
 	}
@@ -38,6 +41,6 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: devtools docs-check | docs-snapshot 1.<number> | validate-html")
+	fmt.Fprintln(os.Stderr, "usage: devtools docs-check | docs-snapshot 1.<number> | validate-html | github-setup [-repo owner/name] [-prefix X_] [-apply]")
 	os.Exit(2)
 }

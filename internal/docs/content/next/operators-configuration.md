@@ -10,7 +10,7 @@ changed:
 ---
 # Configuration
 
-For whoever runs the site. Settings are environment variables; there is no
+For whoever runs the site (new to this? start with [run your own copy](run-your-own)). Settings are environment variables; there is no
 configuration file. See `.env.template` in the repository for an annotated copy.
 
 | Variable | Default | Meaning |

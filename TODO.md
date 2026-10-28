@@ -166,7 +166,12 @@ lines are built and tested. What is left, and why it is not done here:
   is a different repository this session cannot change, and the secret has to
   be created by someone with admin rights on it. Steps:
   1. In `dadock`'s GitHub settings add a **secret** `RAFACTOOLS_MASTER_ADMIN_PASSWORD`
-     and a **variable** `RAFACTOOLS_MASTER_ADMIN_EMAIL` (`john@kolon.co.uk`).
+     and a **variable** `RAFACTOOLS_MASTER_ADMIN_EMAIL` (`john@kolon.co.uk`). This session
+     cannot create them (GitHub's variables/secrets API is blocked from here, and
+     `dadock` is outside its scope), so a helper does it from your machine:
+     `go run ./cmd/devtools github-setup -repo kolonuk/dadock -apply` creates the
+     variable with a placeholder (edit it to the real email) and prompts you
+     privately for the secret.
   2. In `dadock`'s compose file give each `rafactools*` service
      `MASTER_ADMIN_EMAIL` and `MASTER_ADMIN_PASSWORD` from those two.
   3. Redeploy. The app applies them on every start, so every deployment creates

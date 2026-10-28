@@ -29,6 +29,7 @@ print it as a one-page PDF.
 | [Security and privacy](security-and-privacy) | What is stored, for how long, and who can see it |
 | [Known limits](known-limits) | Things the planner cannot do yet |
 | [Troubleshooting](troubleshooting) | Common problems and messages |
+| [Run your own copy](run-your-own) | Why to run it yourself, what you need, GitHub settings, or the free public site |
 | [Configuration](operators-configuration) | For whoever runs the site: settings |
 | [Running the site](operators-running) | For whoever runs the site: starting, stopping, health |
 | [Backups](operators-backups) | For whoever runs the site: protecting the data |

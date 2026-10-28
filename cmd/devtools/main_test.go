@@ -90,3 +90,39 @@ func TestDocsCheckRejectsNonHashRevisions(t *testing.T) {
 		}
 	}
 }
+
+func TestGithubSetupSettings(t *testing.T) {
+	s := masterAdminSettings("RAFACTOOLS_")
+	if len(s) != 2 || s[0].Kind != "variable" || s[1].Kind != "secret" {
+		t.Fatalf("settings = %+v: the email is a variable and the password a secret", s)
+	}
+	if s[0].Name != "RAFACTOOLS_MASTER_ADMIN_EMAIL" || s[1].Name != "RAFACTOOLS_MASTER_ADMIN_PASSWORD" {
+		t.Errorf("names = %q, %q", s[0].Name, s[1].Name)
+	}
+	if got := masterAdminSettings("")[1].Name; got != "MASTER_ADMIN_PASSWORD" {
+		t.Errorf("no-prefix name = %q", got)
+	}
+	// The password must never be on a command line, where it would show in
+	// process listings and shell history.
+	cmd := strings.Join(setCommand("o/r", s[1]), " ")
+	if strings.Contains(cmd, "--body") || strings.Contains(cmd, "--env-file") || s[1].Placeholder != "" {
+		t.Errorf("secret command carries a value: %s", cmd)
+	}
+	if got := strings.Join(setCommand("o/r", s[0]), " "); got != "gh variable set RAFACTOOLS_MASTER_ADMIN_EMAIL --repo o/r --body CHANGE_ME" {
+		t.Errorf("variable command = %s", got)
+	}
+}
+
+func TestGithubSetupRejectsBadArguments(t *testing.T) {
+	for _, args := range [][]string{
+		{"-repo", "not a repo"}, {"-repo", "a/b/c"}, {"-repo", "--foo/bar"}, {"-repo", "owner/name; rm -rf /"},
+		{"-prefix", "lower_"}, {"-prefix", "A B"}, {"-prefix", "X;"},
+	} {
+		if err := runGithubSetup(args); err == nil {
+			t.Errorf("%v accepted", args)
+		}
+	}
+	if err := runGithubSetup(nil); err != nil { // prints the plan, runs nothing
+		t.Errorf("default run: %v", err)
+	}
+}
