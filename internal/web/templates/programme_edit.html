@@ -1,6 +1,6 @@
 {{define "content"}}
 <h1>{{.MonthName}} {{.Year}}</h1>
-<p><a href="{{url "/"}}">&larr; Dashboard</a> · <a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a>{{if .CanEdit}} · <a href="{{url "/instructors"}}">Manage instructors</a>{{end}}</p>
+<p><a href="{{url "/"}}">&larr; Dashboard</a> · <a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a>{{if .CanEdit}} · <a href="{{url "/instructors"}}">Manage instructors</a> · <a href="{{url "/programmes/" .ProgrammeID "/reset"}}">Reset this month</a>{{end}}</p>
 
 {{if .CanEdit}}
 <form method="post" action="{{url "/programmes/" .ProgrammeID}}" class="grid-form">

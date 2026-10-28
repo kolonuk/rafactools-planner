@@ -851,3 +851,67 @@ func TestSavingSettingsHealsMismatchedRows(t *testing.T) {
 	}
 	_ = p
 }
+
+func TestResetProgrammeEmptiesContentKeepsStructure(t *testing.T) {
+	st, _ := newStore(t)
+	p := mustProg(t, st, 1, 2030, 10)
+	other := mustProg(t, st, 2, 2030, 10)
+	fp, _ := st.GetFullProgramme(1, p.ID)
+	var parade Day
+	for _, d := range fp.Days {
+		if d.IsParade {
+			parade = d
+			break
+		}
+	}
+	st.SaveDaysAndRows(1, p.ID, []DayInput{{ID: parade.ID, IsParade: true, UniformKey: "green", Notes: "bring water",
+		Rows: []RowInput{{ID: parade.Rows[0].ID, Texts: []string{"Drill", "Drill", "Drill", "Drill"}}}}})
+	st.SaveDaysAndRows(2, other.ID, nil)
+	st.AddClosure(p.ID, "2030-10-01", "2030-10-02", "x")
+	st.AddWeekendNote(p.ID, "2030-10-05", "camp")
+	cat, _ := st.AddRequirementCategory(p.ID, "c", "")
+	st.AddRequirementEntry(p.ID, cat, "n", "")
+	st.AddClosure(other.ID, "2030-10-01", "2030-10-02", "keep")
+
+	if err := st.ResetProgramme(2, p.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-tenant reset = %v, want ErrNotFound", err)
+	}
+	if got, _ := st.GetFullProgramme(1, p.ID); len(got.Closures) != 1 {
+		t.Fatal("another squadron's reset changed the programme")
+	}
+
+	if err := st.ResetProgramme(1, p.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetFullProgramme(1, p.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Closures) != 0 || len(got.WeekendNotes) != 0 || len(got.Requirements) != 0 {
+		t.Errorf("closures/weekend notes/requirements not cleared: %d/%d/%d", len(got.Closures), len(got.WeekendNotes), len(got.Requirements))
+	}
+	if len(got.Days) != len(fp.Days) {
+		t.Errorf("days = %d, want %d (the month stays)", len(got.Days), len(fp.Days))
+	}
+	for i, d := range got.Days {
+		if d.Notes != "" {
+			t.Errorf("day %d notes %q not cleared", d.ID, d.Notes)
+		}
+		if d.IsParade != fp.Days[i].IsParade || d.Halves != fp.Days[i].Halves || len(d.Rows) != len(fp.Days[i].Rows) {
+			t.Errorf("day %d structure changed", d.ID)
+		}
+		for _, r := range d.Rows {
+			if len(r.Texts) != 4 {
+				t.Errorf("row has %d cells, want 4", len(r.Texts))
+			}
+			for _, c := range r.Texts {
+				if c != "" {
+					t.Errorf("cell %q not cleared", c)
+				}
+			}
+		}
+	}
+	if o, _ := st.GetFullProgramme(2, other.ID); len(o.Closures) != 1 {
+		t.Error("reset leaked into another squadron's programme")
+	}
+}

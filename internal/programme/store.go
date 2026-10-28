@@ -867,3 +867,48 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 	}
 	return tx.Commit()
 }
+
+// ResetProgramme empties a month back to a blank programme: every activity and
+// instructor cell, every night's notes, the closures, the weekend notes and the
+// requirement tracker. The month itself, its nights, which are parade nights,
+// uniform keys and second halves stay as they are. The squadron check is part
+// of the transaction, so another squadron's id can never reset it.
+func (s *Store) ResetProgramme(squadronID, programmeID int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var classJSON string
+	err = tx.QueryRow(`SELECT s.classifications FROM programmes p JOIN squadrons s ON s.id = p.squadron_id
+		WHERE p.id = ? AND p.squadron_id = ?`, programmeID, squadronID).Scan(&classJSON)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	var classes []string
+	if err := json.Unmarshal([]byte(classJSON), &classes); err != nil {
+		return fmt.Errorf("parse classifications: %w", err)
+	}
+	empty, _ := json.Marshal(make([]string, len(classes)))
+
+	for _, q := range []struct {
+		sql  string
+		args []any
+	}{
+		{`UPDATE programme_rows SET texts = ? WHERE day_id IN (SELECT id FROM programme_days WHERE programme_id = ?)`, []any{string(empty), programmeID}},
+		{`UPDATE programme_days SET notes = '' WHERE programme_id = ?`, []any{programmeID}},
+		{`DELETE FROM programme_closures WHERE programme_id = ?`, []any{programmeID}},
+		{`DELETE FROM programme_weekend_notes WHERE programme_id = ?`, []any{programmeID}},
+		{`DELETE FROM programme_requirement_categories WHERE programme_id = ?`, []any{programmeID}},
+		{`UPDATE programmes SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, []any{programmeID}},
+	} {
+		if _, err := tx.Exec(q.sql, q.args...); err != nil {
+			return fmt.Errorf("reset programme %d: %w", programmeID, err)
+		}
+	}
+	return tx.Commit()
+}

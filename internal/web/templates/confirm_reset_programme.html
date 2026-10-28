@@ -1,0 +1,13 @@
+{{define "content"}}
+<h1>Reset {{.MonthName}} {{.Year}}?</h1>
+<p>This empties the month: every activity and instructor, the notes, the closures, the weekend
+  entries and the requirement tracker (including cadets' names). The month itself, which nights
+  are parade nights and any second halves stay. It cannot be undone.
+  Export the PDF first if you want to keep a copy.</p>
+
+<form method="post" action="{{url "/programmes/" .ProgrammeID "/reset"}}" class="inline">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <button type="submit">Yes, reset {{.MonthName}} {{.Year}}</button>
+</form>
+<a href="{{url "/programmes/" .ProgrammeID}}">Cancel</a>
+{{end}}
