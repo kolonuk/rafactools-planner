@@ -61,7 +61,7 @@ type server struct {
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
-	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half",
+	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "confirm_reset_programme",
 	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent",
 }
 
@@ -168,6 +168,8 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /programmes/{id}", s.requireAuth(s.programmeEdit))
 	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.programmeSave))
 	mux.HandleFunc("GET /programmes/{id}/pdf", s.requireAuth(s.programmePDF))
+	mux.HandleFunc("GET /programmes/{id}/reset", s.requireEditor(s.programmeResetConfirm))
+	mux.HandleFunc("POST /programmes/{id}/reset", s.requireEditor(s.programmeReset))
 	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/add-half", s.requireEditor(s.dayAddHalf))
 	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/move", s.requireEditor(s.dayMove))
 	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/remove-half", s.requireEditor(s.dayRemoveHalf))

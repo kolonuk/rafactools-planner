@@ -588,3 +588,48 @@ func dayOptions(days []programme.Day) []dayOption {
 	}
 	return out
 }
+
+// programmeResetConfirm asks before a month is emptied; the reset itself is
+// the POST below. Two steps because it cannot be undone.
+func (s *server) programmeResetConfirm(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	id, ok := parseID(r, "id")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid request.")
+		return
+	}
+	fp, err := s.Store.GetFullProgramme(u.SquadronID, id)
+	if err != nil {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That programme doesn't exist.")
+		return
+	}
+	s.render(w, r, "confirm_reset_programme", "Reset programme?", map[string]any{
+		"ProgrammeID": id,
+		"MonthName":   monthNames[fp.Month],
+		"Year":        fp.Year,
+	})
+}
+
+func (s *server) programmeReset(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Error", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	id, ok := parseID(r, "id")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid request.")
+		return
+	}
+	if err := s.Store.ResetProgramme(u.SquadronID, id); err != nil {
+		if errors.Is(err, programme.ErrNotFound) {
+			s.renderError(w, r, http.StatusNotFound, "Not found", "That programme doesn't exist.")
+			return
+		}
+		log.Printf("reset programme %d: %v", id, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not reset the programme.")
+		return
+	}
+	log.Printf("programme %d reset by user %d (squadron %d)", id, u.ID, u.SquadronID)
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
+}

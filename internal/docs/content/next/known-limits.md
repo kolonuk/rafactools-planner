@@ -4,6 +4,7 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
+  - next: A month can be reset to blank; months are deliberately never deleted.
   - next: Curly quotes, dashes and accents now print on the PDF; only non-Western-European characters do not.
   - next: Added the Report a problem feature, and its limits.
   - next: Role changes, member removal, removing a second half and automatic day labels now exist, so they are no longer listed.
@@ -18,7 +19,7 @@ These are not mistakes in how you are using the planner.
 - No two-factor sign-in.
 
 **Programmes**
-- Programmes cannot be deleted from the screen, and their status stays `draft`.
+- Months are never deleted (a month can be reset to blank), and their status stays `draft`.
 - Unticking **Parade** on a night that has activities leaves them stored but
   hidden; there is no "cancel this night" action.
 - Moving activities swaps two dates; there is no way to move one night's

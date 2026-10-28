@@ -4,6 +4,7 @@ order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
 changed:
+  - next: A month can be reset to blank, after a confirmation.
   - next: The day label is worked out from the date and can no longer be edited.
   - next: A new second half starts as a copy of the first, and a second half can be removed (with a warning if the halves differ).
   - next: Instructor boxes suggest All Staff, your instructor list and your members as you type.
@@ -119,6 +120,17 @@ entries.
 
 Entries hold cadets' names. Treat them as personal data: see
 [security and privacy](security-and-privacy).
+
+## Starting a month again
+
+**Reset this month**, at the top of a programme, empties it so you can start again.
+You are asked to confirm first, and **Cancel** changes nothing.
+
+- Emptied: every activity and instructor box, each night's notes, the closures, the weekend
+  entries and the requirements tracker (including the cadets' names).
+- Kept: the month itself, which nights are parade nights, uniform colours and any second halves.
+- It cannot be undone, so use **Export PDF** first if you want a copy. Only owners and editors can.
+- Months are never deleted; they stay in your list.
 
 ## Who can do what
 
