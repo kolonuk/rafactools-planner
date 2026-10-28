@@ -1,7 +1,6 @@
-# Builds the image, smoke-tests it, pushes to GHCR tagged by branch, and —
-# for main only — dispatches dadock's deploy workflow so the running stack
-# picks up the new image. dev/test pushes stop at GHCR: there's no separate
-# dev/test host wired up yet (see TODO.md "Three real environments").
+# Builds the image, smoke-tests it, scans it and pushes it to GHCR tagged by
+# branch. Running the image is somebody else's job: this repository only
+# produces the app and its container image.
 name: Build and deploy
 
 on:
@@ -51,10 +50,8 @@ jobs:
           echo "image_base=${IMAGE_BASE}"                     >> "$GITHUB_OUTPUT"
           echo "image_ref=${IMAGE_BASE}:${ENV_TAG}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "env_tag=${ENV_TAG}"                           >> "$GITHUB_OUTPUT"
-          # dadock's docker-compose.yml pins this service by a bare :latest
-          # (same convention as johnwood/sbcwaste) — only main should ever
-          # move that tag, so dev/test pushes don't silently become what
-          # dadock's "1. Deploy docker stack" pulls.
+          # Hosts commonly pin a bare :latest — only main should ever move
+          # that tag, so dev/test pushes don't silently become what they pull.
           if [ "${ENV_TAG}" = "main" ]; then
             echo "extra_tags=${IMAGE_BASE}:latest" >> "$GITHUB_OUTPUT"
           else
@@ -150,23 +147,3 @@ jobs:
           package-name: "rafactools-planner"
           package-type: "container"
           min-versions-to-keep: 10
-
-  trigger-dadock-deploy:
-    name: Reload the dadock stack (main only)
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    steps:
-      # DADOCK_DEPLOY_TOKEN is a fine-grained PAT scoped to Actions:write on
-      # kolonuk/dadock only, same secret/pattern used by sbcwaste.top and
-      # johnwood.dev. Set it as a repo secret here to enable auto-redeploy;
-      # without it this step just prints a reminder to pull manually.
-      - name: Dispatch dadock deploy workflow
-        env:
-          GH_TOKEN: ${{ secrets.DADOCK_DEPLOY_TOKEN }}
-        run: |
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "DADOCK_DEPLOY_TOKEN not set - skipping dadock reload. Pull the new image manually." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          gh workflow run "1. Deploy docker stack" --repo kolonuk/dadock

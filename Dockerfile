@@ -21,7 +21,7 @@ RUN mkdir -p /appdata
 
 # distroless static — no shell, no libc, ca-certs included for SMTP TLS.
 # :nonroot runs as UID 65532. SQLite's DB file lives on a mounted volume at
-# /data (see docker-compose.yml / the dadock service definition).
+# /data (see docker-compose.yml).
 FROM gcr.io/distroless/static-debian13:nonroot
 
 WORKDIR /app

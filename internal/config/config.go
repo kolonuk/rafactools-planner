@@ -1,6 +1,6 @@
 // Package config loads runtime configuration from the environment. There is
 // no config file: dev/test/prod are the same binary with different env vars,
-// set by docker-compose (dev) or the dadock stack (test/prod).
+// set by docker-compose (dev) or whatever runs the image.
 package config
 
 import (
@@ -84,7 +84,7 @@ func Load() (Config, error) {
 		return c, fmt.Errorf("SESSION_KEY must be at least 32 characters (try `openssl rand -hex 32`)")
 	}
 
-	// When this app is reverse-proxied under a path prefix (e.g. dadock's
+	// When this app is reverse-proxied under a path prefix (e.g. a
 	// Traefik PathPrefix(`/rafactools`) + stripprefix — the app itself always
 	// sees unprefixed paths, but any URL IT generates for the browser to
 	// re-request (a link, a form action, a redirect) must include the prefix

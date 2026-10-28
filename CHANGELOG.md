@@ -101,8 +101,7 @@ baseline instead of per-entry.
 - `SKIP_EMAIL_VERIFICATION` dev-mode flag: claiming a squadron logs straight
   in, nothing emailed — for the `dev` environment only.
 - Three environments (`dev`/`test`/`main` branches), each deployed as its
-  own container on the dadock stack with its own data and session-key
-  secret; `dev`'s database resets nightly.
+  own container with its own data and session-key secret; `dev`'s database resets nightly.
 
 **security**
 - Strict CSP (`script-src 'none'` — no JS anywhere in this app), security
@@ -112,7 +111,7 @@ baseline instead of per-entry.
 
 **chore**
 - CI (build/vet/test/gofmt/govulncheck/Trivy) and a build-scan-push-to-GHCR
-  deploy workflow, with a dadock redeploy dispatch on `main`.
+  deploy workflow.
 - Synthetic example PDFs (`cmd/genexamples`) — the original examples this
   was modelled on carried real cadets'/staff's names and were deliberately
   kept out of this repo and its git history.

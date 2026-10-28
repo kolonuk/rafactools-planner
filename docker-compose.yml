@@ -1,5 +1,4 @@
-# Local dev only. test/prod run as a service in the dadock stack (a separate
-# repo) — see TODO.md "Three real environments" and README.md "Deployment".
+# Local dev only. See README.md "Environments and deployment" for the image.
 services:
   app:
     build: .

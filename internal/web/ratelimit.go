@@ -82,10 +82,9 @@ func (l *ipLimiter) rateLimited(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// clientIP prefers X-Forwarded-For/X-Real-IP, set by the Traefik reverse
-// proxy every deployment of this app runs behind (see dadock's
-// docker-compose.yml) — without it every request would appear to come from
-// Traefik's own container IP, making per-IP limiting useless. Falls back to
+// clientIP prefers X-Forwarded-For/X-Real-IP, set by the reverse
+// proxy every deployment of this app runs behind — without it every request
+// would appear to come from the proxy's own container IP, making per-IP limiting useless. Falls back to
 // RemoteAddr for local dev, where there's no proxy in front.
 //
 // The LAST X-Forwarded-For entry is used: the proxy appends the address it

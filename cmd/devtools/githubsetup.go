@@ -47,7 +47,7 @@ func setCommand(repo string, s setting) []string {
 func runGithubSetup(args []string) error {
 	fs := flag.NewFlagSet("github-setup", flag.ContinueOnError)
 	repo := fs.String("repo", "kolonuk/rafactools-planner", "GitHub repository (owner/name) that holds the settings")
-	prefix := fs.String("prefix", "RAFACTOOLS_", "prefix for the names (dadock's convention); use \"\" for none")
+	prefix := fs.String("prefix", "", "optional prefix for the names, for example MYAPP_")
 	apply := fs.Bool("apply", false, "create them now with the gh CLI (you must be signed in with `gh auth login`)")
 	if err := fs.Parse(args); err != nil {
 		return err

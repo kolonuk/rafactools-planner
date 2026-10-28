@@ -30,11 +30,11 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 ## Before anyone relies on it
 
-- [ ] **[P2 helpful feature]** **Real SMTP.** With `SMTP_HOST` unset the app only logs links. Pick a
-  relay for test/prod and set `SMTP_HOST/USER/PASS` and `MAIL_FROM`.
-- [ ] **[P1 security]** **Set the prod `SESSION_KEY` secret** (`RAFACTOOLS_SESSION_KEY` in
-  dadock). Needs a human: `gh secret set RAFACTOOLS_SESSION_KEY --repo kolonuk/dadock --body "$(openssl rand -hex 32)"`.
-  The app now refuses to start with a key under 32 characters.
+- [ ] **[P1 security]** **Don't log secret links outside dev.** With `SMTP_HOST` unset the
+  app writes confirmation, invite and password-reset links (and problem reports) to
+  the log, which anyone who can read the log can use. Refuse to start without SMTP
+  unless an explicit dev setting (for example `ALLOW_LOG_MAIL=true`) is given, and
+  document it.
 - [ ] **[P1 security]** **Branch protection.** Require the `CI` jobs to pass before merging to
   `test` and `main`. Blocked: the API refuses it (403) because it needs GitHub
   Pro or a public repo, the same limit that stops CodeQL results uploading.
@@ -44,7 +44,12 @@ Chromium), plus the "Add a second half" fix. Still to do:
   notice, a way to delete a squadron's data, and a retention rule for old
   programmes.
 
-## Environments and hosting
+## The app and its image
+
+This repository builds the app and its container image and stops there. Hosting,
+TLS, secrets and redeploying belong to whoever runs the image (the docs page
+"Run your own copy" says what the image needs), so they are not tracked here.
+
 
 - [ ] **[P4 nicety]** **Later: version check.** Two parts, to be done together, not yet:
   1. A repo skill (`.claude/skills/version-check`) saying when and how the
@@ -58,13 +63,9 @@ Chromium), plus the "Add a second half" fix. Still to do:
      other tooling (a `devtools` subcommand), run by the workflow, with tests.
      Decide first, and ask the owner: where the version lives in the repo
      today, since it is currently computed at build time from the PR number.
-- [ ] **[P1 security]** **Test environment:** disable the claim form there (a
-  `DISABLE_SIGNUPS` flag) and copy prod's database into it on each deploy, so
-  test always has realistic data. The copy step lives in dadock's deploy
-  workflow.
-- [ ] **[P1 security]** **Domain and TLS.** Everything is LAN-only over plain HTTP today. Once
-  there is a domain: put it behind TLS, set `BASE_URL` to the `https://`
-  address and `COOKIE_SECURE=true` in dadock's compose.
+- [ ] **[P1 security]** **`DISABLE_SIGNUPS` flag:** an environment setting that turns
+  the claim form off, so a test copy running on realistic data cannot be signed
+  up to by strangers.
 
 ## Bugs and rough edges
 
@@ -182,26 +183,12 @@ scrubbed from this repo's history once already.
 The account, the squadron switcher (read-only), the banner and the audit log
 lines are built and tested. What is left, and why it is not done here:
 
-- [ ] **[P2 helpful feature]** **Wire the settings into the deployment (needs a human, in `dadock`).** The
-  running containers get their environment from `dadock`'s compose file, which
-  is a different repository this session cannot change, and the secret has to
-  be created by someone with admin rights on it. Steps:
-  1. In `dadock`'s GitHub settings add a **secret** `RAFACTOOLS_MASTER_ADMIN_PASSWORD`
-     and a **variable** `RAFACTOOLS_MASTER_ADMIN_EMAIL` (`john@kolon.co.uk`). This session
-     cannot create them (GitHub's variables/secrets API is blocked from here, and
-     `dadock` is outside its scope), so a helper does it from your machine:
-     `go run ./cmd/devtools github-setup -repo kolonuk/dadock -apply` creates the
-     variable with a placeholder (edit it to the real email) and prompts you
-     privately for the secret.
-  2. In `dadock`'s compose file give each `rafactools*` service
-     `MASTER_ADMIN_EMAIL` and `MASTER_ADMIN_PASSWORD` from those two.
-  3. Redeploy. The app applies them on every start, so every deployment creates
-     or updates the account (the log says what happened; check it).
-
-  The password must be a **secret, not a variable**: GitHub variables are stored
-  and shown in plain text. The password discussed in chat was 10 characters, under
-  the app's 12-character minimum, so the app refuses it (and logs why); pick a
-  longer one and treat the one that was pasted in chat as exposed.
+- [ ] **[P1 security]** **Master admin password.** The password discussed in chat
+  was pasted there, so treat it as exposed; the app needs 12 to 72 characters, so
+  that one is refused (and the log says why). Pick a new one and give it to the
+  host as the `MASTER_ADMIN_PASSWORD` secret (`go run ./cmd/devtools github-setup`
+  helps create the GitHub settings). The app creates or updates the account on
+  every start.
 - [x] **Issue reporting** (done: "Report a problem", emailed to `ISSUE_EMAIL`, not stored).
 - [ ] **[P2 helpful feature]** **Report diagnostics, next round**: a request ID shown in the page, the
   response header, the log and the report so all three can be matched; DB

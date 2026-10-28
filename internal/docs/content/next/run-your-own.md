@@ -78,12 +78,10 @@ the `dev`, `test` or `main` branch:
    `ghcr.io/<your-account>/rafactools-planner`, tagged by branch and commit (the `main`
    branch is also tagged `latest`).
 
-The workflows then stop. **Starting the image on a host is a separate step**: the
-maintainer's own host is a Docker Compose stack kept in a separate repository (called
-`dadock`), which pulls `latest` behind a reverse proxy. If you set the optional secret
-`DADOCK_DEPLOY_TOKEN`, the `main` workflow asks that stack to redeploy; if you do not,
-that step is skipped and you pull the new image yourself. You can run the image on any
-Docker host: it only needs the settings below as environment variables.
+The workflows then stop. **Starting the image on a host is a separate step** that is
+not part of this repository: you pull the image yourself (or have your own
+deployment do it) behind a reverse proxy. You can run it on any Docker host: it only
+needs the settings below as environment variables.
 
 ### GitHub variables and secrets
 
@@ -98,7 +96,6 @@ never put a password or key in a variable.
 | `SESSION_KEY` | **secret**, in the repository that deploys the site | At least 32 characters. This repository's workflows do not use it: see [the signing key](#the-signing-key). |
 | `SMTP_PASS` | **secret** | Your email provider's password. |
 | `MASTER_ADMIN_PASSWORD` | **secret** | Only if you want a master admin; 12 to 72 characters. |
-| `DADOCK_DEPLOY_TOKEN` | **secret** | Only for the maintainer's stack; used by the `main` workflow. |
 | `BASE_URL`, `CLAIM_DOMAIN`, `COOKIE_SECURE` | variable | The address, your email domain, and `true`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM` | variable | Your email provider. |
 | `MASTER_ADMIN_EMAIL` | variable | Only if you want a master admin. |
@@ -116,8 +113,7 @@ never puts it on a command line). Run it yourself, signed in with `gh auth login
 go run ./cmd/devtools github-setup -repo <your-account>/<your-repo> -prefix "" -apply
 ```
 
-Omit `-apply` to only see the commands. The default prefix is `RAFACTOOLS_`, the naming
-used by the maintainer's stack.
+Omit `-apply` to only see the commands. Use `-prefix NAME_` if your names need a prefix.
 
 ## The signing key
 
