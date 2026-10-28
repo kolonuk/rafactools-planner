@@ -34,6 +34,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pull-requests: read # for the app-version PR-number lookup below
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
     steps:
@@ -67,7 +68,22 @@ jobs:
           # PR (this project's history before branch protection existed, or
           # a manual workflow_dispatch rebuild) fall back to the short SHA —
           # still unique, just not a PR number.
+          #
+          # This call failing (wrong token scope, API hiccup, anything) once
+          # actually broke the Docker build outright: `gh api`'s error body
+          # — {"message":"...",...} — came through on stdout rather than
+          # being swallowed by `2>/dev/null`, so $PR_NUMBER became that raw
+          # JSON text, which then got baked straight into -ldflags. The `||
+          # true` only stops the *shell* from treating that as a failure; it
+          # does nothing about the captured value being garbage. Never trust
+          # command substitution output to be what you asked for without
+          # checking its shape — validate it's purely numeric before using
+          # it anywhere, especially somewhere as unforgiving as an -ldflags
+          # string passed straight to the linker.
           PR_NUMBER="$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0].number // empty' 2>/dev/null || true)"
+          case "$PR_NUMBER" in
+            ''|*[!0-9]*) PR_NUMBER="" ;; # empty, or contains anything but digits — not a real PR number
+          esac
           if [ -n "$PR_NUMBER" ]; then
             echo "app_version=1.${PR_NUMBER}" >> "$GITHUB_OUTPUT"
           else
