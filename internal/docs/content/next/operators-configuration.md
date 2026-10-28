@@ -4,6 +4,7 @@ order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
 changed:
+  - next: Password reset emails also depend on the mail settings.
   - next: SESSION_KEY must now be at least 32 characters, or the site refuses to start.
 ---
 # Configuration
@@ -35,6 +36,13 @@ With `SMTP_HOST` empty the site does not send mail. It writes the message,
 **including the confirmation or invitation link**, to its log instead. That is
 useful on a development machine. Anywhere else, treat the log as sensitive or
 configure real mail.
+
+## Password reset needs email
+
+The reset link is sent by email like the confirmation and invitation links. With
+`SMTP_HOST` empty the link is only written to the log, so users cannot reset their
+passwords themselves: configure real mail wherever people need this. The link is
+built from `BASE_URL`.
 
 ## Start-up failures
 

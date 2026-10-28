@@ -107,7 +107,7 @@ func runValidateHTML() error {
 		return os.WriteFile(filepath.Join(pagesDir, name+".html"), []byte(page), 0o600)
 	}
 
-	for _, p := range []string{"login", "claim"} {
+	for _, p := range []string{"login", "claim", "forgot"} {
 		if err := save(p, "/"+p); err != nil {
 			return err
 		}

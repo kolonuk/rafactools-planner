@@ -13,13 +13,14 @@ import (
 	"rafactools-planner/internal/docs"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/config"
 	"rafactools-planner/internal/db"
-	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
 )
 
@@ -40,6 +41,7 @@ type testApp struct {
 	auth  *auth.Service
 	store *programme.Store
 	cfg   config.Config
+	mail  *recordingMail
 }
 
 func newApp(t *testing.T, tweak ...func(*config.Config)) *testApp {
@@ -61,10 +63,10 @@ func newAppWithDocs(t *testing.T, lib *docs.Library, tweak ...func(*config.Confi
 	for _, f := range tweak {
 		f(&cfg)
 	}
-	a := &testApp{t: t, db: database, cfg: cfg}
+	a := &testApp{t: t, db: database, cfg: cfg, mail: &recordingMail{}}
 	a.auth = auth.NewService(database, cfg.SessionKey, cfg.CookieSecure, cfg.ClaimDomain, cfg.SkipEmailVerification)
 	a.store = programme.NewStore(database)
-	a.srv = httptest.NewServer(NewRouter(&Deps{Auth: a.auth, Store: a.store, Mail: mail.Sender{}, Docs: lib, Cfg: cfg}))
+	a.srv = httptest.NewServer(NewRouter(&Deps{Auth: a.auth, Store: a.store, Mail: a.mail, Docs: lib, Cfg: cfg}))
 	t.Cleanup(func() { a.srv.Close(); database.Close() })
 	return a
 }
@@ -254,4 +256,66 @@ func testDocs(t *testing.T) *docs.Library {
 		t.Fatal(err)
 	}
 	return lib
+}
+
+// recordingMail stands in for the SMTP sender and keeps what would have been
+// emailed, so tests can follow the real links. Sending happens in the
+// background in the handlers, so reads wait briefly.
+type recordingMail struct {
+	mu   sync.Mutex
+	sent []sentMail
+}
+
+type sentMail struct{ Kind, To, Token string }
+
+func (m *recordingMail) add(kind, to, token string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.sent = append(m.sent, sentMail{kind, to, token})
+	return nil
+}
+
+func (m *recordingMail) SendVerification(to, _, token string) error {
+	return m.add("verify", to, token)
+}
+func (m *recordingMail) SendInvite(to, _, token, _, _ string) error {
+	return m.add("invite", to, token)
+}
+func (m *recordingMail) SendPasswordReset(to, _, token string) error {
+	return m.add("reset", to, token)
+}
+
+// waitFor returns the first matching message, waiting up to two seconds.
+func (m *recordingMail) waitFor(t *testing.T, kind, to string) (sentMail, bool) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		m.mu.Lock()
+		for _, s := range m.sent {
+			if s.Kind == kind && s.To == to {
+				m.mu.Unlock()
+				return s, true
+			}
+		}
+		m.mu.Unlock()
+		if time.Now().After(deadline) {
+			return sentMail{}, false
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// count returns how many messages of a kind went out (after a short settle,
+// so a wrongly-sent background email would have arrived).
+func (m *recordingMail) count(kind string) int {
+	time.Sleep(150 * time.Millisecond)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	for _, s := range m.sent {
+		if s.Kind == kind {
+			n++
+		}
+	}
+	return n
 }

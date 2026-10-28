@@ -5,6 +5,7 @@ summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
   - next: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
+  - next: Added password reset (see above); reset links are stored only as hashes.
   - next: Unknown email addresses now take as long to reject as real ones, so response time does not reveal which addresses have accounts.
   - next: Sign-in sessions and form tokens are unchanged, but the site refuses to start with a weak signing key.
   - next: The browser is now allowed to run the site's own scripts (previously it was told to refuse all scripts); inline, third-party and eval scripts are still refused.
@@ -17,14 +18,16 @@ changed:
 | --- | --- |
 | Accounts | Email address, role, and a salted bcrypt hash of the password. The password itself is never stored. |
 | Sign-in sessions | A random token per browser, valid for 30 days or until logout. |
+| Password reset requests | A SHA-256 hash of the emailed link, who it is for, and when it expires (1 hour). Deleted when used or replaced. |
 | Programmes | Everything you type: activities, instructor names, notes, closures, weekend notes. |
 | Requirements tracker | **Cadets' names** and notes. |
 | Squadron | Name, subtitle, protective marking, classifications, parade nights. |
 
 Nothing is sent to any other service. The site makes no requests to third
 parties: no analytics, no external fonts, no tracking. The only email it sends
-is the confirmation and invitation emails described in
-[getting started](getting-started) and [roles and invites](roles-and-invites).
+is the confirmation, invitation and password reset emails described in
+[getting started](getting-started), [roles and invites](roles-and-invites) and
+[signing in](signing-in).
 
 **Do not put information in the planner that you would not be happy to see on
 a printed noticeboard.** Check what your unit's rules allow before entering
@@ -41,12 +44,17 @@ site can read the database.
 
 - **Passwords** are hashed with bcrypt; 12 to 72 characters are required.
 - **Sessions** are stored on the server. Logging out deletes them.
+- **Password reset links** work once, expire after 1 hour, and only a scrambled
+  (SHA-256) copy of each link is kept, so a copy of the database cannot be used
+  to reset anyone's password. Only one link is live per person, a second request
+  within a minute sends nothing, and the page never reveals whether an address has
+  an account. Resetting a password signs that person out everywhere.
 - **Forms** carry a token that is checked on every change, which stops other
   websites making your browser submit changes.
 - **Cookies** are marked HTTP-only and same-site; they are also marked secure
   (HTTPS only) on a correctly configured site.
-- **Rate limiting:** the login, claim and invite pages allow 20 attempts per
-  address in five minutes. After that they answer `Too many attempts` until the
+- **Rate limiting:** the login, claim, invite and password reset pages share a
+  limit of 20 attempts per address in five minutes. After that they answer `Too many attempts` until the
   window passes.
 - **Scripts:** the site tells the browser to run only scripts that come from
   the site itself. Scripts written into a page (inline), scripts from other

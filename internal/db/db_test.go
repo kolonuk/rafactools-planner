@@ -33,8 +33,8 @@ func TestOpenAppliesMigrations(t *testing.T) {
 	if err := database2.QueryRow(`SELECT COUNT(*) FROM schema_migrations`).Scan(&count); err != nil {
 		t.Fatalf("count schema_migrations: %v", err)
 	}
-	if count != 1 {
-		t.Errorf("schema_migrations has %d rows, want 1 (migration re-applied?)", count)
+	if count != 2 {
+		t.Errorf("schema_migrations has %d rows, want 2 (a migration re-applied, or a new one needs counting here)", count)
 	}
 }
 
