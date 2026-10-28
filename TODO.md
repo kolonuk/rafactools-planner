@@ -65,9 +65,10 @@ Chromium), plus the "Add a second half" fix. Still to do:
   cells, and long words break mid-word in the Weekends column. Compare
   against `examples/pdfs/` after any `internal/pdfgen` change (see the
   `pdf-fidelity` skill).
-- [ ] **Accessibility pass:** icon-only delete buttons need labels; check focus
-  states and uniform-swatch contrast. (The grid already scrolls sideways on a
-  phone; a real mobile layout is still open.)
+- [ ] **Accessibility, rest of the pass:** check uniform-swatch contrast and
+  run a screen-reader and keyboard-only walk through each page (delete buttons
+  now have row-specific names and every control shows focus). The grid already
+  scrolls sideways on a phone; a real mobile layout is still open.
 - [ ] **Squadron crest/logo image** in the PDF header. The website link is done;
   an image needs a first upload path (storage plus an upload form), which the
   app does not have yet.

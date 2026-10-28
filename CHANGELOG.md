@@ -13,6 +13,7 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **fix**: accessibility: repeated Delete/Remove/Revoke/Set buttons now say which row they act on to screen readers (the tracker's bare "x" is a labelled "×"), and links, buttons and checkboxes show a visible keyboard focus ring.
 - **fix**: the PDF no longer shows curly quotes, dashes and accented letters as odd symbols; they are re-encoded for the built-in font. Other scripts print as `?`.
 - **feat**: "Report a problem" on every page (set `ISSUE_EMAIL` to switch it on): description, optional screenshot (tab capture or file) with optional blacking-out of private details (`ISSUE_MASKING`), the last few clicks and server requests, and basic browser/server facts, emailed to the operators and never stored. Typed text, passwords, cookies and secret links are never included.
 - **feat**: in-app help at `/docs`, behind login and in the app's theme: 14
