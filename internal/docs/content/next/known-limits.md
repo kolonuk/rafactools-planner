@@ -4,6 +4,7 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
+  - next: Curly quotes, dashes and accents now print on the PDF; only non-Western-European characters do not.
   - next: Added the Report a problem feature, and its limits.
   - next: Role changes, member removal, removing a second half and automatic day labels now exist, so they are no longer listed.
   - next: Password reset and change password now exist, and changing the classifications updates existing months;
@@ -34,7 +35,8 @@ These are not mistakes in how you are using the planner.
 **Output**
 - The PDF is one A4 page. There is no calendar file or other export.
 - No squadron crest or logo image on the PDF (a website address can be shown).
-- Characters outside Western European text may print incorrectly.
+- Characters outside Western European text (for example Greek, Cyrillic or
+  Chinese) print as a question mark on the PDF.
 
 **Site**
 - Problem reports are emailed, not kept in the planner: there is no list of past reports and no status to follow.

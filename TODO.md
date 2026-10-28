@@ -56,9 +56,9 @@ Chromium), plus the "Add a second half" fix. Still to do:
 
 ## Bugs and rough edges
 
-- [ ] **Non-Latin-1 text breaks the PDF.** Smart quotes, em-dashes and
-  accented letters come out as mojibake. Fix with an embedded Unicode font
-  (`AddUTF8Font`).
+- [ ] **PDF: scripts outside Western European text** (Greek, Cyrillic, Chinese)
+  print as `?`. Needs an embedded Unicode font (`AddUTF8Font`); smart quotes,
+  dashes and accents already work.
 - [ ] **Cancel a parade night entirely** once it has rows. Unticking Parade
   leaves the empty rows in the database (harmless, untidy).
 - [ ] **PDF:** multi-week closures and weekend events aren't true merged
