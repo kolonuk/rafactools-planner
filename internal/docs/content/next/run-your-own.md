@@ -59,6 +59,8 @@ Follow [configuration](operators-configuration), [running the site](operators-ru
 and [backups](operators-backups). In short:
 
 1. Generate a long random `SESSION_KEY` (`openssl rand -hex 32`) and keep it secret.
+   Create it **once** and reuse it on every start and redeploy (see
+   [the signing key](#the-signing-key)).
 2. Set `BASE_URL` to the public address, `CLAIM_DOMAIN` to your email domain, and leave
    `COOKIE_SECURE` at its default (`true`).
 3. Give the container a volume for `/data` and take regular backups.
@@ -93,7 +95,7 @@ never put a password or key in a variable.
 
 | Setting | Store it as | Notes |
 | --- | --- | --- |
-| `SESSION_KEY` | **secret** | At least 32 characters. |
+| `SESSION_KEY` | **secret**, in the repository that deploys the site | At least 32 characters. This repository's workflows do not use it: see [the signing key](#the-signing-key). |
 | `SMTP_PASS` | **secret** | Your email provider's password. |
 | `MASTER_ADMIN_PASSWORD` | **secret** | Only if you want a master admin; 12 to 72 characters. |
 | `DADOCK_DEPLOY_TOKEN` | **secret** | Only for the maintainer's stack; used by the `main` workflow. |
@@ -116,6 +118,21 @@ go run ./cmd/devtools github-setup -repo <your-account>/<your-repo> -prefix "" -
 
 Omit `-apply` to only see the commands. The default prefix is `RAFACTOOLS_`, the naming
 used by the maintainer's stack.
+
+## The signing key
+
+`SESSION_KEY` is not set in this repository's workflows (the image build only uses a
+throw-away key to smoke-test). It belongs to **whatever deploys and runs the container**.
+
+- **Redeploying through a deployment repository (for example a Docker stack):** store the
+  key there as a secret, once, and pass it to the container as `SESSION_KEY` on every
+  deploy. Do not generate a new one per deploy: each change makes forms that are open in
+  someone's browser fail once with `Form expired, try again.` (signed-in sessions are
+  kept). Create it with `openssl rand -hex 32`.
+- **Running it yourself on one computer or server (no deployment repository):** generate
+  it once, put it in a `.env` file next to your compose file (`SESSION_KEY=...`) or pass
+  it with `-e SESSION_KEY=...`, keep that file out of version control, and keep a copy
+  with your other settings. Losing it is not a disaster: make a new one and restart.
 
 ## The master admin on your own copy
 
