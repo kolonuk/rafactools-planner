@@ -1,0 +1,28 @@
+{{define "content"}}
+<h1>Remove second half?</h1>
+<p class="muted">{{.DateLabel}} — Half 2's content is different from Half 1's. Removing the second
+  half deletes it. Check before continuing:</p>
+
+<table class="list">
+  <thead><tr><th></th><th>Half 1</th><th>Half 2 (will be deleted)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="row-label">Activity</td>
+      <td>{{range .Activity1}}{{.}}<br>{{end}}</td>
+      <td>{{range .Activity2}}{{.}}<br>{{end}}</td>
+    </tr>
+    <tr>
+      <td class="row-label">Instructor</td>
+      <td>{{range .Instructor1}}{{.}}<br>{{end}}</td>
+      <td>{{range .Instructor2}}{{.}}<br>{{end}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<form method="post" action="{{url "/programmes/" .ProgrammeID "/days/" .DayID "/remove-half"}}" class="inline">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <input type="hidden" name="confirm" value="1">
+  <button type="submit">Yes, remove Half 2</button>
+</form>
+<a href="{{url "/programmes/" .ProgrammeID}}">Cancel</a>
+{{end}}

@@ -94,14 +94,15 @@ type subRowView struct {
 }
 
 type dayView struct {
-	ID          int64
-	DateLabel   string
-	DayLabel    string
-	IsParade    bool
-	UniformKey  string
-	Notes       string
-	SubRows     []subRowView
-	ShowAddHalf bool
+	ID             int64
+	DateLabel      string
+	DayLabel       string
+	IsParade       bool
+	UniformKey     string
+	Notes          string
+	SubRows        []subRowView
+	ShowAddHalf    bool
+	ShowRemoveHalf bool
 }
 
 func buildDayViews(days []programme.Day, canEdit bool) []dayView {
@@ -120,10 +121,33 @@ func buildDayViews(days []programme.Day, canEdit bool) []dayView {
 				}
 			}
 			dv.ShowAddHalf = canEdit && d.Halves == 1
+			dv.ShowRemoveHalf = canEdit && d.Halves == 2
 		}
 		out = append(out, dv)
 	}
 	return out
+}
+
+// instructorOptions is the datalist content for the grid's Instructor row:
+// a generic "All Staff" catch-all plus one entry per registered squadron
+// member (their display name if they've set one, else their email — see
+// TODO.md on why email is the common case right now). Purely a suggestion
+// list — the input stays free text, so anything not listed still works.
+func (s *server) instructorOptions(squadronID int64) []string {
+	options := []string{"All Staff"}
+	members, err := s.Auth.ListMembers(squadronID)
+	if err != nil {
+		log.Printf("list members for instructor options: %v", err)
+		return options
+	}
+	for _, m := range members {
+		name := m.DisplayName
+		if name == "" {
+			name = m.Email
+		}
+		options = append(options, name)
+	}
+	return options
 }
 
 func (s *server) loadProgrammeAndSquadron(w http.ResponseWriter, r *http.Request) (*programme.Squadron, *programme.FullProgramme, bool) {
@@ -171,6 +195,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		"Closures":            fp.Closures,
 		"WeekendNotes":        fp.WeekendNotes,
 		"Requirements":        fp.Requirements,
+		"InstructorOptions":   s.instructorOptions(u.SquadronID),
 	})
 }
 
@@ -201,7 +226,6 @@ func (s *server) programmeSave(w http.ResponseWriter, r *http.Request) {
 		di := programme.DayInput{
 			ID:         d.ID,
 			IsParade:   r.PostForm.Get(prefix+"parade") == "1",
-			DayLabel:   r.PostForm.Get(prefix + "label"),
 			UniformKey: r.PostForm.Get(prefix + "uniform"),
 			Notes:      r.PostForm.Get(prefix + "notes"),
 		}
@@ -246,6 +270,79 @@ func (s *server) dayAddHalf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(progID, 10)), http.StatusSeeOther)
+}
+
+// dayRemoveHalf drops a parade night from 2 halves back to 1. If half 2's
+// content actually differs from half 1's, it doesn't delete anything on the
+// first request — it shows a confirmation page instead (see
+// confirm_remove_half.html), since that's the case where removal silently
+// discards something.
+func (s *server) dayRemoveHalf(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Error", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	progID, ok1 := parseID(r, "id")
+	dayID, ok2 := parseID(r, "dayID")
+	if !ok1 || !ok2 {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid request.")
+		return
+	}
+
+	fp, err := s.Store.GetFullProgramme(u.SquadronID, progID)
+	if err != nil {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That programme doesn't exist.")
+		return
+	}
+	var day *programme.Day
+	for i := range fp.Days {
+		if fp.Days[i].ID == dayID {
+			day = &fp.Days[i]
+			break
+		}
+	}
+	if day == nil || day.Halves != 2 {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That night doesn't have a second half to remove.")
+		return
+	}
+
+	activity1, _ := day.RowByHalfType(1, "activity")
+	instructor1, _ := day.RowByHalfType(1, "instructor")
+	activity2, _ := day.RowByHalfType(2, "activity")
+	instructor2, _ := day.RowByHalfType(2, "instructor")
+	halvesMatch := stringSlicesEqual(activity1.Texts, activity2.Texts) && stringSlicesEqual(instructor1.Texts, instructor2.Texts)
+
+	if r.FormValue("confirm") != "1" && !halvesMatch {
+		s.render(w, r, "confirm_remove_half", "Remove second half?", map[string]any{
+			"ProgrammeID": progID,
+			"DayID":       dayID,
+			"DateLabel":   day.Date,
+			"Activity1":   activity1.Texts,
+			"Instructor1": instructor1.Texts,
+			"Activity2":   activity2.Texts,
+			"Instructor2": instructor2.Texts,
+		})
+		return
+	}
+
+	if err := s.Store.RemoveHalf(u.SquadronID, progID, dayID); err != nil {
+		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not remove half.")
+		return
+	}
+	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(progID, 10)), http.StatusSeeOther)
+}
+
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *server) programmePDF(w http.ResponseWriter, r *http.Request) {

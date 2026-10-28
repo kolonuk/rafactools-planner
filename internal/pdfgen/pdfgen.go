@@ -150,6 +150,12 @@ func drawTitleBand(pdf *fpdf.Fpdf, sq *programme.Squadron, fp *programme.FullPro
 	pdf.CellFormat(usableWidth, 7, sq.Name, "0", 1, "C", false, 0, "")
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.CellFormat(usableWidth, 4.5, sq.Subtitle, "0", 1, "C", false, 0, "")
+	if sq.WebsiteURL != "" {
+		pdf.SetFont("Helvetica", "", 7)
+		pdf.SetTextColor(70, 100, 150)
+		pdf.CellFormat(usableWidth, 4, sq.WebsiteURL, "0", 1, "C", false, 0, sq.WebsiteURL)
+		pdf.SetTextColor(0, 0, 0)
+	}
 	pdf.SetFont("Helvetica", "BU", 11)
 	pdf.CellFormat(usableWidth, 6, fmt.Sprintf("%s %d", monthNames[fp.Month], fp.Year), "0", 1, "C", false, 0, "")
 }
