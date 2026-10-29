@@ -32,13 +32,37 @@ jobs:
     name: Build, scan and push image
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write # test only: commit the release snapshot back to the branch
       packages: write
-      pull-requests: read # for the app-version PR-number lookup below
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # A release is a push to test. If the docs or CHANGELOG.md hold anything
+      # unreleased, freeze them as the next 1.N (go run ./cmd/devtools release),
+      # commit that to test and build with it. Pushes made with GITHUB_TOKEN do
+      # not start another run. Moving test to main later is an ordinary push and
+      # keeps the version; dev never releases.
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        if: github.ref_name == 'test'
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Cut the release (test only)
+        id: release
+        if: github.ref_name == 'test'
+        run: |
+          go run ./cmd/devtools release | tee "$RUNNER_TEMP/release.out" >> "$GITHUB_OUTPUT"
+          if grep -qx 'released=true' "$RUNNER_TEMP/release.out"; then
+            VERSION="$(sed -n 's/^version=//p' "$RUNNER_TEMP/release.out")"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A internal/docs/content CHANGELOG.md
+            git commit -m "release ${VERSION}: freeze the docs and changelog [skip ci]"
+            git push origin HEAD:refs/heads/test
+          fi
 
       - name: Compute image tags
         id: meta
@@ -63,17 +87,17 @@ jobs:
             echo "extra_tags=" >> "$GITHUB_OUTPUT"
           fi
           # App version shown in the web/PDF footers. A release is the newest
-          # frozen docs snapshot (internal/docs/content/1.N, made with
+          # frozen docs snapshot (cut on test just above) (internal/docs/content/1.N, made with
           # "go run ./cmd/devtools docs-snapshot 1.N"), so the footer, the docs
           # version list and CHANGELOG.md always agree. main shows exactly that
-          # version; dev and test add the commit, "1.N+<sha>", because they run
-          # work that may not be released yet. Nothing here asks the GitHub API,
+          # version, as does test (which cuts it); dev adds the commit,
+          # "1.N+<sha>", because it runs work that may not be released yet. Nothing here asks the GitHub API,
           # so there is no call that can fail and poison the linker flags.
           RELEASE="$(find internal/docs/content -mindepth 1 -maxdepth 1 -type d -name '1.*' -printf '%f\n' | grep -E '^1\.[0-9]+$' | sort -t. -k2 -n | tail -n 1)"
           if [ -z "$RELEASE" ]; then
             RELEASE="1.0"
           fi
-          if [ "${ENV_TAG}" = "main" ]; then
+          if [ "${ENV_TAG}" = "main" ] || [ "${ENV_TAG}" = "test" ]; then
             echo "app_version=${RELEASE}" >> "$GITHUB_OUTPUT"
           else
             echo "app_version=${RELEASE}+${SHORT_SHA}" >> "$GITHUB_OUTPUT"

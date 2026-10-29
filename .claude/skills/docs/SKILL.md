@@ -105,15 +105,17 @@ Decided once; do not relitigate without a reason that beats these:
 9. **Verify before writing.** Read the code or run the app for every claim — do
    not write from memory or from `TODO.md`. A number in the docs (days, limits,
    characters) must be traced to the constant in code.
-10. **Releases snapshot the docs.** When the owner designates a release
-    (`1.<N>`, the next number after the newest snapshot), run
-    `go run ./cmd/devtools docs-snapshot <version>` in the change that releases it.
-    deploy.yml shows the newest snapshot's version in the footer. It relabels `next` entries and `since: next` to the new version in both
-    the working copy and the snapshot, copies `next/` to `<version>/`, and runs
-    the docs tests. Read the snapshot in the running app, commit it, and never
-    edit it afterwards except to fix a factual error or a security-relevant
-    inaccuracy — and record that fix in its `changed:` list. A build whose
-    version has no snapshot shows the newest docs instead.
+10. **Releases snapshot the docs, in the pipeline.** A push to `test` is a release: the
+    workflow runs `go run ./cmd/devtools release`, which, if the docs have `next` entries
+    or CHANGELOG.md has a `## Unreleased` section with content, freezes them as the next
+    `1.<N>` (relabelling `next` entries and `since: next` in the working copy and the
+    snapshot, copying `next/` to `<N>/`, renaming the changelog heading) and commits that
+    to `test`. Never run `docs-snapshot` by hand for a release; keep writing `next`
+    entries and CHANGELOG `## Unreleased` lines. `test` to `main` is an ordinary push
+    that keeps the version; `dev` shows `1.<N>+<commit>`. After a release, merge `test`
+    back into `dev` so the relabelled docs do not conflict. Never edit a snapshot except
+    to fix a factual or security-relevant error, recorded in its `changed:` list. A build
+    whose version has no snapshot shows the newest docs instead.
 11. **Done means checked.** Before saying done: run `go test ./internal/docs
     ./internal/web`, read the rendered page in the running app (or the test
     output) for each page you touched, and confirm the page list, version

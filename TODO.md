@@ -147,9 +147,9 @@ Roughly ordered by value for the effort.
     optional change log.
 10. **[P3 usability]** **Documentation, next steps.** The versioned in-app docs exist
     (`/docs`, see `.claude/skills/docs/SKILL.md`). Still to do: add pages for
-    each feature on this list as it is built; take the first release snapshot
-    with `go run ./cmd/devtools docs-snapshot 1.<N>` once a release is
-    designated, so the version selector and compare view have something to
+    each feature on this list as it is built; releases are cut by the pipeline on test (
+    `devtools release`); the first one (1.9) exists, so the version selector and compare view have something to
+    compare;
     compare; link relevant screens to their help page; images/screenshots
     (not supported yet); in-docs search (a first-party script is now allowed).
 
