@@ -4,6 +4,7 @@ order: 85
 summary: How to report something that went wrong, what is sent, what is never sent, and how screenshots and masking work.
 since: 1.9
 changed:
+  - 1.9: Reports now default to issues@ the site's domain.
   - 1.9: The screenshot step is boxed and spelled out on the form, with a Take a screenshot now button, and Report a problem is in the top bar.
   - 1.9: Reports can say how much it matters and whether it happens every time, and carry a request reference, page load timings, failed requests, and the size (never the text) of the programme being viewed.
 ---
@@ -94,7 +95,7 @@ A report contains:
 
 ## For the person who runs the site
 
-- Set `ISSUE_EMAIL` to the address that should receive reports. Without it the feature is off.
+- Reports go to `issues@` followed by the site's domain (the host of `BASE_URL`, or `SITE_DOMAIN`), so create that mailbox or alias. Set `ISSUE_EMAIL` to use a different address, or to `none` to switch the feature off. On `localhost` it is off.
   Set `ISSUE_MASKING` to `false` to remove the blackout option (default `true`). See
   [configuration](operators-configuration).
 - The email has a readable text body and attachments: `context.json` (the same facts in

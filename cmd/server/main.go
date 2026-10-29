@@ -43,13 +43,20 @@ func main() {
 	// simply is not created (never a weak or wrong one).
 	switch {
 	case cfg.MasterAdminEmail == "" && cfg.MasterAdminPassword == "":
-	case cfg.MasterAdminEmail == "" || cfg.MasterAdminPassword == "":
-		log.Printf("ERROR master admin: MASTER_ADMIN_EMAIL and MASTER_ADMIN_PASSWORD must both be set; no master admin configured")
+	case cfg.MasterAdminEmail == "":
+		log.Printf("ERROR master admin: MASTER_ADMIN_EMAIL must be set; no master admin configured")
 	default:
 		if result, err := authSvc.EnsureMasterAdmin(cfg.MasterAdminEmail, cfg.MasterAdminPassword); err != nil {
 			log.Printf("ERROR master admin NOT configured: %v", err)
 		} else {
 			log.Printf("master admin: %s (%s)", result, cfg.MasterAdminEmail)
+			if cfg.MasterAdminResetPassword {
+				if err := authSvc.ResetMasterPassword(cfg.MasterAdminEmail, cfg.MasterAdminPassword); err != nil {
+					log.Printf("ERROR master admin password reset: %v", err)
+				} else {
+					log.Printf("master admin: stored password replaced (MASTER_ADMIN_RESET_PASSWORD); remove that setting")
+				}
+			}
 			if cfg.MasterAdminReset2FA {
 				if changed, err := authSvc.ResetTOTPFor(cfg.MasterAdminEmail); err != nil {
 					log.Printf("ERROR master admin two-step reset: %v", err)

@@ -4,6 +4,7 @@ order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
 changed:
+  - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.
   - 1.9: Every save, reset and restore is kept as a version; the History page lists them (who, when, what) and any can be restored. The draft status is gone: every month is live.
   - 1.9: This month is made automatically when anyone signs in; past months cannot be created.
   - 1.9: Ticking Parade shows the night's rows straight away; nothing is saved until Save. "Show parade evenings only" is a switch, on by default.
@@ -93,14 +94,13 @@ date of each parade night, open **Move**, choose the date and select
 
 What happens:
 
-- The Activity and Instructor text of both halves moves, and so does the number
-  of halves. The date itself keeps its day label, uniform and notes.
+- The whole night moves: the Activity and Instructor text of both halves, the
+  number of halves, the uniform and the night's notes. The date and weekday shown
+  are those of the date it now sits on.
 - It is a **swap**, so nothing is overwritten. If the other date already has
-  activities, the two dates trade places; if it is empty, the activities simply
-  move and the first date is left empty.
-- If the date you move to was not a parade night, it becomes one. The date you
-  moved from stays a parade night; untick **Parade** on it if you no longer
-  need it.
+  activities, the two nights trade places and both stay parade nights.
+- If the date you move to was not a parade night, it becomes one, and the date you
+  moved from stops being one, because the parade is no longer on that date.
 - Anything else you have typed on the page but not yet saved is saved first when
   you use drag and drop, so it is not lost. With the **Move** control, select
   **Save programme** first, because that button reloads the page.

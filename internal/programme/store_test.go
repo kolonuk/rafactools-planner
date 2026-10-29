@@ -625,13 +625,45 @@ func TestMoveDayContentToANonParadeDayMakesItAParadeNight(t *testing.T) {
 	if gd.DayLabel != plain[0].DayLabel || gd.DayLabel == "" {
 		t.Errorf("day label changed or empty: %q (was %q); labels come from the calendar date and must not move", gd.DayLabel, plain[0].DayLabel)
 	}
-	// The source stays a parade night, now empty, ready to be unticked or refilled.
-	if !gs.IsParade || text(gs, 1, "activity") != "" {
+	// The night moved, so the source is no longer a parade night.
+	if gs.IsParade || text(gs, 1, "activity") != "" {
 		t.Errorf("source: parade=%v activity=%q", gs.IsParade, text(gs, 1, "activity"))
 	}
 	// Per-classification text slots are intact on the new night.
 	if r, _ := gd.RowByHalfType(1, "activity"); len(r.Texts) != 4 {
 		t.Errorf("target row has %d text slots, want 4", len(r.Texts))
+	}
+}
+
+func TestMoveDayContentCarriesUniformAndNotes(t *testing.T) {
+	st, _ := newStore(t)
+	p := mustProg(t, st, 1, 2030, 4)
+	parade, plain := splitDays(t, st, 1, p.ID)
+	src, dst := parade[0], plain[0]
+	setTexts(t, st, 1, p.ID, src, "Camp prep", "Fg Off C")
+	if _, err := st.db.Exec(`UPDATE programme_days SET uniform_key = 'blues', notes = 'Bring boots' WHERE id = ?`, src.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.MoveDayContent(1, p.ID, src.ID, dst.ID); err != nil {
+		t.Fatal(err)
+	}
+	gd, gs := dayByID(t, st, 1, p.ID, dst.ID), dayByID(t, st, 1, p.ID, src.ID)
+	if gd.UniformKey != "blues" || gd.Notes != "Bring boots" {
+		t.Errorf("target uniform/notes = %q/%q", gd.UniformKey, gd.Notes)
+	}
+	if gs.UniformKey != "" || gs.Notes != "" {
+		t.Errorf("source kept uniform/notes %q/%q", gs.UniformKey, gs.Notes)
+	}
+	// Moving onto another parade night swaps whole nights and keeps both ticked.
+	other := parade[1]
+	if err := st.MoveDayContent(1, p.ID, dst.ID, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	if o := dayByID(t, st, 1, p.ID, other.ID); o.UniformKey != "blues" || !o.IsParade {
+		t.Errorf("swapped target: uniform %q parade %v", o.UniformKey, o.IsParade)
+	}
+	if d := dayByID(t, st, 1, p.ID, dst.ID); !d.IsParade {
+		t.Error("swap unticked the other parade night")
 	}
 }
 

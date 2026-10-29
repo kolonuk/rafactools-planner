@@ -39,9 +39,9 @@ links during that first run, so do it on a host only you can reach.)
 | `MAIL_PROVIDER` | `smtp` (default), `cloudflare`, `gmail`, `google-workspace` or `ses`. A preset fills in the host, port and (where fixed) the login name. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` | Set only to override a preset or for plain `smtp`. Anything set explicitly beats the preset. |
 | `SMTP_PASS` | The password or token. **A secret**: never a plain variable. |
-| `MAIL_FROM` | The address mail is sent as. Must be on a domain your provider has verified. |
+| `MAIL_FROM` | The address mail is sent as. Must be on a domain your provider has verified. Default: `no-reply@` plus the site's domain (`SITE_DOMAIN`, else the host of `BASE_URL`). |
 | `SES_REGION` | Only for `ses`: the AWS region of your SES account, for example `eu-west-2`. |
-| `ISSUE_EMAIL` | Where problem reports are sent (see [report a problem](report-a-problem)). |
+| `ISSUE_EMAIL` | Where problem reports are sent (see [report a problem](report-a-problem)). Default: `issues@` plus the site's domain; `none` switches reporting off. |
 
 Port `465` uses TLS from the first byte; other ports start in plain text and upgrade with STARTTLS.
 The site never sends a password over an unencrypted connection.

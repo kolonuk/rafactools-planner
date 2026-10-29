@@ -20,6 +20,8 @@ baseline instead of per-entry.
 - **feat**: the PDF prints only ticked nights and merges a closed day into one block; emoji are safe in every text field (printed as ? in the PDF).
 - **feat**: Report a problem: a clearer screenshot step and a button in the top bar.
 - **fix**: the Docker image runs as a non-root user (Trivy DS-0002); CI installs the stylelint config it needs; saving the grid no longer blanks hidden rows of unticked nights; the master admin is never given a programme.
+- **feat**: the master admin password setting only seeds the account; the stored password has priority (MASTER_ADMIN_RESET_PASSWORD recovers). New SITE_DOMAIN: no-reply@ and issues@ default to the site domain (ISSUE_EMAIL=none switches reporting off).
+- **fix**: moving a night carries its uniform and notes, and un-ticks the date it left.
 - **chore**: docs and version history now show the real version (1.9) instead of "Unreleased"; the problem-report address defaults to issues@rafac.mod.gov.uk in the GitHub setup helper.
 - **security**: the authenticator secret is encrypted in the database; sign-ins are listed apart from the security log so frequent sign-ins or password guessing cannot push rarer events off it; failed-login entries are collapsed to one per account every five minutes; connections to the mail server have timeouts and STARTTLS is used whenever offered.
 - **fix**: the top bar and tables wrapped badly on a phone and made every page scroll sideways; `/health` now fails (503) when the database does not answer.

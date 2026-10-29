@@ -42,7 +42,6 @@ This repository builds the app and its container image and stops there. Hosting,
 TLS, secrets and redeploying belong to whoever runs the image (the docs page
 "Run your own copy" says what the image needs), so they are not tracked here.
 
-
 - [ ] **[P4 nicety]** **Later: version check.** Two parts, to be done together, not yet:
   1. A repo skill (`.claude/skills/version-check`) saying when and how the
      version must change (what counts as a user-visible change, how the
@@ -78,7 +77,7 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
   and configure mail on a brand-new site without `ALLOW_LOG_MAIL`.
 - [ ] **[P3 usability]** **Alibaba Cloud DirectMail preset** if wanted (the request said
   "Cloudflare Ali"; read as the Cloudflare API/SMTP). Needs its regional SMTP host.
-- [ ] **[P3 usability]** **Day/week label after a move.** When a row is dragged or moved to another night, decide whether its day/week label should follow (labels are bound to dates today). Waiting on a decision.
+
 - [ ] **[P2 helpful feature]** **Compare two programme versions** side by side on the history page (today you can only restore).
 - [ ] **[P1 security]** **Confirm the sender domain** for `issues@rafac.mod.gov.uk` (SPF/DKIM/DMARC) before relying on problem reports reaching it.
 - [ ] **[P3 usability]** **Phone layout for the programme grid and a browser test that guards it.** The top
@@ -183,8 +182,8 @@ lines are built and tested. What is left, and why it is not done here:
   was pasted there, so treat it as exposed; the app needs 12 to 72 characters, so
   that one is refused (and the log says why). Pick a new one and give it to the
   host as the `MASTER_ADMIN_PASSWORD` secret (`go run ./cmd/devtools github-setup`
-  helps create the GitHub settings). The app creates or updates the account on
-  every start.
+  helps create the GitHub settings). The app creates the account from it on the first
+  start; after that the password stored in the database has priority.
 - [x] **Issue reporting** (done: "Report a problem", emailed to `ISSUE_EMAIL`, not stored).
 - [ ] **[P3 usability]** **Let the master admin act as an editor or owner** in a squadron when
   helping fix something (today it is strictly read-only, on purpose). If added,

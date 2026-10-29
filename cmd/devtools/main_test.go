@@ -99,7 +99,7 @@ func TestGithubSetupSettings(t *testing.T) {
 	}
 	for name, kind := range map[string]string{
 		"RAFACTOOLS_MASTER_ADMIN_EMAIL": "variable", "RAFACTOOLS_MASTER_ADMIN_PASSWORD": "secret",
-		"RAFACTOOLS_ISSUE_EMAIL": "variable", "RAFACTOOLS_ISSUE_MASKING": "variable",
+		"RAFACTOOLS_SITE_DOMAIN": "variable", "RAFACTOOLS_ISSUE_MASKING": "variable",
 	} {
 		if byName[name].Kind != kind {
 			t.Errorf("%s is %q, want %q", name, byName[name].Kind, kind)

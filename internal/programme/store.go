@@ -759,9 +759,11 @@ func isUnique(err error) bool {
 // target simply receives the content and the source is left empty, while a
 // target that already has activities trades places with the source.
 //
-// What moves is the Activity and Instructor text of both halves and how many
-// halves the night has. The night itself (date, day label, uniform, notes)
-// stays where it is. A target that was not a parade night becomes one.
+// The whole night travels: the Activity and Instructor text of both halves,
+// how many halves it has, its uniform and its notes. Dates and day labels
+// belong to the calendar, so the moved night shows the new date and weekday.
+// A target that was not a parade night becomes one and the source, now empty,
+// stops being one (it is no longer a parade night); in a swap both stay.
 // All-or-nothing: any failure changes nothing.
 func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64) error {
 	if fromDayID == toDayID {
@@ -778,15 +780,17 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 	type dayRow struct {
 		isParade bool
 		halves   int
+		uniform  string
+		notes    string
 	}
 	days := map[int64]dayRow{}
 	for _, id := range []int64{fromDayID, toDayID} {
 		var d dayRow
 		var parade int
-		err := tx.QueryRow(`SELECT pd.is_parade, pd.halves
+		err := tx.QueryRow(`SELECT pd.is_parade, pd.halves, pd.uniform_key, pd.notes
 			FROM programme_days pd JOIN programmes p ON p.id = pd.programme_id
 			WHERE pd.id = ? AND pd.programme_id = ? AND p.squadron_id = ?`, id, programmeID, squadronID).
-			Scan(&parade, &d.halves)
+			Scan(&parade, &d.halves, &d.uniform, &d.notes)
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		} else if err != nil {
@@ -867,12 +871,17 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 		return err
 	}
 
-	// Halves travel with the content, and the target becomes a parade night.
-	// (Day labels are set once from the calendar date and never change.)
-	if _, err := tx.Exec(`UPDATE programme_days SET halves = ? WHERE id = ?`, to.halves, fromDayID); err != nil {
+	// Halves, uniform and notes travel with the content, and the target becomes
+	// a parade night. (Day labels follow the calendar date, so they already
+	// show the right weekday for where the night now is.)
+	sourceParade := 1
+	if !to.isParade {
+		sourceParade = 0
+	}
+	if _, err := tx.Exec(`UPDATE programme_days SET halves = ?, uniform_key = ?, notes = ?, is_parade = ? WHERE id = ?`, to.halves, to.uniform, to.notes, sourceParade, fromDayID); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`UPDATE programme_days SET halves = ?, is_parade = 1 WHERE id = ?`, from.halves, toDayID); err != nil {
+	if _, err := tx.Exec(`UPDATE programme_days SET halves = ?, uniform_key = ?, notes = ?, is_parade = 1 WHERE id = ?`, from.halves, from.uniform, from.notes, toDayID); err != nil {
 		return err
 	}
 	// A one-half night must not keep spare half-2 rows: AddHalf only clones

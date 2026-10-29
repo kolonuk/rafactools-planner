@@ -67,6 +67,9 @@ func ResolveMail(get func(string) string) (MailSettings, error) {
 	explicitFrom := m.From != ""
 	if m.From == "" {
 		m.From = "no-reply@rafactools-planner.local"
+		if d := SiteDomain(get); d != "" {
+			m.From = "no-reply@" + d
+		}
 	}
 
 	portText := val("SMTP_PORT")
