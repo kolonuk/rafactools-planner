@@ -24,7 +24,7 @@ version X can read the docs as they were at X and compare with any other version
 ```
 internal/docs/content/
   next/            the working copy: edited in place, shown as "Unreleased"
-  1.42/            frozen snapshot taken at release 1.42 (version = 1.<PR number>)
+  1.42/            frozen snapshot taken at release 1.42 (version = 1.<N>, the release number)
   ...
 ```
 
@@ -106,8 +106,9 @@ Decided once; do not relitigate without a reason that beats these:
    not write from memory or from `TODO.md`. A number in the docs (days, limits,
    characters) must be traced to the constant in code.
 10. **Releases snapshot the docs.** When the owner designates a release
-    (`1.<PR number>`), run `go run ./cmd/devtools docs-snapshot <version>` in that
-    PR. It relabels `next` entries and `since: next` to the new version in both
+    (`1.<N>`, the next number after the newest snapshot), run
+    `go run ./cmd/devtools docs-snapshot <version>` in the change that releases it.
+    deploy.yml shows the newest snapshot's version in the footer. It relabels `next` entries and `since: next` to the new version in both
     the working copy and the snapshot, copies `next/` to `<version>/`, and runs
     the docs tests. Read the snapshot in the running app, commit it, and never
     edit it afterwards except to fix a factual error or a security-relevant

@@ -1,8 +1,9 @@
 # Version history
 
-Format: each entry is `1.<PR number>` — the GitHub PR that merged it (see
-`.github/workflows/deploy.yml`, which computes this at build time and bakes
-it into the running binary's footer/PDF-footer version string). Entries
+Format: each entry is a release `1.<N>`, the same number as its docs snapshot
+(`internal/docs/content/1.<N>`). `.github/workflows/deploy.yml` bakes the newest
+snapshot's version into the footer and PDF footer: `main` shows `1.<N>`, `dev` and
+`test` show `1.<N>+<commit>`. Entries
 grouped by type: **feat** (new capability), **fix** (bug), **chore**
 (infra/tooling/docs, no behaviour change for users), **security**.
 

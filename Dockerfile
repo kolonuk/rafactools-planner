@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # VERSION -> internal/version.Version (shown in the web and PDF footers).
-# "1.<PR number>" set by deploy.yml for a real build; defaults to "dev" for
+# "1.<N>" (main) or "1.<N>+<commit>" (dev, test) set by deploy.yml for a real build; defaults to "dev" for
 # a local `docker build .` with no --build-arg.
 ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux go build \
