@@ -112,7 +112,8 @@ Decided once; do not relitigate without a reason that beats these:
     snapshot, copying `next/` to `<N>/`, renaming the changelog heading) and commits that
     to `test`. Never run `docs-snapshot` by hand for a release; keep writing `next`
     entries and CHANGELOG `## Unreleased` lines. `test` to `main` is an ordinary push
-    that keeps the version; `dev` shows `1.<N>+<commit>`. The pipeline merges the
+    that keeps the version. Always promote dev, then test, then main, waiting for CI on each
+    (the pipeline's promotion gate refuses anything else); `dev` shows `1.<N>+<commit>`. The pipeline merges the
     release commit back into `dev` itself. Never edit a snapshot except
     to fix a factual or security-relevant error, recorded in its `changed:` list. A build
     whose version has no snapshot shows the newest docs instead.

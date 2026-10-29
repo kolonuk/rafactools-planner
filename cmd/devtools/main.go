@@ -4,6 +4,7 @@
 //	go run ./cmd/devtools docs-check            PR gate: docs must change with user-visible code
 //	go run ./cmd/devtools docs-snapshot 1.42    freeze the working docs as release 1.42
 //	go run ./cmd/devtools release              pipeline (test branch): cut the next release if anything is pending
+//	go run ./cmd/devtools promotion-gate      pipeline (test, main): refuse a commit that skipped the previous stage
 //	go run ./cmd/devtools validate-html         validate rendered pages with html-validate
 //	go run ./cmd/devtools github-setup [-apply] create the master admin variable and secret on GitHub
 //
@@ -28,6 +29,8 @@ func main() {
 			usage()
 		}
 		err = runDocsSnapshot(os.Args[2])
+	case "promotion-gate":
+		err = runPromotionGate()
 	case "release":
 		err = runRelease()
 	case "validate-html":
@@ -44,6 +47,6 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: devtools docs-check | docs-snapshot 1.<number> | release | validate-html | github-setup [-repo owner/name] [-prefix X_] [-apply]")
+	fmt.Fprintln(os.Stderr, "usage: devtools docs-check | docs-snapshot 1.<number> | release | promotion-gate | validate-html | github-setup [-repo owner/name] [-prefix X_] [-apply]")
 	os.Exit(2)
 }

@@ -28,7 +28,9 @@ Chromium), plus the "Add a second half" fix. Still to do:
   `test` and `main`. Blocked: the API refuses it (403) because it needs GitHub
   Pro or a public repo, the same limit that stops CodeQL results uploading.
   The repo must stay private (see the PDF anonymisation history), so this needs
-  a plan upgrade.
+  a plan upgrade. Until then the pipeline's promotion gate (deploy.yml, `devtools promotion-gate`)
+  stops a push to `test` or `main` that skipped the previous stage from being built or published,
+  but cannot stop the push itself.
 
 ## The app and its image
 

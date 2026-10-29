@@ -26,6 +26,8 @@ baseline instead of per-entry.
 - **fix**: Report a problem opens the form straight away. It used to wait for the browser's screen-sharing prompt first, which looked like the link doing nothing; take the screenshot from the form instead.
 - **fix**: when the site's address has no real domain, the problem-report address falls back to the domain of `MAIL_FROM`.
 - **chore**: a release also merges itself back into dev.
+- **chore**: promotion order is enforced: a push to `test` must already be on `dev` with CI passed, and a push to `main` on `test`, or nothing is built or published (`devtools promotion-gate`).
+- **chore**: this repository no longer knows about the host that runs the image. It only publishes to GHCR (`dev-latest`, `test-latest`, `main-latest`, and `latest` from main); whatever runs it pulls from there.
 
 ## 1.9
 
