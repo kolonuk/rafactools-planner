@@ -1,6 +1,7 @@
-# Builds the image, smoke-tests it, scans it and pushes it to GHCR tagged by
-# branch. Running the image is somebody else's job: this repository only
-# produces the app and its container image.
+# Builds the image, smoke-tests it, pushes to GHCR tagged by branch, and —
+# for main only — dispatches dadock's deploy workflow so the running stack
+# picks up the new image. dev/test pushes stop at GHCR: there's no separate
+# dev/test host wired up yet (see TODO.md "Three real environments").
 name: Build and deploy
 
 on:
@@ -33,6 +34,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pull-requests: read # for the app-version PR-number lookup below
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
     steps:
@@ -45,13 +47,18 @@ jobs:
         run: |
           SHORT_SHA="$(echo "${{ github.sha }}" | cut -c1-12)"
           ENV_TAG="${{ github.ref_name }}"
+          # shellcheck disable=SC2153 # IMAGE_NAME is the workflow-level env var set in the `env:` block above, not a typo for IMAGE_BASE
           IMAGE_BASE="${REGISTRY}/${IMAGE_NAME}"
-          echo "short_sha=${SHORT_SHA}"                       >> "$GITHUB_OUTPUT"
-          echo "image_base=${IMAGE_BASE}"                     >> "$GITHUB_OUTPUT"
-          echo "image_ref=${IMAGE_BASE}:${ENV_TAG}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "env_tag=${ENV_TAG}"                           >> "$GITHUB_OUTPUT"
-          # Hosts commonly pin a bare :latest — only main should ever move
-          # that tag, so dev/test pushes don't silently become what they pull.
+          {
+            echo "short_sha=${SHORT_SHA}"
+            echo "image_base=${IMAGE_BASE}"
+            echo "image_ref=${IMAGE_BASE}:${ENV_TAG}-${SHORT_SHA}"
+            echo "env_tag=${ENV_TAG}"
+          } >> "$GITHUB_OUTPUT"
+          # dadock's docker-compose.yml pins this service by a bare :latest
+          # (same convention as johnwood/sbcwaste) — only main should ever
+          # move that tag, so dev/test pushes don't silently become what
+          # dadock's "1. Deploy docker stack" pulls.
           if [ "${ENV_TAG}" = "main" ]; then
             echo "extra_tags=${IMAGE_BASE}:latest" >> "$GITHUB_OUTPUT"
           else
@@ -64,7 +71,22 @@ jobs:
           # PR (this project's history before branch protection existed, or
           # a manual workflow_dispatch rebuild) fall back to the short SHA —
           # still unique, just not a PR number.
+          #
+          # This call failing (wrong token scope, API hiccup, anything) once
+          # actually broke the Docker build outright: `gh api`'s error body
+          # — {"message":"...",...} — came through on stdout rather than
+          # being swallowed by `2>/dev/null`, so $PR_NUMBER became that raw
+          # JSON text, which then got baked straight into -ldflags. The `||
+          # true` only stops the *shell* from treating that as a failure; it
+          # does nothing about the captured value being garbage. Never trust
+          # command substitution output to be what you asked for without
+          # checking its shape — validate it's purely numeric before using
+          # it anywhere, especially somewhere as unforgiving as an -ldflags
+          # string passed straight to the linker.
           PR_NUMBER="$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0].number // empty' 2>/dev/null || true)"
+          case "$PR_NUMBER" in
+            ''|*[!0-9]*) PR_NUMBER="" ;; # empty, or contains anything but digits — not a real PR number
+          esac
           if [ -n "$PR_NUMBER" ]; then
             echo "app_version=1.${PR_NUMBER}" >> "$GITHUB_OUTPUT"
           else
@@ -88,11 +110,10 @@ jobs:
         run: |
           docker run -d --name smoke -p 18081:8080 \
             -e SESSION_KEY=ci-smoke-test-session-key-not-for-prod-use \
-            -e ALLOW_LOG_MAIL=true \
             -e COOKIE_SECURE=false \
             "${{ steps.meta.outputs.image_ref }}"
           code=""
-          for i in $(seq 1 10); do
+          for _ in $(seq 1 10); do
             code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18081/health || true)"
             [ "$code" = "200" ] && break
             sleep 1
@@ -148,3 +169,32 @@ jobs:
           package-name: "rafactools-planner"
           package-type: "container"
           min-versions-to-keep: 10
+
+  trigger-dadock-deploy:
+    name: Reload the dadock stack
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      # Was main-only until this comment changed — dev/test pushes built and
+      # pushed a new dev-latest/test-latest image but never actually told
+      # dadock to pull it, so rafactools-dev/rafactools-test kept running
+      # whatever was live at last manual trigger indefinitely. dadock's
+      # "1. Deploy docker stack" reconciles the *whole* stack against
+      # whatever each service's compose entry is pinned to (dev/test/main
+      # each pin a different tag — see dadock's docker-compose.yml), so
+      # running it for any of the three branches is the correct, safe thing
+      # regardless of which one triggered this.
+      #
+      # DADOCK_DEPLOY_TOKEN is a fine-grained PAT scoped to Actions:write on
+      # kolonuk/dadock only, same secret/pattern used by sbcwaste.top and
+      # johnwood.dev. Set it as a repo secret here to enable auto-redeploy;
+      # without it this step just prints a reminder to pull manually.
+      - name: Dispatch dadock deploy workflow
+        env:
+          GH_TOKEN: ${{ secrets.DADOCK_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "DADOCK_DEPLOY_TOKEN not set - skipping dadock reload. Pull the new image manually." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh workflow run "1. Deploy docker stack" --repo kolonuk/dadock
