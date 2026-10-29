@@ -4,7 +4,7 @@ order: 85
 summary: How to report something that went wrong, what is sent, what is never sent, and how screenshots and masking work.
 since: 1.9
 changed:
-  - next: Selecting Report a problem opens the form straight away; there is no longer a screen-sharing prompt before it. Take the screenshot from the form.
+  - 1.10: Selecting Report a problem opens the form straight away; there is no longer a screen-sharing prompt before it. Take the screenshot from the form.
   - 1.9: Reports now default to issues@ the site's domain.
   - 1.9: The screenshot step is boxed and spelled out on the form, with a Take a screenshot now button, and Report a problem is in the top bar.
   - 1.9: Reports can say how much it matters and whether it happens every time, and carry a request reference, page load timings, failed requests, and the size (never the text) of the programme being viewed.

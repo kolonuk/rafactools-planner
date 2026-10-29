@@ -4,7 +4,7 @@ order: 10
 summary: Claiming a squadron and confirming your email.
 since: 1.0
 changed:
-  - next: The claim form has an optional Your name box.
+  - 1.10: The claim form has an optional Your name box.
 ---
 # Getting started
 
