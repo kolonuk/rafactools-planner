@@ -238,3 +238,46 @@ func TestSendTestOnTheWire(t *testing.T) {
 		t.Errorf("test message:\n%s", f.data)
 	}
 }
+
+func TestAServerThatNeverAnswersTimesOutInsteadOfHanging(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			defer c.Close() // accept, then say nothing at all
+		}
+	}()
+	old := ioTimeout
+	ioTimeout = 300 * time.Millisecond
+	defer func() { ioTimeout = old }()
+
+	host, port, _ := net.SplitHostPort(ln.Addr().String())
+	p, _ := strconv.Atoi(port)
+	done := make(chan error, 1)
+	go func() { done <- Sender{Host: host, Port: p, From: "a@example.org"}.SendTest("b@example.org") }()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Error("a silent server was reported as success")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("sending hung on a server that never answers")
+	}
+}
+
+func TestConnectionRefusedIsAnError(t *testing.T) {
+	ln, _ := net.Listen("tcp", "127.0.0.1:0")
+	host, port, _ := net.SplitHostPort(ln.Addr().String())
+	ln.Close()
+	p, _ := strconv.Atoi(port)
+	if err := (Sender{Host: host, Port: p, From: "a@example.org"}).SendTest("b@example.org"); err == nil {
+		t.Error("connection refused was not reported")
+	}
+}

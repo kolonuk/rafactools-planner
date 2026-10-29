@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/csv"
 	"errors"
 	"log"
 	"net/http"
@@ -38,9 +39,13 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auditEntries, err := s.Auth.ListAudit(u.SquadronID, 50)
+	auditEntries, err := s.Auth.ListAuditSecurity(u.SquadronID, 100)
 	if err != nil {
 		log.Printf("list audit for squadron %d: %v", u.SquadronID, err)
+	}
+	signIns, err := s.Auth.ListSignIns(u.SquadronID, 30)
+	if err != nil {
+		log.Printf("list sign-ins for squadron %d: %v", u.SquadronID, err)
 	}
 
 	paradeSet := map[int]bool{}
@@ -65,6 +70,7 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 		"Members":             members,
 		"Invites":             inviteRows,
 		"Audit":               auditEntries,
+		"SignIns":             signIns,
 		"WeekdayOptions":      weekdayOptions,
 		"ClassificationsText": strings.Join(sq.Classifications, "\n"),
 	})
@@ -128,6 +134,7 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not save.")
 		return
 	}
+	s.audit(r, u.SquadronID, auth.AuditSquadronEdit, "")
 	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }
 
@@ -291,4 +298,60 @@ func (s *server) squadronDelete(w http.ResponseWriter, r *http.Request) {
 	log.Printf("AUDIT squadron %d deleted by %s", u.SquadronID, u.Email)
 	s.setSessionCookie(w, "", time.Time{})
 	http.Redirect(w, r, s.url("/login?deleted=1"), http.StatusSeeOther)
+}
+
+// noticeOwners emails each owner of a squadron that the site administrator
+// opened it. The caller sends at most one per hour per squadron. It runs in the
+// background and only logs failures: looking at a squadron must not wait on, or
+// fail because of, mail.
+func (s *server) noticeOwners(squadronID int64) {
+	sq, err := s.Store.GetSquadron(squadronID)
+	if err != nil {
+		return
+	}
+	members, err := s.Auth.ListMembers(squadronID)
+	if err != nil {
+		return
+	}
+	when := time.Now().UTC().Format("2 Jan 2006 15:04")
+	for _, m := range members {
+		if m.Role != "owner" {
+			continue
+		}
+		to := m.Email
+		go func() {
+			if err := s.Mail.SendMasterViewNotice(to, sq.Name, when); err != nil {
+				log.Printf("notify owner of squadron %d: %v", squadronID, err)
+			}
+		}()
+	}
+}
+
+// securityLogCSV lets an owner download the squadron's whole security log
+// (up to a year). Cells that a spreadsheet would run as a formula are made
+// harmless first.
+func (s *server) securityLogCSV(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	entries, err := s.Auth.ListAudit(u.SquadronID, 100000)
+	if err != nil {
+		log.Printf("export audit for squadron %d: %v", u.SquadronID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Security log", "Could not read the log.")
+		return
+	}
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="security-log.csv"`)
+	cw := csv.NewWriter(w)
+	_ = cw.Write([]string{"when_utc", "who", "action", "detail"})
+	for _, e := range entries {
+		_ = cw.Write([]string{e.At.UTC().Format("2006-01-02 15:04:05"), csvSafe(e.ActorEmail), csvSafe(auth.AuditText(e.Action)), csvSafe(e.Detail)})
+	}
+	cw.Flush()
+}
+
+// csvSafe stops a spreadsheet treating text as a formula (CSV injection).
+func csvSafe(s string) string {
+	if s != "" && strings.ContainsRune("=+-@\t\r", rune(s[0])) {
+		return "'" + s
+	}
+	return s
 }

@@ -108,3 +108,41 @@ func (s *Store) DeleteInstructor(squadronID, id int64) error {
 	}
 	return nil
 }
+
+// GetInstructor returns one entry, only if it belongs to the squadron.
+func (s *Store) GetInstructor(squadronID, id int64) (Instructor, error) {
+	var i Instructor
+	err := s.db.QueryRow(`SELECT id, name, rank FROM instructors WHERE id = ? AND squadron_id = ?`, id, squadronID).Scan(&i.ID, &i.Name, &i.Rank)
+	if err != nil {
+		return Instructor{}, ErrNotFound
+	}
+	return i, nil
+}
+
+// UpdateInstructor changes an entry's name and rank, with the same rules as
+// AddInstructor. Text already typed into programmes is not touched: it is free
+// text and stays as it was written.
+func (s *Store) UpdateInstructor(squadronID, id int64, name, rank string) error {
+	name, err := cleanField("the name", name, maxInstructorName)
+	if err != nil {
+		return err
+	}
+	if name == "" {
+		return fmt.Errorf("%w: enter a name", ErrInvalidInput)
+	}
+	rank, err = cleanField("the rank", rank, maxInstructorRank)
+	if err != nil {
+		return err
+	}
+	res, err := s.db.Exec(`UPDATE instructors SET name = ?, rank = ? WHERE id = ? AND squadron_id = ?`, name, rank, id, squadronID)
+	if err != nil {
+		if isUnique(err) {
+			return fmt.Errorf("%w: %s is already in the list", ErrInvalidInput, Instructor{Name: name, Rank: rank}.Display())
+		}
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

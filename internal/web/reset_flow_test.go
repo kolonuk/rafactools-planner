@@ -39,6 +39,7 @@ func TestForgotPasswordDoesNotRevealWhichAddressesHaveAccounts(t *testing.T) {
 	unknownPage := requestReset(t, app.anon(), "nobody@example.org")
 	garbagePage := requestReset(t, app.anon(), "not even an address")
 
+	knownPage, unknownPage, garbagePage = stripRequestID(knownPage), stripRequestID(unknownPage), stripRequestID(garbagePage)
 	if knownPage != unknownPage || knownPage != garbagePage {
 		t.Errorf("responses differ:\nknown:   %.300s\nunknown: %.300s", knownPage, unknownPage)
 	}

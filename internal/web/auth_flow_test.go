@@ -45,9 +45,10 @@ func TestLoginFlow(t *testing.T) {
 			}
 			bodies = append(bodies, body(resp))
 		}
+		// Each response also carries its own request id: strip it too.
 		if bodies[0] != bodies[1] {
 			// CSRF tokens differ per client, so compare with them stripped.
-			strip := func(s string) string { return csrfInput.ReplaceAllString(s, "") }
+			strip := func(s string) string { return requestIDMeta.ReplaceAllString(csrfInput.ReplaceAllString(s, ""), "") }
 			if strip(bodies[0]) != strip(bodies[1]) {
 				t.Error("responses differ between known and unknown email: account enumeration")
 			}

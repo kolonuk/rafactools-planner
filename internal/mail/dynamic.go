@@ -66,6 +66,17 @@ func (d Dynamic) SendIssueReport(to string, r IssueReport) error {
 	return s.SendIssueReport(to, r)
 }
 
+// SendMasterViewNotice tells a squadron owner that the site administrator
+// opened their squadron.
+func (d Dynamic) SendMasterViewNotice(to, squadronName, whenUTC string) error {
+	s, err := d.sender()
+	if err != nil {
+		log.Printf("mail not sent: %v", err)
+		return err
+	}
+	return s.SendMasterViewNotice(to, squadronName, whenUTC)
+}
+
 // SendTest sends a short message so the master admin can check the settings.
 // Unlike the others it never falls back to logging: a test that "succeeds" by
 // writing to a log would be misleading.
@@ -78,6 +89,15 @@ func (d Dynamic) SendTest(to string) error {
 		return ErrNotConfigured
 	}
 	return s.SendTest(to)
+}
+
+// SendMasterViewNotice is the owner's notice that the site administrator
+// opened the squadron (read-only). It carries no link and no data.
+func (s Sender) SendMasterViewNotice(to, squadronName, whenUTC string) error {
+	return s.send(to, "The site administrator viewed "+squadronName+" on RAFACTools Planner",
+		"The site administrator of RAFACTools Planner opened your squadron ("+squadronName+") at "+whenUTC+" UTC, to help with a problem.\r\n\r\n"+
+			"They could only look (read-only); nothing was changed. The visit is also listed in your squadron's security log under Squadron settings.\r\n\r\n"+
+			"You are sent this once an hour at most, however many times they look.\r\n")
 }
 
 // SendTest sends the test message.

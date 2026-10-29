@@ -203,6 +203,8 @@ function buildContext(sent, method, maskingAllowed, boxCount) {
         color_scheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
         user_agent: navigator.userAgent,
         online: navigator.onLine,
+        request_id: page.requestId,
+        timing_ms: page.timing,
         trail: (load(KEY_TRAIL) ?? []).map((t) => ({ at: t.at, kind: t.kind, target: t.target, path: t.path })),
         errors: (load(KEY_ERRORS) ?? []).map((e) => ({ kind: e.kind, message: e.message, source: e.source, line: e.line, col: e.col })),
         screenshot: { captured: sent, method: sent ? method : "none", masked: sent && maskingAllowed && boxCount > 0, boxes: boxCount },

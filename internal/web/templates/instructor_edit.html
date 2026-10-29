@@ -1,0 +1,12 @@
+{{define "content"}}
+<p><a href="{{url "/instructors"}}">&larr; Instructors</a></p>
+<h1>Edit instructor</h1>
+<form method="post" action="{{url "/instructors/" .ID "/edit"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label>Rank (optional) <input type="text" name="rank" maxlength="40" value="{{.Rank}}" data-private></label>
+  <label>Name <input type="text" name="name" required maxlength="80" value="{{.Name}}" data-private></label>
+  <p class="muted">This changes the list used for suggestions. Names already typed into programmes are free text and are not changed.</p>
+  <button type="submit">Save</button>
+  <a href="{{url "/instructors"}}">Cancel</a>
+</form>
+{{end}}

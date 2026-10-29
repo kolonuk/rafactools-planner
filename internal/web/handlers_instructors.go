@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/programme"
@@ -210,7 +211,11 @@ func (s *server) accountSwitch(w http.ResponseWriter, r *http.Request) {
 	// An audit trail: looking at another squadron's data is always logged.
 	log.Printf("AUDIT master admin %s switched to squadron id %d (0 = own)", u.Email, target)
 	if target != 0 {
+		recent := s.Auth.RecentAudit(target, auth.AuditMasterView, time.Hour)
 		s.audit(r, target, auth.AuditMasterView, "")
+		if !recent {
+			s.noticeOwners(target)
+		}
 	}
 	if target == 0 {
 		http.Redirect(w, r, s.url("/account"), http.StatusSeeOther)
@@ -265,7 +270,11 @@ func (s *server) accountSignOutOthers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := userFrom(r.Context())
-	if _, err := s.Auth.RevokeOtherSessions(u.ID, s.sessionToken(r)); err != nil {
+	n, err := s.Auth.RevokeOtherSessions(u.ID, s.sessionToken(r))
+	if err == nil && n > 0 && !u.ViewingOther {
+		s.audit(r, u.SquadronID, auth.AuditSignOutOthers, "")
+	}
+	if err != nil {
 		log.Printf("sign out other sessions for user %d: %v", u.ID, err)
 		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not sign out your other sessions. Try again.")
 		return
@@ -343,4 +352,57 @@ func (s *server) twoStepDisable(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("AUDIT master admin %s turned two-step sign-in off", u.Email)
 	http.Redirect(w, r, s.url("/account?twostep=off"), http.StatusSeeOther)
+}
+
+// instructorEditForm and instructorEditSave rename an entry (name and rank).
+func (s *server) instructorEditForm(w http.ResponseWriter, r *http.Request) {
+	s.renderInstructorEdit(w, r, http.StatusOK, "", nil)
+}
+
+func (s *server) renderInstructorEdit(w http.ResponseWriter, r *http.Request, status int, errMsg string, typed map[string]string) {
+	u := userFrom(r.Context())
+	id, ok := parseID(r, "id")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid entry.")
+		return
+	}
+	in, err := s.Store.GetInstructor(u.SquadronID, id)
+	if err != nil {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That person isn't in your list.")
+		return
+	}
+	data := map[string]any{"ID": in.ID, "Name": in.Name, "Rank": in.Rank, "Error": errMsg}
+	if typed != nil {
+		data["Name"], data["Rank"] = typed["name"], typed["rank"]
+	}
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+	}
+	s.render(w, r, "instructor_edit", "Edit instructor", data)
+}
+
+func (s *server) instructorEditSave(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Instructors", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	id, ok := parseID(r, "id")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid entry.")
+		return
+	}
+	err := s.Store.UpdateInstructor(u.SquadronID, id, r.FormValue("name"), r.FormValue("rank"))
+	switch {
+	case errors.Is(err, programme.ErrNotFound):
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That person isn't in your list.")
+		return
+	case errors.Is(err, programme.ErrInvalidInput):
+		s.renderInstructorEdit(w, r, http.StatusBadRequest, errorText(err), map[string]string{"name": r.FormValue("name"), "rank": r.FormValue("rank")})
+		return
+	case err != nil:
+		s.renderError(w, r, http.StatusInternalServerError, "Instructors", "Could not save. Try again.")
+		return
+	}
+	http.Redirect(w, r, s.url("/instructors"), http.StatusSeeOther)
 }

@@ -34,3 +34,55 @@ func TestAuditRecordsCapsAndPrunes(t *testing.T) {
 		t.Error("unknown action text")
 	}
 }
+
+func TestAuditUserFindsSquadronAndCollapsesRepeatedFailures(t *testing.T) {
+	svc := newTestService(t)
+	uid, _, _ := svc.ClaimSquadron("snco.1234@rafac.mod.gov.uk", "ownerpassword1", "A")
+	var sq int64
+	svc.db.QueryRow(`SELECT squadron_id FROM users WHERE id = ?`, uid).Scan(&sq)
+
+	for i := 0; i < 5; i++ {
+		if err := svc.AuditUser(uid, AuditLoginFailed, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	svc.AuditUser(uid, AuditLogin, "")
+	svc.AuditUser(uid, AuditLogin, "")
+	got, _ := svc.ListAudit(sq, 50)
+	var fails, logins int
+	for _, e := range got {
+		switch e.Action {
+		case AuditLoginFailed:
+			fails++
+		case AuditLogin:
+			logins++
+		}
+		if e.ActorEmail != "snco.1234@rafac.mod.gov.uk" {
+			t.Errorf("actor = %q", e.ActorEmail)
+		}
+	}
+	if fails != 1 || logins != 2 {
+		t.Errorf("failures=%d logins=%d, want 1 and 2", fails, logins)
+	}
+	if err := svc.AuditUser(99999, AuditLogin, ""); err == nil {
+		t.Error("an unknown user was audited")
+	}
+}
+
+func TestRecentAudit(t *testing.T) {
+	svc := newTestService(t)
+	uid, _, _ := svc.ClaimSquadron("snco.1234@rafac.mod.gov.uk", "ownerpassword1", "A")
+	var sq int64
+	svc.db.QueryRow(`SELECT squadron_id FROM users WHERE id = ?`, uid).Scan(&sq)
+	if svc.RecentAudit(sq, AuditMasterView, time.Hour) {
+		t.Fatal("recent before anything happened")
+	}
+	svc.Audit(sq, 0, "m@example.org", AuditMasterView, "")
+	if !svc.RecentAudit(sq, AuditMasterView, time.Hour) {
+		t.Error("not recent right after")
+	}
+	svc.db.Exec(`UPDATE audit_log SET at = ?`, time.Now().Add(-2*time.Hour))
+	if svc.RecentAudit(sq, AuditMasterView, time.Hour) {
+		t.Error("still recent after two hours")
+	}
+}

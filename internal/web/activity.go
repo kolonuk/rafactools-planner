@@ -27,6 +27,7 @@ type activityEntry struct {
 	Method string    `json:"method"`
 	Path   string    `json:"path"`
 	Status int       `json:"status"`
+	ID     string    `json:"request_id,omitempty"`
 }
 
 type activityRing struct {
@@ -115,7 +116,7 @@ func (s *server) recordActivity(next http.Handler) http.Handler {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
 		s.activity.add(activityKey(r), activityEntry{
-			At: time.Now().UTC(), Method: r.Method, Path: sanitizePath(path), Status: rec.status,
+			At: time.Now().UTC(), Method: r.Method, Path: sanitizePath(path), Status: rec.status, ID: requestIDFrom(r.Context()),
 		})
 	})
 }

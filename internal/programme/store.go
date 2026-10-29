@@ -912,3 +912,43 @@ func (s *Store) ResetProgramme(squadronID, programmeID int64) error {
 	}
 	return tx.Commit()
 }
+
+// CopyRequirementCategories copies the requirement tracker's category names and
+// due labels (never the cadets' names or notes) from the squadron's nearest
+// earlier month that has any, into programmeID. It returns how many it copied;
+// 0 means there was nothing to copy. The squadron is checked on both sides, so
+// it can never read or write another squadron's programme.
+func (s *Store) CopyRequirementCategories(squadronID, programmeID int64) (int, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	var year, month int
+	err = tx.QueryRow(`SELECT year, month FROM programmes WHERE id = ? AND squadron_id = ?`, programmeID, squadronID).Scan(&year, &month)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	if err != nil {
+		return 0, err
+	}
+	var fromID int64
+	err = tx.QueryRow(`SELECT p.id FROM programmes p
+		WHERE p.squadron_id = ? AND (p.year * 12 + p.month) < ?
+		  AND EXISTS (SELECT 1 FROM programme_requirement_categories c WHERE c.programme_id = p.id)
+		ORDER BY p.year DESC, p.month DESC LIMIT 1`, squadronID, year*12+month).Scan(&fromID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	res, err := tx.Exec(`INSERT INTO programme_requirement_categories (programme_id, name, due_label, sort_order)
+		SELECT ?, name, due_label, sort_order FROM programme_requirement_categories WHERE programme_id = ? ORDER BY sort_order, id`, programmeID, fromID)
+	if err != nil {
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	return int(n), tx.Commit()
+}

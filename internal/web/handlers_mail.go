@@ -276,3 +276,20 @@ func (s *server) mailTest(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mailPage(w, r, extra)
 }
+
+// mailSummary says whether mail is set up and by which provider, for problem
+// reports. It reads the settings but never returns a credential.
+func (s *server) mailSummary() (configured bool, provider string) {
+	env := s.mailEnv()
+	get := env
+	if s.Settings != nil {
+		if g, _ := s.Settings.Getter(env); g != nil {
+			get = g
+		}
+	}
+	m, err := config.ResolveMail(get)
+	if err != nil {
+		return false, "invalid settings"
+	}
+	return m.Host != "", m.Provider
+}

@@ -71,6 +71,30 @@ window.addEventListener("unhandledrejection", (event) => {
   recordError({ kind: "promise", message: reason instanceof Error ? reason.message : String(reason), source: "", line: 0, col: 0 });
 });
 
+// Failed requests the page makes itself (the drag-and-drop move, for one): the
+// method, path and status, never the body or the query.
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+  const raw = input instanceof Request ? input.url : String(input);
+  let path = "";
+  try {
+    path = safePath(new URL(raw, window.location.href).pathname);
+  } catch {
+    path = "";
+  }
+  try {
+    const response = await nativeFetch(input, init);
+    if (!response.ok) {
+      recordError({ kind: "fetch", message: `${method} ${response.status}`, source: path, line: 0, col: 0 });
+    }
+    return response;
+  } catch (err) {
+    recordError({ kind: "fetch", message: `${method} failed: ${err instanceof Error ? err.name : "error"}`, source: path, line: 0, col: 0 });
+    throw err;
+  }
+};
+
 document.addEventListener("securitypolicyviolation", (event) => {
   recordError({
     kind: "csp",

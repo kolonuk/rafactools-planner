@@ -63,6 +63,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap; /* on a phone the links drop to a second line instead of widening the page */
+  gap: 8px 16px;
   padding: 14px 24px;
   background: var(--md-surface-container);
   color: var(--md-on-surface);
@@ -78,7 +80,11 @@ body {
   text-decoration: none;
   letter-spacing: 0.01em;
 }
-.topbar nav { display: flex; align-items: center; gap: 16px; }
+.topbar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; min-width: 0; }
+.topbar nav a { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .topbar { padding: 10px 16px; }
+}
 .topbar a { color: var(--md-on-surface-variant); text-decoration: none; }
 .topbar a:hover { color: var(--md-primary); }
 
@@ -304,3 +310,11 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input[type="checkb
 /* A card for an action that cannot be undone. */
 .card.danger { border: 2px solid var(--md-error); }
 .card.danger h2 { color: var(--md-error); }
+
+/* Long addresses and the role/remove controls wrap inside the table on a phone
+   rather than widening the whole page. */
+table.list th, table.list td { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  table.list select { max-width: 100%; }
+  table.list td form.inline { display: inline-block; }
+}

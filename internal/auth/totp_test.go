@@ -132,3 +132,38 @@ func TestResetTOTPForClearsIt(t *testing.T) {
 		t.Error("reported a change for an unknown address")
 	}
 }
+
+func TestTOTPSecretIsEncryptedAtRestAndLegacyPlaintextStillWorks(t *testing.T) {
+	svc, id, secret := newTOTPUser(t)
+
+	var pending string
+	svc.db.QueryRow(`SELECT totp_pending FROM users WHERE id = ?`, id).Scan(&pending)
+	if !strings.HasPrefix(pending, sealedPrefix) || strings.Contains(pending, secret) {
+		t.Fatalf("pending secret stored as %q", pending)
+	}
+	if err := svc.ConfirmTOTP(id, codeNow(t, secret, 0)); err != nil {
+		t.Fatal(err)
+	}
+	var stored string
+	svc.db.QueryRow(`SELECT totp_secret FROM users WHERE id = ?`, id).Scan(&stored)
+	if !strings.HasPrefix(stored, sealedPrefix) || strings.Contains(stored, secret) {
+		t.Fatalf("confirmed secret stored as %q", stored)
+	}
+	if err := svc.VerifyTOTP(id, codeNow(t, secret, 1)); err != nil {
+		t.Errorf("a code for the encrypted secret was refused: %v", err)
+	}
+
+	// A different SESSION_KEY cannot read it, so no code works until the
+	// operator resets two-step sign-in.
+	other := NewService(svc.db, "a-completely-different-session-key-0123", false, "rafac.mod.gov.uk", true)
+	svc.db.Exec(`UPDATE users SET totp_last_step = 0`)
+	if err := other.VerifyTOTP(id, codeNow(t, secret, 1)); err != ErrBadCode {
+		t.Errorf("another key accepted the code: %v", err)
+	}
+
+	// A plaintext secret written before encryption existed still works.
+	svc.db.Exec(`UPDATE users SET totp_secret = ?, totp_last_step = 0 WHERE id = ?`, secret, id)
+	if err := svc.VerifyTOTP(id, codeNow(t, secret, 1)); err != nil {
+		t.Errorf("legacy plaintext secret refused: %v", err)
+	}
+}

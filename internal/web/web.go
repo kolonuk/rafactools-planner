@@ -38,6 +38,7 @@ type Mailer interface {
 	SendPasswordReset(to, baseURL, token string) error
 	SendIssueReport(to string, r mail.IssueReport) error
 	SendTest(to string) error
+	SendMasterViewNotice(to, squadronName, whenUTC string) error
 }
 
 var _ Mailer = mail.Dynamic{}
@@ -70,7 +71,7 @@ type server struct {
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
 	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "confirm_reset_programme",
-	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail",
+	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -160,6 +161,7 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
+	mux.HandleFunc("GET /squadron/security-log.csv", s.requireOwner(s.securityLogCSV))
 	mux.HandleFunc("POST /squadron/delete", authLimiter.rateLimited(s.requireOwner(s.squadronDelete)))
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
 	mux.HandleFunc("POST /squadron/invites/{token}/revoke", s.requireOwner(s.inviteRevoke))
@@ -168,6 +170,8 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /instructors", s.requireEditor(s.instructorsPage))
 	mux.HandleFunc("POST /instructors", s.requireEditor(s.instructorAdd))
+	mux.HandleFunc("GET /instructors/{id}/edit", s.requireEditor(s.instructorEditForm))
+	mux.HandleFunc("POST /instructors/{id}/edit", s.requireEditor(s.instructorEditSave))
 	mux.HandleFunc("POST /instructors/{id}/delete", s.requireEditor(s.instructorDelete))
 	mux.HandleFunc("GET /account", s.requireAuth(s.accountPage))
 	mux.HandleFunc("POST /account", s.requireAuth(s.accountSave))
@@ -203,7 +207,7 @@ func NewRouter(d *Deps) http.Handler {
 
 	// 1MB for every form; only the problem report (which may carry a
 	// screenshot) is allowed more.
-	return s.securityHeaders(s.recordActivity(maxBody(1<<20, map[string]int64{"/report": maxReportBody}, mux)))
+	return requestID(s.securityHeaders(s.recordActivity(maxBody(1<<20, map[string]int64{"/report": maxReportBody}, mux))))
 }
 
 // maxBody caps request bodies so a POST can't exhaust memory/disk parsing an
@@ -255,6 +259,13 @@ func (s *server) securityHeaders(next http.Handler) http.Handler {
 
 func (s *server) health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	// Healthy means the database answers, not merely that the process is up.
+	if err := s.Store.Ping(); err != nil {
+		log.Printf("health check failed: %v", err)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte(`{"status": "database unavailable"}`))
+		return
+	}
 	w.Write([]byte(`{"status": "ok"}`))
 }
 
@@ -276,6 +287,7 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, page, title stri
 		"Version":       version.Version,
 		"ReportEnabled": s.reportEnabled(),
 		"SignupsOpen":   !s.Cfg.DisableSignups,
+		"RequestID":     requestIDFrom(r.Context()),
 	}
 	for k, v := range extra {
 		data[k] = v
@@ -287,8 +299,12 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, page, title stri
 }
 
 func (s *server) renderError(w http.ResponseWriter, r *http.Request, status int, title, message string) {
+	if status >= 500 {
+		// "failed" so the line also lands in a problem report's recent errors.
+		log.Printf("request %s failed: %d %s: %s", requestIDFrom(r.Context()), status, title, message)
+	}
 	w.WriteHeader(status)
-	s.render(w, r, "error", title, map[string]any{"Error": message})
+	s.render(w, r, "error", title, map[string]any{"Error": message, "ErrorRef": true})
 }
 
 // url prefixes an internal path with BasePath for use in redirects — the Go

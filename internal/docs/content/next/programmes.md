@@ -4,6 +4,7 @@ order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
 changed:
+  - next: The New month box can copy last month's requirement category names (never cadet names).
   - next: A month can be reset to blank, after a confirmation.
   - next: The day label is worked out from the date and can no longer be edited.
   - next: A new second half starts as a copy of the first, and a second half can be removed (with a warning if the halves differ).
@@ -23,6 +24,10 @@ lists them, newest first, each with an **Edit** link and a **PDF** link.
 Editors and owners see a **New month** box on the dashboard. Choose the month
 and year and select **Create**. Each squadron can have one programme per month;
 creating the same month again is refused.
+
+Leave **Copy the requirement tracker's category names** ticked and the new month starts with the same
+categories (and due labels) as the nearest earlier month that has any. **Cadets' names and notes are never
+copied**; untick the box to start with an empty tracker.
 
 The new programme has one row per calendar day. Nights that match your
 [parade weekdays](squadron-settings) are marked as parade nights and get an

@@ -13,6 +13,7 @@
       <tr>
         <td data-private>{{.Display}}</td>
         <td>
+          <a href="{{url "/instructors/" .ID "/edit"}}" aria-label="Edit {{.Display}}">Edit</a>
           <form method="post" action="{{url "/instructors/" .ID "/delete"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
             <button type="submit" class="link-button" aria-label="Remove {{.Display}} from the list">Remove</button>

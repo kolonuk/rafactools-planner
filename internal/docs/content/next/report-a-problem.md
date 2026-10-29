@@ -3,6 +3,8 @@ title: Report a problem
 order: 85
 summary: How to report something that went wrong, what is sent, what is never sent, and how screenshots and masking work.
 since: next
+changed:
+  - next: Reports can say how much it matters and whether it happens every time, and carry a request reference, page load timings, failed requests, and the size (never the text) of the programme being viewed.
 ---
 # Report a problem
 
@@ -19,7 +21,7 @@ been switched on for this site ([for the person who runs it](operators-configura
 2. Your browser may ask whether you want to share the current tab. Say yes to include a
    picture of the page (see [screenshots](#screenshots)); say no to carry on without one.
 3. Choose what kind of problem it is, say **what happened** (required), and optionally
-   what you **expected**.
+   what you **expected**, **how much it matters** and **whether it happens every time**.
 4. Tick the box if you are happy to be **replied to by email**. If you are signed in the
    reply goes to your account address; if not, you can type an address, or leave it blank.
 5. Select **Send report**. You get a **reference** such as `a1b2c3d4`; quote it if you
@@ -66,6 +68,9 @@ A report contains:
 | **What you wrote** | The kind of problem, what happened, what you expected. |
 | **The page** | Its address (without anything after a `?`, and with any secret link code removed), its title and heading, and any message shown on it such as an error. |
 | **What you did** | Your last 20 or so clicks, form submissions and page changes, such as `button "Save programme"` or `submit POST /programmes/3`. |
+| **A reference** | Every page has a short request reference (error pages show it as "reference ..."). It lets the people who run the site match your report to their server log. |
+| **How big the programme is** | If you report from a programme page: only numbers, such as how many nights, how many boxes are filled and how many requirement entries. **No activity, instructor or cadet text.** |
+| **How the page behaved** | How long the page took to load, and any request the page made that failed (its method, address and result code only). |
 | **What the server saw** | Your last 15 requests with the result code (for example `POST /programmes/3 -> 500`), and recent server error lines with email addresses and codes removed. |
 | **Who you are, roughly** | Whether you were signed in, your role, and the **numbers** of your account and squadron. Your email address is only included as the reply address if you ticked the box. |
 | **Your browser** | Its name and version, screen size, language, time zone, light or dark mode, and whether it is a touch screen. |

@@ -233,3 +233,45 @@ func TestChangePasswordSharesTheAuthRateLimit(t *testing.T) {
 		t.Errorf("25th wrong-password attempt -> %d, want 429 (guessing the current password must be throttled)", last)
 	}
 }
+
+func TestRenameInstructorFlowAndPermissions(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1503")
+	c := app.login(email)
+	app.member(email, "vi-ren@example.org", "viewer")
+	wantRedirect(t, c.post("/instructors", url.Values{"rank": {"Fg Off"}, "name": {"Smith"}}), "/instructors")
+	wantRedirect(t, c.post("/instructors", url.Values{"name": {"Jones"}}), "/instructors")
+	var id int64
+	app.db.QueryRow(`SELECT id FROM instructors WHERE name = 'Smith'`).Scan(&id)
+	edit := "/instructors/" + strconv.FormatInt(id, 10) + "/edit"
+
+	if !strings.Contains(body(c.get("/instructors")), edit) {
+		t.Error("the list has no Edit link")
+	}
+	form := body(c.get(edit))
+	if !strings.Contains(form, `value="Smith"`) || !strings.Contains(form, `value="Fg Off"`) {
+		t.Errorf("edit form is not filled in:\n%s", form)
+	}
+
+	wantRedirect(t, c.post(edit, url.Values{"rank": {"Flt Lt"}, "name": {"Smythe"}}), "/instructors")
+	if page := body(c.get("/instructors")); !strings.Contains(page, "Flt Lt Smythe") || strings.Contains(page, "Fg Off Smith") {
+		t.Errorf("rename not shown:\n%s", page)
+	}
+
+	// A clash re-shows the form with the reason and what was typed.
+	resp := c.post(edit, url.Values{"name": {"Jones"}})
+	if page := body(resp); resp.StatusCode != 400 || !strings.Contains(page, "already in the list") || !strings.Contains(page, `value="Jones"`) {
+		t.Errorf("duplicate rename = %d:\n%s", resp.StatusCode, page)
+	}
+
+	// Viewers and other squadrons cannot reach it.
+	wantStatus(t, app.login("vi-ren@example.org").get(edit), 403)
+	wantStatus(t, app.login("vi-ren@example.org").post(edit, url.Values{"name": {"X"}}), 403)
+	other := app.login(app.owner("1504"))
+	wantStatus(t, other.get(edit), 404)
+	wantStatus(t, other.post(edit, url.Values{"name": {"Hijacked"}}), 404)
+	if n := count(t, app.db, `SELECT COUNT(*) FROM instructors WHERE name = 'Hijacked'`); n != 0 {
+		t.Error("another squadron renamed this squadron's instructor")
+	}
+	wantStatus(t, c.postRaw(edit, url.Values{"name": {"NoToken"}}), 400)
+}

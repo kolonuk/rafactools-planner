@@ -126,6 +126,9 @@ func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setSessionCookie(w, token, expiresAt)
+	if err := s.Auth.AuditUser(user.ID, auth.AuditLogin, ""); err != nil {
+		log.Printf("audit login: %v", err)
+	}
 	http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
 }
 

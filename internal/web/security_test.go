@@ -396,3 +396,16 @@ func TestSquadronWebsiteMustBeAnHTTPAddress(t *testing.T) {
 		t.Error("blank did not clear the website")
 	}
 }
+
+func TestHealthChecksTheDatabase(t *testing.T) {
+	app := newApp(t)
+	resp := app.anon().get("/health")
+	if resp.StatusCode != 200 || !strings.Contains(body(resp), `"ok"`) {
+		t.Fatalf("healthy = %d", resp.StatusCode)
+	}
+	app.db.Close() // the database goes away under a running process
+	resp = app.anon().get("/health")
+	if resp.StatusCode != 503 || strings.Contains(body(resp), `"ok"`) {
+		t.Errorf("with the database closed = %d, want 503", resp.StatusCode)
+	}
+}

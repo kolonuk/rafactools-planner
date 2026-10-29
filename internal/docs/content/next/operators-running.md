@@ -3,6 +3,9 @@ title: Running the site
 order: 110
 summary: Starting, stopping, checking health, and running behind a proxy.
 since: 1.0
+changed:
+  - next: The health check now fails (503) when the database does not answer.
+  - next: Every response carries an X-Request-ID, and connections to the mail server have timeouts.
 ---
 # Running the site
 
@@ -25,7 +28,9 @@ these docs are built into the program, so there are no other files to deploy.
 ## Health check
 
 `GET /health` returns `{"status": "ok"}` with status 200 without signing in. Use
-it for load-balancer and container health checks. It does not check the database.
+it for load-balancer and container health checks. It also asks the database a trivial
+question: if that fails the answer is status `503` with `{"status": "database unavailable"}`, so a
+stuck or unreadable database takes the container out of service instead of looking healthy.
 
 ## Stopping
 
@@ -48,3 +53,10 @@ up to 10 seconds, and exits with status 0.
 
 Slow clients are dropped: headers must arrive within 5 seconds, and a whole
 request within 15. Request bodies are limited to 1 MB.
+
+## Request references
+
+Every response carries an `X-Request-ID` header (12 hex characters). Error pages show it as "reference ...", it is
+in the page's `<meta name="request-id">`, it is listed with each request in a problem report, and a server error is logged as
+`request <id> failed: <status> <title>`. Searching the log for a reference finds that request. Have your reverse proxy pass the
+header through, or log it, if you want to match proxy logs too.
