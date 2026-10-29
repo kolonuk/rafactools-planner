@@ -4,7 +4,7 @@ order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
 changed:
-  - next: A closure locks the dates it covers in the grid.
+  - 1.10: A closure locks the dates it covers in the grid.
   - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.
   - 1.9: Every save, reset and restore is kept as a version; the History page lists them (who, when, what) and any can be restored. The draft status is gone: every month is live.
   - 1.9: This month is made automatically when anyone signs in; past months cannot be created.

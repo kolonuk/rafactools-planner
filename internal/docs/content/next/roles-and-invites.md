@@ -4,7 +4,7 @@ order: 30
 summary: What owners, editors and viewers can do, and how to invite people.
 since: 1.0
 changed:
-  - next: The invitation page has an optional Your name box.
+  - 1.10: The invitation page has an optional Your name box.
   - 1.9: Editors and owners can keep an instructor list; everyone can set a displayed name.
   - 1.9: Owners can change a member's role and remove members.
 ---

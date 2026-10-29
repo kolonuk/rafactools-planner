@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.10
 
 - **feat**: browser tests (Playwright, in `e2e/`) run in CI: this month's programme, ticking Parade, moving a night by control and by drag-and-drop (uniform and notes go with it), closures, history and restore, the instructors page, phone widths and the report form.
 - **feat**: the claim form and the invitation page have an optional Your name box; people with a login appear on the Instructors page as fixed entries.
