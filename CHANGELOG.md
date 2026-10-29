@@ -2,8 +2,13 @@
 
 Format: each entry is a release `1.<N>`, the same number as its docs snapshot
 (`internal/docs/content/1.<N>`). `.github/workflows/deploy.yml` bakes the newest
-snapshot's version into the footer and PDF footer: `main` shows `1.<N>`, `dev` and
-`test` show `1.<N>+<commit>`. Entries
+snapshot's version into the footer and PDF footer: `main` and `test` show `1.<N>`,
+`dev` shows `1.<N>+<commit>`.
+
+A release is a push to `test`: if anything is unreleased (a `## Unreleased` section
+here, or `next` entries in the docs), the pipeline freezes it as the next `1.<N>`
+(`go run ./cmd/devtools release`) and commits that to `test`. Moving `test` to `main`
+is an ordinary push and keeps the version. Add new entries under `## Unreleased`. Entries
 grouped by type: **feat** (new capability), **fix** (bug), **chore**
 (infra/tooling/docs, no behaviour change for users), **security**.
 
@@ -11,6 +16,8 @@ Changes before this file existed (everything up to and including the
 version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
+
+## Unreleased
 
 ## 1.9
 
