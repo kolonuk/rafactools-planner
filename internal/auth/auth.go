@@ -616,18 +616,28 @@ func randomToken() (string, error) {
 // control characters.
 var ErrDisplayName = errors.New("your name must be at most 80 characters, with no control characters")
 
-// SetDisplayName sets how a person appears in member lists and in the
-// grid's Instructor suggestions. Blank clears it (their email is shown).
-func (s *Service) SetDisplayName(userID int64, name string) error {
+// CheckDisplayName tidies a display name (blank is allowed) and returns it, or
+// ErrDisplayName if it is too long or has control characters.
+func CheckDisplayName(name string) (string, error) {
 	name = strings.Join(strings.Fields(name), " ")
 	if len([]rune(name)) > 80 {
-		return ErrDisplayName
+		return "", ErrDisplayName
 	}
 	for _, r := range name {
 		if r < ' ' || r == 0x7f {
-			return ErrDisplayName
+			return "", ErrDisplayName
 		}
 	}
-	_, err := s.db.Exec(`UPDATE users SET display_name = ? WHERE id = ?`, name, userID)
+	return name, nil
+}
+
+// SetDisplayName sets how a person appears in member lists and in the
+// grid's Instructor suggestions. Blank clears it (their email is shown).
+func (s *Service) SetDisplayName(userID int64, name string) error {
+	name, err := CheckDisplayName(name)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`UPDATE users SET display_name = ? WHERE id = ?`, name, userID)
 	return err
 }

@@ -1,0 +1,15 @@
+{
+  "name": "rafactools-planner-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests: they start the real server and drive it in Chromium.",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.10.2",
+    "typescript": "5.6.3"
+  }
+}

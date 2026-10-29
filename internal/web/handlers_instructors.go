@@ -34,10 +34,27 @@ func (s *server) renderInstructors(w http.ResponseWriter, r *http.Request, statu
 	for _, i := range list {
 		rows = append(rows, row{i.ID, i.Display()})
 	}
+	// Members with a login are fixed entries: they come from the squadron's
+	// members, so they cannot be edited or removed here.
+	var fixed []string
+	if members, err := s.Auth.ListMembers(u.SquadronID); err != nil {
+		log.Printf("list members for the instructors page: %v", err)
+	} else {
+		for _, m := range members {
+			if !m.Active {
+				continue
+			}
+			name := m.DisplayName
+			if name == "" {
+				name = m.Email
+			}
+			fixed = append(fixed, name)
+		}
+	}
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
-	s.render(w, r, "instructors", "Instructors", map[string]any{"Instructors": rows, "Error": errMsg})
+	s.render(w, r, "instructors", "Instructors", map[string]any{"Instructors": rows, "Members": fixed, "Error": errMsg})
 }
 
 func (s *server) instructorAdd(w http.ResponseWriter, r *http.Request) {

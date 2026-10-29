@@ -28,9 +28,15 @@
     <tbody>
     {{range .Days}}
       {{$day := .}}
-      {{if .SubRows}}
+      {{if .Closed}}
+        <tr class="closed-row" data-day="{{.ID}}" data-date="{{.Date}}" data-label="{{.FullLabel}}">
+          <td>{{.DateLabel}}</td>
+          <td>{{.DayLabel}}</td>
+          <td colspan="{{$.ClosedColspan}}"><strong>Closed</strong>{{if .ClosedMessage}} — {{.ClosedMessage}}{{end}} <span class="muted">(locked by a closure; delete the closure below to edit this date)</span></td>
+        </tr>
+      {{else if .SubRows}}
         {{range $idx, $sub := .SubRows}}
-        <tr{{if eq $idx 0}} class="day-start"{{end}} data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
+        <tr{{if eq $idx 0}} class="day-start"{{end}} data-day="{{$day.ID}}" data-date="{{$day.Date}}" data-label="{{$day.FullLabel}}">
           {{if eq $idx 0}}
             <td>{{$day.DateLabel}}<input type="hidden" name="day_{{$day.ID}}_present" value="1">
               <button type="button" class="drag-handle" draggable="true" data-day="{{$day.ID}}" aria-label="Drag to move the activities from {{$day.FullLabel}} to another date">&#8942;&#8942;</button>
@@ -83,7 +89,7 @@
         </tr>
         {{end}}
       {{else}}
-        <tr class="non-parade-row" data-day="{{.ID}}" data-label="{{.FullLabel}}">
+        <tr class="non-parade-row" data-day="{{.ID}}" data-date="{{.Date}}" data-label="{{.FullLabel}}">
           <td>{{.DateLabel}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
           <td>{{.DayLabel}}</td>
           <td><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}}></td>

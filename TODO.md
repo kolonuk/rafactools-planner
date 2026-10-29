@@ -21,10 +21,6 @@ Built, tested and documented: moving a night's activities to another date
 (store, endpoint, no-script "Move" control, TypeScript drag-and-drop; checked in
 Chromium), plus the "Add a second half" fix. Still to do:
 
-- [ ] **[P2 helpful feature]** **Watch the first CI run on GitHub.** The new jobs (staticcheck, gosec, tsc,
-  docs check, HTML validation) have only been run locally so far.
-- [ ] **[P3 usability]** **Automated browser test** for the drag-and-drop script (it was verified by
-  hand in Chromium only). Worth adding if the script grows.
 
 ## Before anyone relies on it
 
@@ -73,14 +69,10 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
   at start-up today, so the report link needs a restart), the claim domain, and
   `DISABLE_SIGNUPS`. Also: a "mail not set up" mode that lets the master admin sign in
   and configure mail on a brand-new site without `ALLOW_LOG_MAIL`.
-- [ ] **[P3 usability]** **Alibaba Cloud DirectMail preset** if wanted (the request said
-  "Cloudflare Ali"; read as the Cloudflare API/SMTP). Needs its regional SMTP host.
 
 - [ ] **[P2 helpful feature]** **Compare two programme versions** side by side on the history page (today you can only restore).
-- [ ] **[P1 security]** **Confirm the sender domain** for `issues@rafac.mod.gov.uk` (SPF/DKIM/DMARC) before relying on problem reports reaching it.
-- [ ] **[P3 usability]** **Phone layout for the programme grid and a browser test that guards it.** The top
-  bar and tables now wrap instead of widening the page (checked in Chromium at 390 px); the grid itself
-  still scrolls sideways. A Playwright check that no page overflows at 390 px would keep it so.
+- [ ] **[P3 usability]** **Phone layout for the programme grid.** The top bar and tables wrap instead of widening the page
+  and a browser test (e2e/) guards that; the programme grid itself still scrolls sideways.
 - [ ] **[P3 usability]** **Password quality:** a check against very common passwords (the 12-character
   minimum is the only rule today), and "last used" on the sessions list.
 - [ ] **[P4 nicety]** **Squadron crest/logo image** in the PDF header. The website link is done;
@@ -175,12 +167,6 @@ scrubbed from this repo's history once already.
 The account, the squadron switcher (read-only), the banner and the audit log
 lines are built and tested. What is left, and why it is not done here:
 
-- [ ] **[P1 security]** **Master admin password.** The password discussed in chat
-  was pasted there, so treat it as exposed; the app needs 12 to 72 characters, so
-  that one is refused (and the log says why). Pick a new one and give it to the
-  host as the `MASTER_ADMIN_PASSWORD` secret (`go run ./cmd/devtools github-setup`
-  helps create the GitHub settings). The app creates the account from it on the first
-  start; after that the password stored in the database has priority.
 - [x] **Issue reporting** (done: "Report a problem", emailed to `ISSUE_EMAIL`, not stored).
 - [ ] **[P3 usability]** **Let the master admin act as an editor or owner** in a squadron when
   helping fix something (today it is strictly read-only, on purpose). If added,

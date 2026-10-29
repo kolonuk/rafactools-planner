@@ -23,7 +23,8 @@ the top of a programme. The file opens in your browser and is named like
 - The protective marking at the top and bottom, if you set one in
   [squadron settings](squadron-settings).
 - One row group per ticked parade night (nights not ticked are left out), with the Activity and Instructor text under each
-  classification. Identical neighbouring cells are merged.
+  classification. Neighbouring columns are merged only when **both** the activity and the
+  instructor are the same as the next column's; if only one of them matches, they stay separate.
 - Closures and weekend notes against their dates; a closed day is a single merged cell across the classification columns and rows.
 - A key for the uniform colours.
 - The requirements tracker.

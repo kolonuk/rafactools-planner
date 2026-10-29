@@ -4,6 +4,7 @@ order: 45
 summary: Keeping a list of instructors for the programme grid's suggestions, and setting your own name.
 since: 1.9
 changed:
+  - next: People with a login are listed on the page as fixed entries.
   - 1.9: An entry can now be edited (name and rank) instead of removed and added again.
 ---
 # Instructors
@@ -21,6 +22,14 @@ any name instead: the suggestions are a convenience, not a restriction.
    [your name](#your-name)) or, if they have not set one, their email address.
 
 A name that would appear more than once is only suggested once.
+
+## People with a login
+
+The top of the **Instructors** page lists every active member of the squadron as a **fixed
+entry**. They cannot be edited or removed here, because they come from the squadron's members:
+the person changes their name under *Your details*, and owners manage members in
+[squadron settings](squadron-settings). Inactive members are not listed. People who have a
+login can be given their name when they claim the squadron or accept an invitation.
 
 ## The instructor list
 

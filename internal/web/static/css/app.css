@@ -363,3 +363,5 @@ table.list th, table.list td { overflow-wrap: anywhere; }
   font-size: 0.9em;
 }
 .report-button:hover { background: var(--md-surface-container-high); }
+
+.plain-list { list-style: none; margin: 0; padding: 0; }

@@ -118,6 +118,34 @@ jobs:
             echo "No TypeScript sources."
           fi
 
+  browser-tests:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install the test tools and Chromium
+        working-directory: e2e
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Type-check the tests
+        working-directory: e2e
+        run: npx tsc -p tsconfig.json
+      # The tests start the real server themselves (playwright.config.ts) with a
+      # throw-away database, then drive it in Chromium.
+      - name: Run the browser tests
+        working-directory: e2e
+        run: npm test
+
   docs-check:
     name: Docs updated with user-visible changes
     if: github.event_name == 'pull_request'

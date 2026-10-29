@@ -19,6 +19,14 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **feat**: browser tests (Playwright, in `e2e/`) run in CI: this month's programme, ticking Parade, moving a night by control and by drag-and-drop (uniform and notes go with it), closures, history and restore, the instructors page, phone widths and the report form.
+- **feat**: the claim form and the invitation page have an optional Your name box; people with a login appear on the Instructors page as fixed entries.
+- **feat**: a closure locks the dates it covers in the grid (nothing to edit, nothing to move to or from, enforced by the server too).
+- **feat**: in the PDF, neighbouring columns merge only when both the activity and the instructor match.
+- **fix**: Report a problem opens the form straight away. It used to wait for the browser's screen-sharing prompt first, which looked like the link doing nothing; take the screenshot from the form instead.
+- **fix**: when the site's address has no real domain, the problem-report address falls back to the domain of `MAIL_FROM`.
+- **chore**: a release also merges itself back into dev.
+
 ## 1.9
 
 - **feat**: owners can mark members inactive (no sign-in or reset) or email them a temporary password (forced change at next sign-in, expires after 7 days); people with non-rafac.mod.gov.uk addresses can change their email address by a confirmation link.

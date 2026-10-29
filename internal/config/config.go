@@ -110,14 +110,7 @@ func Load() (Config, error) {
 		SMTPPass:                 os.Getenv("SMTP_PASS"),
 	}
 	c.SiteDomain = SiteDomain(os.Getenv)
-	switch {
-	case strings.EqualFold(c.IssueEmail, "none"):
-		c.IssueEmail = "" // switched off on purpose
-	case c.IssueEmail == "" && c.SiteDomain != "":
-		c.IssueEmail = "issues@" + c.SiteDomain
-	}
-
-	if c.IssueEmail != "" {
+	if c.IssueEmail != "" && !strings.EqualFold(c.IssueEmail, "none") {
 		if a, err := mail.ParseAddress(c.IssueEmail); err != nil || a.Address != c.IssueEmail {
 			return c, fmt.Errorf("ISSUE_EMAIL %q is not a valid email address", c.IssueEmail)
 		}
@@ -161,6 +154,31 @@ func Load() (Config, error) {
 		c.MailProvider, c.SMTPHost, c.SMTPPort, c.SMTPUser, c.SMTPPass, c.MailFrom, c.SESRegion = m.Provider, m.Host, m.Port, m.User, m.Pass, m.From, m.SESRegion
 	} else {
 		c.MailEnvError = err
+	}
+
+	// Where problem reports go: ISSUE_EMAIL, else issues@ the site's domain. With
+	// no usable site domain (BASE_URL is an internal name) the domain of an
+	// explicit MAIL_FROM is used, so a real deployment is not left without it.
+	switch {
+	case strings.EqualFold(c.IssueEmail, "none"):
+		c.IssueEmail = "" // switched off on purpose
+	case c.IssueEmail == "":
+		domain := c.SiteDomain
+		if domain == "" {
+			if at := strings.LastIndex(c.MailFrom, "@"); at >= 0 {
+				if d := strings.ToLower(strings.Trim(c.MailFrom[at+1:], "> ")); strings.Contains(d, ".") && !strings.HasSuffix(d, ".local") {
+					domain = d
+				}
+			}
+		}
+		if domain != "" {
+			c.IssueEmail = "issues@" + domain
+		}
+	}
+	if c.IssueEmail != "" {
+		if a, err := mail.ParseAddress(c.IssueEmail); err != nil || a.Address != c.IssueEmail {
+			return c, fmt.Errorf("ISSUE_EMAIL %q is not a valid email address", c.IssueEmail)
+		}
 	}
 
 	return c, nil

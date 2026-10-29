@@ -54,6 +54,17 @@ type Closure struct {
 	Message   string
 }
 
+// ClosureOn returns the closure covering an ISO date (yyyy-mm-dd), if any.
+// ISO dates compare correctly as text.
+func ClosureOn(date string, closures []Closure) (Closure, bool) {
+	for _, c := range closures {
+		if date >= c.StartDate && date <= c.EndDate {
+			return c, true
+		}
+	}
+	return Closure{}, false
+}
+
 type WeekendNote struct {
 	ID        int64
 	Date      string

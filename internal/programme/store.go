@@ -407,7 +407,19 @@ func (s *Store) SaveDaysAndRows(squadronID, programmeID int64, days []DayInput) 
 	}
 	defer tx.Rollback()
 
+	// Days inside a closure are locked: the grid does not offer them, and a
+	// forged request cannot change them either.
+	closures, err := s.listClosuresTx(tx, programmeID)
+	if err != nil {
+		return err
+	}
 	for _, d := range days {
+		var date string
+		if err := tx.QueryRow(`SELECT date FROM programme_days WHERE id = ? AND programme_id = ?`, d.ID, programmeID).Scan(&date); err == nil {
+			if _, closed := ClosureOn(date, closures); closed {
+				continue
+			}
+		}
 		// day_label is deliberately not writable here — see CreateProgramme's
 		// comment: it's set once from the real calendar date and never
 		// changes, so there's nothing for this save path to get wrong.
@@ -562,7 +574,15 @@ func (s *Store) RemoveHalf(squadronID, programmeID, dayID int64) error {
 // --- Closures ------------------------------------------------------------
 
 func (s *Store) listClosures(programmeID int64) ([]Closure, error) {
-	rows, err := s.db.Query(`SELECT id, start_date, end_date, message FROM programme_closures WHERE programme_id = ? ORDER BY start_date`, programmeID)
+	return s.listClosuresTx(s.db, programmeID)
+}
+
+type queryer interface {
+	Query(query string, args ...any) (*sql.Rows, error)
+}
+
+func (s *Store) listClosuresTx(q queryer, programmeID int64) ([]Closure, error) {
+	rows, err := q.Query(`SELECT id, start_date, end_date, message FROM programme_closures WHERE programme_id = ? ORDER BY start_date`, programmeID)
 	if err != nil {
 		return nil, err
 	}
@@ -782,15 +802,16 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 		halves   int
 		uniform  string
 		notes    string
+		date     string
 	}
 	days := map[int64]dayRow{}
 	for _, id := range []int64{fromDayID, toDayID} {
 		var d dayRow
 		var parade int
-		err := tx.QueryRow(`SELECT pd.is_parade, pd.halves, pd.uniform_key, pd.notes
+		err := tx.QueryRow(`SELECT pd.is_parade, pd.halves, pd.uniform_key, pd.notes, pd.date
 			FROM programme_days pd JOIN programmes p ON p.id = pd.programme_id
 			WHERE pd.id = ? AND pd.programme_id = ? AND p.squadron_id = ?`, id, programmeID, squadronID).
-			Scan(&parade, &d.halves, &d.uniform, &d.notes)
+			Scan(&parade, &d.halves, &d.uniform, &d.notes, &d.date)
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		} else if err != nil {
@@ -800,6 +821,15 @@ func (s *Store) MoveDayContent(squadronID, programmeID, fromDayID, toDayID int64
 		days[id] = d
 	}
 	from, to := days[fromDayID], days[toDayID]
+	closures, err := s.listClosuresTx(tx, programmeID)
+	if err != nil {
+		return err
+	}
+	for _, id := range []int64{fromDayID, toDayID} {
+		if c, closed := ClosureOn(days[id].date, closures); closed && c.ID != 0 {
+			return fmt.Errorf("%w: a closed date cannot be moved to or from", ErrInvalidInput)
+		}
+	}
 	if !from.isParade {
 		return fmt.Errorf("%w: only a parade night has activities to move", ErrInvalidInput)
 	}

@@ -126,9 +126,12 @@ type subRowView struct {
 
 type dayView struct {
 	ID             int64
+	Date           string // ISO yyyy-mm-dd
 	FullLabel      string // e.g. "Mon 7", for the move picker and drag confirmation
 	DateLabel      string
 	DayLabel       string
+	Closed         bool   // inside a closure: shown locked, nothing to edit
+	ClosedMessage  string // the closure's message
 	IsParade       bool
 	UniformKey     string
 	Notes          string
@@ -146,13 +149,18 @@ type dayView struct {
 
 type pendingCell struct{ Name, Value string }
 
-func buildDayViews(days []programme.Day, canEdit bool, classes int) []dayView {
+func buildDayViews(days []programme.Day, canEdit bool, classes int, closures []programme.Closure) []dayView {
 	var out []dayView
 	for _, d := range days {
 		t, _ := time.Parse("2006-01-02", d.Date)
 		dv := dayView{
-			ID: d.ID, FullLabel: t.Format("Mon 2"), DateLabel: strconv.Itoa(t.Day()), DayLabel: d.DayLabel,
+			ID: d.ID, Date: d.Date, FullLabel: t.Format("Mon 2"), DateLabel: strconv.Itoa(t.Day()), DayLabel: d.DayLabel,
 			IsParade: d.IsParade, UniformKey: d.UniformKey, Notes: d.Notes,
+		}
+		if c, closed := programme.ClosureOn(d.Date, closures); closed {
+			dv.Closed, dv.ClosedMessage = true, c.Message
+			out = append(out, dv)
+			continue
 		}
 		if d.IsParade {
 			for half := 1; half <= d.Halves; half++ {
@@ -274,8 +282,9 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		"Classifications":     sq.Classifications,
 		"LabelClassColsCount": 1 + len(sq.Classifications),
 		"UniformOptions":      uniformOptions,
-		"Days":                buildDayViews(fp.Days, canEdit, len(sq.Classifications)),
-		"DayOptions":          dayOptions(fp.Days),
+		"Days":                buildDayViews(fp.Days, canEdit, len(sq.Classifications), fp.Closures),
+		"ClosedColspan":       4 + len(sq.Classifications),
+		"DayOptions":          dayOptions(fp.Days, fp.Closures),
 		"Closures":            fp.Closures,
 		"WeekendNotes":        fp.WeekendNotes,
 		"Requirements":        fp.Requirements,
@@ -664,9 +673,12 @@ type dayOption struct {
 }
 
 // dayOptions lists every date of the month for the "move activities to" picker.
-func dayOptions(days []programme.Day) []dayOption {
+func dayOptions(days []programme.Day, closures []programme.Closure) []dayOption {
 	out := make([]dayOption, 0, len(days))
 	for _, d := range days {
+		if _, closed := programme.ClosureOn(d.Date, closures); closed {
+			continue
+		}
 		t, _ := time.Parse("2006-01-02", d.Date)
 		out = append(out, dayOption{ID: d.ID, Label: t.Format("Mon 2 Jan")})
 	}

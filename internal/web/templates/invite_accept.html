@@ -3,6 +3,9 @@
 <p class="muted">Invited as <strong>{{.Email}}</strong> ({{.Role}}). Set a password to finish.</p>
 <form method="post" action="{{url "/invite/" .Token}}" class="card">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label>Your name (optional) — shown in member lists and suggested as an instructor
+    <input type="text" name="display_name" maxlength="80" autocomplete="name">
+  </label>
   <label>Password
     <input type="password" name="password" required minlength="12">
   </label>
