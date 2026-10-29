@@ -4,6 +4,7 @@ order: 85
 summary: How to report something that went wrong, what is sent, what is never sent, and how screenshots and masking work.
 since: 1.9
 changed:
+  - next: Selecting Report a problem opens the form straight away; there is no longer a screen-sharing prompt before it. Take the screenshot from the form.
   - 1.9: Reports now default to issues@ the site's domain.
   - 1.9: The screenshot step is boxed and spelled out on the form, with a Take a screenshot now button, and Report a problem is in the top bar.
   - 1.9: Reports can say how much it matters and whether it happens every time, and carry a request reference, page load timings, failed requests, and the size (never the text) of the programme being viewed.
@@ -19,10 +20,8 @@ been switched on for this site ([for the person who runs it](operators-configura
 
 1. Go to the page where the problem is, then select **Report a problem** (top bar, or the foot of the
    page). Do this **before** you leave that page, so the list of what you did is about the right place.
-2. Your browser may ask whether you want to share the current tab. Say yes to include a
-   picture of the page (see [screenshots](#screenshots)); say no to carry on without one.
-   On the form, the boxed **Add a screenshot** section lets you **Take a screenshot now** or
-   **attach a picture** from your device.
+2. The form opens straight away. In its boxed **Add a screenshot** section you can **Take a
+   screenshot now** or **attach a picture** from your device (see [screenshots](#screenshots)).
 3. Choose what kind of problem it is, say **what happened** (required), and optionally
    what you **expected**, **how much it matters** and **whether it happens every time**.
 4. Tick the box if you are happy to be **replied to by email**. If you are signed in the
@@ -37,9 +36,6 @@ what you typed is kept so you can try again.
 
 A picture of the page is the single most useful thing you can add.
 
-- **Automatic:** in browsers that can do it, the planner asks your browser for a picture of
-  the **current tab only** at the moment you select the link. Your browser always asks you
-  first, and you can say no. Phones and some browsers cannot do this.
 - **Take a screenshot now:** a button in the boxed screenshot section of the form. Your browser asks
   which tab or window to share (pick the page with the problem). It only appears where the browser can do
   it, which needs a secure `https://` address; where it can't, the form says so.
@@ -55,7 +51,7 @@ Which of the following you see depends on how the site is run:
 - **Most sites (including your own copy): you can black out parts of the picture.** Drag
   on the picture to draw a black box; **Undo last black box** and **Remove all black boxes**
   change your mind. Areas of the page that show names (such as the requirements tracker and
-  member lists) are blacked out for you first, where the browser could take the picture
+  member lists) are blacked out for you first when you share this tab with Take a screenshot now, where the browser could take the picture
   automatically. The boxes are burned into the picture **before** it is sent, so the
   hidden parts never leave your computer. Check the picture: anything typed into the grid is
   not hidden automatically, so draw over it if it is private.

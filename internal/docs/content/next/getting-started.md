@@ -3,6 +3,8 @@ title: Getting started
 order: 10
 summary: Claiming a squadron and confirming your email.
 since: 1.0
+changed:
+  - next: The claim form has an optional Your name box.
 ---
 # Getting started
 
@@ -15,6 +17,8 @@ Everyone else joins by invitation (see [roles and invites](roles-and-invites)).
 2. Fill in the form:
    - **Squadron display name** – optional, for example `1234 (Sample Town) Squadron`.
      If you leave it empty the squadron is called `1234 Squadron`.
+   - **Your name** – optional, for example `Fg Off Smith`. It is shown in member lists and
+     suggested as an instructor; you can change it later under *Your details*.
    - **Email** – must be your squadron's own address, in the form
      `snco.<number>@<domain>` or `oc.<number>@<domain>` (the page shows the
      domain your site accepts). The number in the address becomes the squadron number.

@@ -62,6 +62,19 @@ jobs:
             git add -A internal/docs/content CHANGELOG.md
             git commit -m "release ${VERSION}: freeze the docs and changelog [skip ci]"
             git push origin HEAD:refs/heads/test
+            RELEASE_SHA="$(git rev-parse HEAD)"
+            # Bring the release commit back to dev, so the relabelled docs never
+            # conflict with dev's next release. Not fatal: on a conflict, say so and
+            # leave dev alone. The build below must stay on the release commit.
+            git fetch origin dev
+            git checkout -q -B dev-sync origin/dev
+            if git merge --no-edit -m "Merge release ${VERSION} from test into dev [skip ci]" "${RELEASE_SHA}"; then
+              git push origin HEAD:refs/heads/dev || echo "::warning::could not update dev after release ${VERSION}; merge test into dev by hand"
+            else
+              git merge --abort
+              echo "::warning::release ${VERSION} conflicts with dev; merge test into dev by hand"
+            fi
+            git checkout -q "${RELEASE_SHA}"
           fi
 
       - name: Compute image tags

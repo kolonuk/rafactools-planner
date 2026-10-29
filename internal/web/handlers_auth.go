@@ -40,13 +40,24 @@ func (s *server) claimSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	squadronName := r.FormValue("squadron_name")
 
-	_, token, err := s.Auth.ClaimSquadron(email, password, squadronName)
+	yourName, nameErr := auth.CheckDisplayName(r.FormValue("display_name"))
+	var token string
+	var userID int64
+	err := nameErr
+	if err == nil {
+		userID, token, err = s.Auth.ClaimSquadron(email, password, squadronName)
+	}
 	if err != nil {
 		s.render(w, r, "claim", "Claim your squadron", map[string]any{
 			"ClaimDomain": s.Auth.ClaimDomain(),
 			"Error":       err.Error(),
 		})
 		return
+	}
+	if yourName != "" {
+		if err := s.Auth.SetDisplayName(userID, yourName); err != nil {
+			log.Printf("set name on claim: %v", err)
+		}
 	}
 
 	// token is "" when SKIP_EMAIL_VERIFICATION is set (dev only — see
@@ -173,10 +184,20 @@ func (s *server) inviteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := r.PathValue("token")
+	yourName, err := auth.CheckDisplayName(r.FormValue("display_name"))
+	if err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Invite", err.Error())
+		return
+	}
 	userID, _, err := s.Auth.AcceptInvite(token, r.FormValue("password"))
 	if err != nil {
 		s.renderError(w, r, http.StatusBadRequest, "Invite", err.Error())
 		return
+	}
+	if yourName != "" {
+		if err := s.Auth.SetDisplayName(userID, yourName); err != nil {
+			log.Printf("set name on invite: %v", err)
+		}
 	}
 	sessToken, expiresAt, err := s.Auth.CreateSessionFor(userID, r.UserAgent())
 	if err != nil {

@@ -108,13 +108,29 @@ func TestNextDate(t *testing.T) {
 	}
 }
 
-func TestMergeSegments(t *testing.T) {
-	segs := mergeSegments(10, []float64{5, 5, 5, 5}, []string{"A", "A", "B", "A"})
-	if len(segs) != 3 {
-		t.Fatalf("got %d segments, want 3 (A+A, B, A): %+v", len(segs), segs)
+func TestMergeSegmentsPairedNeedsBothActivityAndInstructorToMatch(t *testing.T) {
+	w := []float64{5, 5, 5, 5}
+	// Same activity in all four, but the instructor differs in the third:
+	// only the columns where both match are merged.
+	act, ins := mergeSegmentsPaired(10, w, []string{"Drill", "Drill", "Drill", "Drill"}, []string{"Smith", "Smith", "Jones", "Jones"})
+	if len(act) != 2 || len(ins) != 2 {
+		t.Fatalf("got %d/%d segments, want 2/2: %+v %+v", len(act), len(ins), act, ins)
 	}
-	if segs[0].w != 10 || segs[0].x != 10 || segs[1].x != 20 || segs[2].x != 25 {
-		t.Errorf("unexpected geometry: %+v", segs)
+	if act[0].w != 10 || act[1].x != 20 || act[1].w != 10 || act[0].x != ins[0].x || act[1].w != ins[1].w {
+		t.Errorf("unexpected geometry: %+v %+v", act, ins)
+	}
+	if act[0].text != "Drill" || ins[0].text != "Smith" || ins[1].text != "Jones" {
+		t.Errorf("texts: %+v %+v", act, ins)
+	}
+	// Different activity, same instructor: not merged either.
+	act, _ = mergeSegmentsPaired(0, w, []string{"A", "B", "B", "B"}, []string{"X", "X", "X", "X"})
+	if len(act) != 2 || act[1].w != 15 {
+		t.Errorf("segments = %+v", act)
+	}
+	// Short text slices are padded with empty cells.
+	act, _ = mergeSegmentsPaired(0, w, []string{"A"}, nil)
+	if len(act) != 2 {
+		t.Errorf("padded segments = %+v", act)
 	}
 }
 

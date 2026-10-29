@@ -4,6 +4,14 @@
 <p class="muted">People you can pick from in the programme grid's Instructor boxes, including staff who don't have a login. The Instructor boxes also suggest <em>All Staff</em> and your members. It is only a list of suggestions: you can always type any name.</p>
 
 <section class="card">
+  <h2>People with a login</h2>
+  <p class="muted">Fixed entries: every active member is always offered as an instructor. To change a name, the person edits it under <em>Your details</em>; owners manage members in Squadron settings.</p>
+  <ul class="plain-list">
+    {{range .Members}}<li data-private>{{.}}</li>{{end}}
+  </ul>
+</section>
+
+<section class="card">
   <h2>Your list</h2>
   {{if .Instructors}}
   <table class="list">

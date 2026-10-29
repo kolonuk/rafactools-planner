@@ -237,30 +237,31 @@ type segment struct {
 	text string
 }
 
-// mergeSegments collapses adjacent columns with identical text into one
-// wide segment, mirroring how the source PDFs show a single shared activity
-// across some or all classifications without a separate "merged" flag (see
-// migrations/0001_init.sql).
-func mergeSegments(startX float64, widths []float64, texts []string) []segment {
+// mergeSegmentsPaired merges adjacent classification columns only when BOTH
+// the activity and the instructor match the next column's, so the two rows of
+// a half always share the same cell boundaries (an activity is never merged
+// across people who differ). It returns the activity and instructor segments.
+func mergeSegmentsPaired(startX float64, widths []float64, activity, instructor []string) (act, ins []segment) {
 	n := len(widths)
-	for len(texts) < n {
-		texts = append(texts, "")
+	for len(activity) < n {
+		activity = append(activity, "")
 	}
-	var segs []segment
+	for len(instructor) < n {
+		instructor = append(instructor, "")
+	}
 	x := startX
-	i := 0
-	for i < n {
-		j := i
-		w := widths[i]
-		for j+1 < n && texts[j+1] == texts[i] {
+	for i := 0; i < n; {
+		j, w := i, widths[i]
+		for j+1 < n && activity[j+1] == activity[i] && instructor[j+1] == instructor[i] {
 			j++
 			w += widths[j]
 		}
-		segs = append(segs, segment{x: x, w: w, text: texts[i]})
+		act = append(act, segment{x: x, w: w, text: activity[i]})
+		ins = append(ins, segment{x: x, w: w, text: instructor[i]})
 		x += w
 		i = j + 1
 	}
-	return segs
+	return act, ins
 }
 
 // wrapLineCount returns how many lines text needs at the current font
@@ -308,15 +309,15 @@ func computeDayLayout(pdf *fpdf.Fpdf, cols columns, d programme.Day, closureByDa
 	var subRows []subRow
 	total := 0.0
 	for half := 1; half <= d.Halves; half++ {
+		actRow, _ := d.RowByHalfType(half, "activity")
+		insRow, _ := d.RowByHalfType(half, "instructor")
+		actSegs, insSegs := mergeSegmentsPaired(classX, cols.classification, actRow.Texts, insRow.Texts)
 		for _, rt := range []string{"activity", "instructor"} {
-			row, _ := d.RowByHalfType(half, rt)
-			bold := rt == "activity"
-			style := ""
-			if bold {
-				style = "B"
+			segs, style := insSegs, ""
+			if rt == "activity" {
+				segs, style = actSegs, "B"
 			}
 			pdf.SetFont("Helvetica", style, 6.5)
-			segs := mergeSegments(classX, cols.classification, row.Texts)
 			maxLines := 1
 			for _, s := range segs {
 				if n := wrapLineCount(pdf, s.text, s.w); n > maxLines {

@@ -147,6 +147,7 @@ func TestSiteDomainDefaultsTheMailboxes(t *testing.T) {
 		{"none switches reports off", map[string]string{"BASE_URL": "https://planner.example.org", "ISSUE_EMAIL": "none"}, "planner.example.org", "no-reply@planner.example.org", ""},
 		{"localhost has no domain", map[string]string{"BASE_URL": "http://localhost:8080"}, "", "no-reply@rafactools-planner.local", ""},
 		{"an IP has no domain", map[string]string{"BASE_URL": "http://10.0.0.5:8080"}, "", "no-reply@rafactools-planner.local", ""},
+		{"MAIL_FROM supplies the domain when BASE_URL has none", map[string]string{"BASE_URL": "http://planner:8080", "MAIL_FROM": "no-reply@mail.example.org"}, "", "no-reply@mail.example.org", "issues@mail.example.org"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			set := map[string]string{"SESSION_KEY": key}

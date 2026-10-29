@@ -4,6 +4,7 @@ order: 30
 summary: What owners, editors and viewers can do, and how to invite people.
 since: 1.0
 changed:
+  - next: The invitation page has an optional Your name box.
   - 1.9: Editors and owners can keep an instructor list; everyone can set a displayed name.
   - 1.9: Owners can change a member's role and remove members.
 ---
@@ -35,7 +36,7 @@ Only an **owner** can invite.
 
 They receive an email with a link. The link works **once** and expires after
 **7 days**. They choose a password (12 to 72 characters) and are signed in
-straight away. They do not need a RAFAC address and do not need to confirm
+straight away. They can also give their name (optional). They do not need a RAFAC address and do not need to confirm
 their email separately: opening the invite link is the confirmation. The
 inviting owner is vouching for them, so only invite people you trust, and
 think before choosing **Owner**.
