@@ -28,7 +28,7 @@ var (
 // reporting need. The password is a SECRET: GitHub variables are plain text.
 func masterAdminSettings(prefix string) []setting {
 	return []setting{
-		{"variable", prefix + "ISSUE_EMAIL", "issues@rafac.mod.gov.uk", "Where problem reports are emailed. Only keep this if you control that mailbox and its DNS/SPF/DKIM/DMARC; otherwise use an address you own. Leave the feature off by not setting it."},
+		{"variable", prefix + "SITE_DOMAIN", "CHANGE_ME", "Domain of the site (for example cadets.example.org): the default for the no-reply@ sender and the issues@ address that problem reports go to. Optional: it defaults to the host of BASE_URL."},
 		{"variable", prefix + "ISSUE_MASKING", "true", "true lets people black out parts of a screenshot before sending; set false only on a site you run for others."},
 		{"variable", prefix + "MASTER_ADMIN_EMAIL", "CHANGE_ME", "Email address of the site-wide master admin (not secret)."},
 		{"secret", prefix + "MASTER_ADMIN_PASSWORD", "", "Password of the master admin, 12 to 72 characters. Must be a secret."},
@@ -70,7 +70,7 @@ func runGithubSetup(args []string) error {
 	}
 	if !*apply {
 		fmt.Println("\nRun again with -apply to run them. Then set the real email values, and give the")
-		fmt.Println("deployment stack each setting without the prefix (MASTER_ADMIN_EMAIL, ISSUE_EMAIL, ...).")
+		fmt.Println("deployment stack each setting without the prefix (MASTER_ADMIN_EMAIL, SITE_DOMAIN, ...).")
 		return nil
 	}
 	for _, s := range settings {

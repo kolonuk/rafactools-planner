@@ -62,7 +62,7 @@ func TestMasterAdminViewsAnotherSquadronReadOnly(t *testing.T) {
 		if !strings.Contains(page, "Master admin: you are viewing") || !strings.Contains(page, "read-only") {
 			t.Error("no banner while viewing another squadron")
 		}
-		if strings.Contains(page, "502") {
+		if strings.Contains(page, "502 Sqn") {
 			t.Error("squadron B leaks into A's view")
 		}
 		wantStatus(t, master.get("/programmes/"+ts.progA), 200)

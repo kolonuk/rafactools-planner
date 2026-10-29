@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/mail"
 	"net/url"
 	"os"
@@ -43,6 +44,15 @@ type Config struct {
 	// start, for an operator who has lost the authenticator app. Set it for one
 	// start, then remove it.
 	MasterAdminReset2FA bool
+	// MasterAdminResetPassword replaces the master admin's STORED password with
+	// MASTER_ADMIN_PASSWORD at the next start (recovery). Normally that setting
+	// only seeds the account; the stored password then takes priority.
+	MasterAdminResetPassword bool
+
+	// SiteDomain is the domain of the site (SITE_DOMAIN, else the host of
+	// BASE_URL; empty for localhost or an IP address). Addresses the site sends
+	// from or receives at default to it: no-reply@ and issues@.
+	SiteDomain string
 	// IssueMasking lets people black out parts of their screenshot before
 	// sending it (default true). A site run for other people, whose operators
 	// need to see exactly what the user saw, sets it false; the report form
@@ -86,18 +96,25 @@ func Load() (Config, error) {
 		CookieSecure: getenvBool("COOKIE_SECURE", true),
 		ClaimDomain:  getenv("CLAIM_DOMAIN", "rafac.mod.gov.uk"),
 
-		SkipEmailVerification: getenvBool("SKIP_EMAIL_VERIFICATION", false),
-		MasterAdminEmail:      strings.TrimSpace(os.Getenv("MASTER_ADMIN_EMAIL")),
-		MasterAdminPassword:   os.Getenv("MASTER_ADMIN_PASSWORD"),
-		MasterAdminReset2FA:   getenvBool("MASTER_ADMIN_RESET_2FA", false),
-		IssueEmail:            strings.TrimSpace(os.Getenv("ISSUE_EMAIL")),
-		IssueMasking:          getenvBool("ISSUE_MASKING", true),
-		AllowLogMail:          getenvBool("ALLOW_LOG_MAIL", false),
-		DisableSignups:        getenvBool("DISABLE_SIGNUPS", false),
-		SMTPHost:              os.Getenv("SMTP_HOST"),
-		SMTPUser:              os.Getenv("SMTP_USER"),
-		SMTPPass:              os.Getenv("SMTP_PASS"),
-		MailFrom:              getenv("MAIL_FROM", "no-reply@rafactools-planner.local"),
+		SkipEmailVerification:    getenvBool("SKIP_EMAIL_VERIFICATION", false),
+		MasterAdminEmail:         strings.TrimSpace(os.Getenv("MASTER_ADMIN_EMAIL")),
+		MasterAdminPassword:      os.Getenv("MASTER_ADMIN_PASSWORD"),
+		MasterAdminReset2FA:      getenvBool("MASTER_ADMIN_RESET_2FA", false),
+		MasterAdminResetPassword: getenvBool("MASTER_ADMIN_RESET_PASSWORD", false),
+		IssueEmail:               strings.TrimSpace(os.Getenv("ISSUE_EMAIL")),
+		IssueMasking:             getenvBool("ISSUE_MASKING", true),
+		AllowLogMail:             getenvBool("ALLOW_LOG_MAIL", false),
+		DisableSignups:           getenvBool("DISABLE_SIGNUPS", false),
+		SMTPHost:                 os.Getenv("SMTP_HOST"),
+		SMTPUser:                 os.Getenv("SMTP_USER"),
+		SMTPPass:                 os.Getenv("SMTP_PASS"),
+	}
+	c.SiteDomain = SiteDomain(os.Getenv)
+	switch {
+	case strings.EqualFold(c.IssueEmail, "none"):
+		c.IssueEmail = "" // switched off on purpose
+	case c.IssueEmail == "" && c.SiteDomain != "":
+		c.IssueEmail = "issues@" + c.SiteDomain
 	}
 
 	if c.IssueEmail != "" {
@@ -173,4 +190,32 @@ func getenvBool(key string, fallback bool) bool {
 		return fallback
 	}
 	return b
+}
+
+// SiteDomain is the domain the site's own mailboxes default to: SITE_DOMAIN if
+// set, else the host of BASE_URL (empty for localhost, a single-label name or an
+// IP address, where no mailbox could exist).
+func SiteDomain(get func(string) string) string {
+	if d := strings.ToLower(strings.TrimSpace(get("SITE_DOMAIN"))); d != "" {
+		return d
+	}
+	base := strings.TrimSpace(get("BASE_URL"))
+	if base == "" {
+		base = "http://localhost:8080"
+	}
+	return domainFromURL(base)
+}
+
+// domainFromURL returns the host of a URL when it is a real domain name: never
+// localhost, a single-label name or an IP address, where no mailbox could exist.
+func domainFromURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	h := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+	if h == "" || !strings.Contains(h, ".") || net.ParseIP(h) != nil || strings.HasSuffix(h, ".local") {
+		return ""
+	}
+	return h
 }

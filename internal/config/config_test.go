@@ -12,7 +12,7 @@ const goodKey = "0123456789abcdef0123456789abcdef"
 func env(t *testing.T, set map[string]string) {
 	t.Helper()
 	for _, k := range []string{"PORT", "DB_PATH", "BASE_URL", "SESSION_KEY", "COOKIE_SECURE", "CLAIM_DOMAIN",
-		"SKIP_EMAIL_VERIFICATION", "MAIL_PROVIDER", "SES_REGION", "ALLOW_LOG_MAIL", "DISABLE_SIGNUPS", "MASTER_ADMIN_RESET_2FA", "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "MAIL_FROM"} {
+		"SITE_DOMAIN", "ISSUE_EMAIL", "SKIP_EMAIL_VERIFICATION", "MAIL_PROVIDER", "SES_REGION", "ALLOW_LOG_MAIL", "DISABLE_SIGNUPS", "MASTER_ADMIN_RESET_2FA", "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "MAIL_FROM"} {
 		t.Setenv(k, "")
 	}
 	// Mail is configured unless a test says otherwise: Load refuses to run
@@ -131,5 +131,36 @@ func TestLoadMasterAdminReset2FA(t *testing.T) {
 	env(t, map[string]string{"SESSION_KEY": goodKey, "MASTER_ADMIN_RESET_2FA": "true"})
 	if c, err := Load(); err != nil || !c.MasterAdminReset2FA {
 		t.Fatalf("set: reset=%v err=%v", c.MasterAdminReset2FA, err)
+	}
+}
+
+func TestSiteDomainDefaultsTheMailboxes(t *testing.T) {
+	key := strings.Repeat("k", 32)
+	for _, tc := range []struct {
+		name                 string
+		set                  map[string]string
+		domain, from, issues string
+	}{
+		{"host of BASE_URL", map[string]string{"BASE_URL": "https://planner.example.org/app"}, "planner.example.org", "no-reply@planner.example.org", "issues@planner.example.org"},
+		{"SITE_DOMAIN wins", map[string]string{"BASE_URL": "https://planner.example.org", "SITE_DOMAIN": "Example.ORG"}, "example.org", "no-reply@example.org", "issues@example.org"},
+		{"explicit settings win", map[string]string{"BASE_URL": "https://planner.example.org", "MAIL_FROM": "hello@x.org", "ISSUE_EMAIL": "help@x.org"}, "planner.example.org", "hello@x.org", "help@x.org"},
+		{"none switches reports off", map[string]string{"BASE_URL": "https://planner.example.org", "ISSUE_EMAIL": "none"}, "planner.example.org", "no-reply@planner.example.org", ""},
+		{"localhost has no domain", map[string]string{"BASE_URL": "http://localhost:8080"}, "", "no-reply@rafactools-planner.local", ""},
+		{"an IP has no domain", map[string]string{"BASE_URL": "http://10.0.0.5:8080"}, "", "no-reply@rafactools-planner.local", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			set := map[string]string{"SESSION_KEY": key}
+			for k, v := range tc.set {
+				set[k] = v
+			}
+			env(t, set)
+			c, err := Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if c.SiteDomain != tc.domain || c.MailFrom != tc.from || c.IssueEmail != tc.issues {
+				t.Errorf("got domain %q from %q issues %q; want %q %q %q", c.SiteDomain, c.MailFrom, c.IssueEmail, tc.domain, tc.from, tc.issues)
+			}
+		})
 	}
 }

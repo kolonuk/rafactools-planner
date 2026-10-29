@@ -22,14 +22,18 @@ var (
 )
 
 // EnsureMasterAdmin makes the database match the configured master admin:
-// it creates the account if missing, updates the password if it changed
-// (signing that account out when it does), and removes any previous master
-// admin whose email is different. It is called at every startup, so a
-// redeploy with new settings takes effect immediately.
+// it creates the account if missing and removes any previous master admin
+// whose email is different. It is called at every startup.
 //
-// It refuses (returns an error and changes nothing) if the password does not
-// meet the normal rules, or the email already belongs to an ordinary member:
-// an ordinary account is never promoted silently.
+// The password setting only SEEDS the account: it is used when the account is
+// new or its stored password is blank. Once a password is stored (the master
+// admin can change it on Your details) the stored one wins and the setting is
+// ignored, so a redeploy never overwrites it. The setting may be empty when a
+// stored password exists. ResetMasterPassword is the explicit recovery path.
+//
+// It refuses (returns an error and changes nothing) if a password that would
+// be used does not meet the normal rules, or the email already belongs to an
+// ordinary member: an ordinary account is never promoted silently.
 //
 // The returned string says what happened, for the log. It never contains
 // the password.
@@ -38,10 +42,6 @@ func (s *Service) EnsureMasterAdmin(email, password string) (string, error) {
 	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email {
 		return "", fmt.Errorf("master admin email %q is not a valid address", email)
 	}
-	if err := checkPassword(password); err != nil {
-		return "", fmt.Errorf("master admin password rejected: %w", err)
-	}
-
 	tx, err := s.db.Begin()
 	if err != nil {
 		return "", err
@@ -84,15 +84,30 @@ func (s *Service) EnsureMasterAdmin(email, password string) (string, error) {
 		result = "previous master admin removed; "
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("hash password: %w", err)
-	}
-
 	var currentHash string
 	err = tx.QueryRow(`SELECT password_hash FROM users WHERE email = ? AND is_master_admin = 1`, email).Scan(&currentHash)
+	missing := errors.Is(err, sql.ErrNoRows)
+	var hash []byte
+	if missing || (err == nil && currentHash == "") {
+		if password == "" {
+			return "", errors.New("the master admin has no stored password and MASTER_ADMIN_PASSWORD is empty")
+		}
+		if cerr := checkPassword(password); cerr != nil {
+			return "", fmt.Errorf("master admin password rejected: %w", cerr)
+		}
+		if hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err != nil {
+			return "", fmt.Errorf("hash password: %w", err)
+		}
+		err = nil
+		if !missing {
+			if _, err := tx.Exec(`UPDATE users SET password_hash = ? WHERE email = ? AND is_master_admin = 1`, string(hash), email); err != nil {
+				return "", err
+			}
+			result = "master admin password set from MASTER_ADMIN_PASSWORD"
+		}
+	}
 	switch {
-	case errors.Is(err, sql.ErrNoRows):
+	case missing:
 		if _, err := tx.Exec(`INSERT INTO users (squadron_id, email, password_hash, display_name, role, email_verified_at, is_master_admin)
 			VALUES (?, ?, ?, 'Master admin', 'owner', ?, 1)`, homeID, email, string(hash), time.Now()); err != nil {
 			return "", err
@@ -103,21 +118,42 @@ func (s *Service) EnsureMasterAdmin(email, password string) (string, error) {
 		}
 	case err != nil:
 		return "", err
-	case bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(password)) != nil:
-		if _, err := tx.Exec(`UPDATE users SET password_hash = ? WHERE email = ? AND is_master_admin = 1`, string(hash), email); err != nil {
-			return "", err
-		}
-		// A changed password signs the account out everywhere.
-		if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE email = ?)`, email); err != nil {
-			return "", err
-		}
-		result = "master admin password updated; sessions signed out"
 	default:
 		if replaced {
 			result = "previous master admin removed; master admin unchanged"
 		}
 	}
 	return result, tx.Commit()
+}
+
+// ResetMasterPassword is the recovery path (MASTER_ADMIN_RESET_PASSWORD): it
+// replaces the stored password of the master admin with password and signs
+// that account out everywhere. Like seeding, it applies the normal rules.
+func (s *Service) ResetMasterPassword(email, password string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if err := checkPassword(password); err != nil {
+		return fmt.Errorf("master admin password rejected: %w", err)
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	res, err := tx.Exec(`UPDATE users SET password_hash = ?, must_change_password = 0 WHERE email = ? AND is_master_admin = 1`, string(hash), email)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotMasterAdmin
+	}
+	if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE email = ?)`, email); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // SwitchableSquadron is a squadron the master admin can look at.

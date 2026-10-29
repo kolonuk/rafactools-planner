@@ -4,6 +4,7 @@ order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
 changed:
+  - 1.9: Master admin password only seeds the account (stored one has priority), MASTER_ADMIN_RESET_PASSWORD added; SITE_DOMAIN added and ISSUE_EMAIL defaults to issues@ the site domain.
   - 1.9: Added MAIL_PROVIDER and SES_REGION, and the master admin's Email settings page, whose saved values win over these.
   - 1.9: SMTP_HOST is now required unless ALLOW_LOG_MAIL=true, so secret links are no longer logged by accident.
   - 1.9: Added DISABLE_SIGNUPS and MASTER_ADMIN_RESET_2FA; the master admin's sessions last 8 hours and can use two-step sign-in.
@@ -26,8 +27,10 @@ configuration file. See `.env.template` in the repository for an annotated copy.
 | `COOKIE_SECURE` | `true` | Mark cookies HTTPS-only and send the HSTS header. Set `false` **only** for plain-HTTP local use. |
 | `CLAIM_DOMAIN` | `rafac.mod.gov.uk` | Email domain allowed to claim a squadron. |
 | `SKIP_EMAIL_VERIFICATION` | `false` | Marks every claimed squadron as confirmed immediately. **Development only**: it removes the proof that the address is real. |
-| `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD` | empty | The optional site-wide **master admin** (see below). Set both or neither. |
-| `ISSUE_EMAIL` | empty | Where **problem reports** are emailed, for example `issues@your-domain`. Empty switches reporting off: no link appears and `/report` does not exist. |
+| `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD` | empty | The optional site-wide **master admin** (see below). The password only **seeds** the account: once one is stored in the database that one has priority. |
+| `MASTER_ADMIN_RESET_PASSWORD` | `false` | Set to `true` for one start to replace the stored master admin password with `MASTER_ADMIN_PASSWORD` (recovery). |
+| `SITE_DOMAIN` | the host of `BASE_URL` | The site's domain. It is the default for the `no-reply@` sender and the `issues@` address for problem reports. Empty for `localhost` or an IP address. |
+| `ISSUE_EMAIL` | `issues@` + the site domain | Where **problem reports** are emailed. Set it to use a different mailbox, or to `none` to switch reporting off (no link appears and `/report` does not exist). When there is no site domain (local use) reporting is off. |
 | `ISSUE_MASKING` | `true` | `true` lets people black out parts of a screenshot before sending it. Set `false` only on a site you run for other people when you need to see exactly what they saw: the form then says plainly that screenshots are sent as they are. |
 | `MAIL_PROVIDER` | `smtp` | A mail preset: `cloudflare`, `gmail`, `google-workspace` or `ses` fill in the host and port; `smtp` assumes nothing. See [set up email](operators-email). |
 | `SES_REGION` | empty | Only for `MAIL_PROVIDER=ses`: the AWS region, for example `eu-west-2`. |
@@ -83,15 +86,19 @@ has been typed into a chat or an email as compromised.
 How it works:
 
 - **At every start** (so on every deployment) the site makes the database match
-  these settings, and logs what it did, never the password: `master admin created`,
-  `password updated; sessions signed out`, or `unchanged`.
-- **Changing the password** in the settings updates the account and signs it out
-  everywhere. **Changing the email** removes the previous master admin and creates
-  the new one. There is never more than one.
+  the email setting, and logs what it did, never the password: `master admin created`,
+  `password set from MASTER_ADMIN_PASSWORD`, or `unchanged`.
+- **The password setting is only a starting point.** It is used when the account is
+  created, or if its stored password is blank. After that the password stored in the
+  database has priority, so the master admin can change it on **Your details** and a
+  redeploy never overwrites it; the setting can then be left empty. To replace a
+  forgotten stored password, start once with `MASTER_ADMIN_RESET_PASSWORD=true` and a new
+  `MASTER_ADMIN_PASSWORD`; that signs the account out everywhere. **Changing the email**
+  removes the previous master admin and creates the new one. There is never more than one.
 - **It is never promoted from an ordinary account.** If the email already belongs to
   a member of a squadron, the site logs an error and does not create a master admin:
   remove that account first.
-- **A weak password is refused** (under 12 characters, over 72, or empty): the site
+- **A weak or missing starting password is refused** (under 12 characters, over 72, or empty, when one is needed): the site
   keeps running but logs `ERROR master admin NOT configured` and creates nothing.
   Check the log after a deployment.
 - The account lives in a hidden squadron numbered `master`, which cannot clash with a
@@ -108,8 +115,7 @@ the log as a line starting `AUDIT`, and the visit appears in that squadron's **s
 on **Your details**. If the authenticator is lost, start the site once with
 `MASTER_ADMIN_RESET_2FA=true`. See [security and privacy](security-and-privacy).
 
-If someone resets the master admin's password by email, the next start puts the
-configured password back.
+A password reset by email, or a change on **Your details**, is kept: the next start does not undo it.
 
 ## Password reset needs email
 

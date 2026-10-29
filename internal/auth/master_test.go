@@ -44,11 +44,44 @@ func TestEnsureMasterAdminCreatesAndKeepsInStep(t *testing.T) {
 			t.Error("a redeploy with the same settings signed the master admin out")
 		}
 	})
-	t.Run("a new password updates it, and signs the account out", func(t *testing.T) {
-		old, _, _ := s.CreateSession(u.ID)
-		msg, err := s.EnsureMasterAdmin(masterEmail, "a different master password")
-		if err != nil || !strings.Contains(msg, "password updated") {
+	t.Run("the setting only seeds: a stored password wins, and may be left empty", func(t *testing.T) {
+		tok, _, _ := s.CreateSession(u.ID)
+		for _, pw := range []string{"a different master password", "short", ""} {
+			msg, err := s.EnsureMasterAdmin(masterEmail, pw)
+			if err != nil || !strings.Contains(msg, "unchanged") {
+				t.Fatalf("setting %q: %q, %v", pw, msg, err)
+			}
+		}
+		if _, err := s.Authenticate(masterEmail, masterPW); err != nil {
+			t.Errorf("stored password was overwritten: %v", err)
+		}
+		if got, _ := s.UserBySession(tok); got == nil {
+			t.Error("a redeploy signed the master admin out")
+		}
+	})
+	t.Run("a blank stored password is seeded from the setting", func(t *testing.T) {
+		d.Exec(`UPDATE users SET password_hash = '' WHERE email = ?`, masterEmail)
+		if _, err := s.EnsureMasterAdmin(masterEmail, ""); err == nil {
+			t.Error("seeding with no password was accepted")
+		}
+		if _, err := s.EnsureMasterAdmin(masterEmail, "short"); err == nil {
+			t.Error("seeding with a weak password was accepted")
+		}
+		msg, err := s.EnsureMasterAdmin(masterEmail, masterPW)
+		if err != nil || !strings.Contains(msg, "set from") {
 			t.Fatalf("%q, %v", msg, err)
+		}
+		if _, err := s.Authenticate(masterEmail, masterPW); err != nil {
+			t.Errorf("seeded password: %v", err)
+		}
+	})
+	t.Run("the explicit reset replaces the stored password and signs the account out", func(t *testing.T) {
+		old, _, _ := s.CreateSession(u.ID)
+		if err := s.ResetMasterPassword(masterEmail, "short"); err == nil {
+			t.Fatal("weak reset accepted")
+		}
+		if err := s.ResetMasterPassword(masterEmail, "a different master password"); err != nil {
+			t.Fatal(err)
 		}
 		if _, err := s.Authenticate(masterEmail, masterPW); err != ErrInvalidCredentials {
 			t.Errorf("old password still works: %v", err)

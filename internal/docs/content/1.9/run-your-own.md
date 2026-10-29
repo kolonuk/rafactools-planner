@@ -97,13 +97,13 @@ never put a password or key in a variable.
 | --- | --- | --- |
 | `SESSION_KEY` | **secret**, in the repository that deploys the site | At least 32 characters. This repository's workflows do not use it: see [the signing key](#the-signing-key). |
 | `SMTP_PASS` | **secret** | Your email provider's password. |
-| `MASTER_ADMIN_PASSWORD` | **secret** | Only if you want a master admin; 12 to 72 characters. |
+| `MASTER_ADMIN_PASSWORD` | **secret** | Only if you want a master admin; 12 to 72 characters. Only the starting password: once stored in the database, that one has priority. |
 | `BASE_URL`, `CLAIM_DOMAIN`, `COOKIE_SECURE` | variable | The address, your email domain, and `true`. |
 | `MAIL_PROVIDER`, `SES_REGION` | variable | `cloudflare`, `gmail`, `google-workspace`, `ses` or `smtp`; see [set up email](operators-email). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM` | variable | Your email provider (the presets fill most of these in). A mail server is required from here or from the website. |
 | `DISABLE_SIGNUPS` | variable | `true` closes the claim form, for a copy holding real data. |
 | `MASTER_ADMIN_EMAIL` | variable | Only if you want a master admin. |
-| `ISSUE_EMAIL` | variable | Where problem reports go (for example `issues@your-domain`); leave empty to switch reporting off. |
+| `SITE_DOMAIN` | variable | Optional. Your site's domain; by default the host of `BASE_URL`. Mail is sent from `no-reply@` it and problem reports go to `issues@` it, unless you set `MAIL_FROM` or `ISSUE_EMAIL`. |
 | `ISSUE_MASKING` | variable | `true` (default) lets people black out parts of a screenshot; `false` only for a site you run for others. |
 
 On your **own** copy keep `ISSUE_MASKING` at `true`: your people can then hide names in a
