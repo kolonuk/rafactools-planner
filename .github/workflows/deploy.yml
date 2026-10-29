@@ -108,9 +108,14 @@ jobs:
 
       - name: Smoke test
         run: |
+          # ALLOW_LOG_MAIL=true: the smoke container has no SMTP configured,
+          # and the app now refuses to start without one unless this is set
+          # (see config.RequireMail) — without it every build fails here,
+          # never reaching Push.
           docker run -d --name smoke -p 18081:8080 \
             -e SESSION_KEY=ci-smoke-test-session-key-not-for-prod-use \
             -e COOKIE_SECURE=false \
+            -e ALLOW_LOG_MAIL=true \
             "${{ steps.meta.outputs.image_ref }}"
           code=""
           for _ in $(seq 1 10); do
