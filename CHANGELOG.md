@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.11
 
 - **chore**: promotion order is enforced: a push to `test` must already be on `dev` with CI passed, and a push to `main` on `test`, or nothing is built or published (`devtools promotion-gate`).
 - **chore**: this repository no longer knows about the host that runs the image. It only publishes to GHCR (`dev-latest`, `test-latest`, `main-latest`, and `latest` from main); whatever runs it pulls from there.
