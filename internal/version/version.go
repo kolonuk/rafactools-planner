@@ -8,7 +8,7 @@ package version
 //	-ldflags "-X rafactools-planner/internal/version.Version=1.42"
 //
 // (see Dockerfile's VERSION build arg, set by .github/workflows/deploy.yml
-// from the PR number associated with the commit being built). Left at
+// from the newest docs snapshot: "1.N" on main, "1.N+<commit>" on dev and test). Left at
 // "dev" for a local build with no version info supplied — e.g.
 // `go build ./cmd/server` or `docker build .` with no --build-arg VERSION.
 var Version = "dev"

@@ -42,8 +42,6 @@ jobs:
 
       - name: Compute image tags
         id: meta
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHORT_SHA="$(echo "${{ github.sha }}" | cut -c1-12)"
           ENV_TAG="${{ github.ref_name }}"
@@ -64,33 +62,21 @@ jobs:
           else
             echo "extra_tags=" >> "$GITHUB_OUTPUT"
           fi
-          # App version shown in the web/PDF footers: "1.<PR number>" for the
-          # PR that produced this commit (see CHANGELOG.md — a PR's number is
-          # the one stable, human-meaningful ID GitHub gives a change before
-          # it's even merged). Direct pushes to a branch with no associated
-          # PR (this project's history before branch protection existed, or
-          # a manual workflow_dispatch rebuild) fall back to the short SHA —
-          # still unique, just not a PR number.
-          #
-          # This call failing (wrong token scope, API hiccup, anything) once
-          # actually broke the Docker build outright: `gh api`'s error body
-          # — {"message":"...",...} — came through on stdout rather than
-          # being swallowed by `2>/dev/null`, so $PR_NUMBER became that raw
-          # JSON text, which then got baked straight into -ldflags. The `||
-          # true` only stops the *shell* from treating that as a failure; it
-          # does nothing about the captured value being garbage. Never trust
-          # command substitution output to be what you asked for without
-          # checking its shape — validate it's purely numeric before using
-          # it anywhere, especially somewhere as unforgiving as an -ldflags
-          # string passed straight to the linker.
-          PR_NUMBER="$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0].number // empty' 2>/dev/null || true)"
-          case "$PR_NUMBER" in
-            ''|*[!0-9]*) PR_NUMBER="" ;; # empty, or contains anything but digits — not a real PR number
-          esac
-          if [ -n "$PR_NUMBER" ]; then
-            echo "app_version=1.${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          # App version shown in the web/PDF footers. A release is the newest
+          # frozen docs snapshot (internal/docs/content/1.N, made with
+          # "go run ./cmd/devtools docs-snapshot 1.N"), so the footer, the docs
+          # version list and CHANGELOG.md always agree. main shows exactly that
+          # version; dev and test add the commit, "1.N+<sha>", because they run
+          # work that may not be released yet. Nothing here asks the GitHub API,
+          # so there is no call that can fail and poison the linker flags.
+          RELEASE="$(find internal/docs/content -mindepth 1 -maxdepth 1 -type d -name '1.*' -printf '%f\n' | grep -E '^1\.[0-9]+$' | sort -t. -k2 -n | tail -n 1)"
+          if [ -z "$RELEASE" ]; then
+            RELEASE="1.0"
+          fi
+          if [ "${ENV_TAG}" = "main" ]; then
+            echo "app_version=${RELEASE}" >> "$GITHUB_OUTPUT"
           else
-            echo "app_version=1.0+${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "app_version=${RELEASE}+${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3

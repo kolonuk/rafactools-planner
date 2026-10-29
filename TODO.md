@@ -25,8 +25,6 @@ Chromium), plus the "Add a second half" fix. Still to do:
   docs check, HTML validation) have only been run locally so far.
 - [ ] **[P3 usability]** **Automated browser test** for the drag-and-drop script (it was verified by
   hand in Chromium only). Worth adding if the script grows.
-- [ ] **[P4 nicety]** **First docs snapshot** (`go run ./cmd/devtools docs-snapshot 1.<PR>`) once a
-  release is designated, so the version selector has something to compare.
 
 ## Before anyone relies on it
 
@@ -45,7 +43,7 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
 - [ ] **[P4 nicety]** **Later: version check.** Two parts, to be done together, not yet:
   1. A repo skill (`.claude/skills/version-check`) saying when and how the
      version must change (what counts as a user-visible change, how the
-     `1.<PR number>` scheme and the docs `since:`/`changed:` notes relate), so it is
+     `1.<N>` release scheme and the docs `since:`/`changed:` notes relate), so it is
      checked before a PR is opened.
   2. A GitHub Actions workflow, run on pull requests, that reads the version
      the PR submits and compares it with the version on `main`, failing when it
@@ -53,7 +51,7 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
      docs-only or CI-only PRs as the skill defines). Written in Go like the
      other tooling (a `devtools` subcommand), run by the workflow, with tests.
      Decide first, and ask the owner: where the version lives in the repo
-     today, since it is currently computed at build time from the PR number.
+     today: it is now taken at build time from the newest docs snapshot.
 
 ## Bugs and rough edges
 
@@ -150,7 +148,7 @@ Roughly ordered by value for the effort.
 10. **[P3 usability]** **Documentation, next steps.** The versioned in-app docs exist
     (`/docs`, see `.claude/skills/docs/SKILL.md`). Still to do: add pages for
     each feature on this list as it is built; take the first release snapshot
-    with `go run ./cmd/devtools docs-snapshot 1.<PR number>` once a release is
+    with `go run ./cmd/devtools docs-snapshot 1.<N>` once a release is
     designated, so the version selector and compare view have something to
     compare; link relevant screens to their help page; images/screenshots
     (not supported yet); in-docs search (a first-party script is now allowed).
