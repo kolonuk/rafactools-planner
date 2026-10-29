@@ -1,7 +1,11 @@
-# Builds the image, smoke-tests it, pushes to GHCR tagged by branch, and —
-# for main only — dispatches dadock's deploy workflow so the running stack
-# picks up the new image. dev/test pushes stop at GHCR: there's no separate
-# dev/test host wired up yet (see TODO.md "Three real environments").
+# Builds the image, smoke-tests it, scans it and pushes it to GHCR, tagged by
+# branch (dev-latest, test-latest, main-latest; main also moves :latest). This
+# repository only builds and publishes images: whatever runs them pulls from
+# GHCR and is not wired up from here.
+#
+# Changes are promoted dev, then test, then main. The "gate" job below refuses a
+# push to test or main that was not already on the previous branch with CI
+# passed, so nothing out of order is ever built or published.
 name: Build and deploy
 
 on:
@@ -28,7 +32,27 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/rafactools-planner
 
 jobs:
+  gate:
+    name: Promotion order (dev, then test, then main)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read # to read the CI result of the commit
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: Check the commit came through the previous stage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: go run ./cmd/devtools promotion-gate
+
   build:
+    needs: gate
     name: Build, scan and push image
     runs-on: ubuntu-24.04
     permissions:
@@ -90,10 +114,8 @@ jobs:
             echo "image_ref=${IMAGE_BASE}:${ENV_TAG}-${SHORT_SHA}"
             echo "env_tag=${ENV_TAG}"
           } >> "$GITHUB_OUTPUT"
-          # dadock's docker-compose.yml pins this service by a bare :latest
-          # (same convention as johnwood/sbcwaste) — only main should ever
-          # move that tag, so dev/test pushes don't silently become what
-          # dadock's "1. Deploy docker stack" pulls.
+          # Only main moves the bare :latest tag, so a dev or test push never
+          # becomes what a plain "pull :latest" gets.
           if [ "${ENV_TAG}" = "main" ]; then
             echo "extra_tags=${IMAGE_BASE}:latest" >> "$GITHUB_OUTPUT"
           else
@@ -197,32 +219,3 @@ jobs:
           package-name: "rafactools-planner"
           package-type: "container"
           min-versions-to-keep: 10
-
-  trigger-dadock-deploy:
-    name: Reload the dadock stack
-    needs: build
-    runs-on: ubuntu-24.04
-    steps:
-      # Was main-only until this comment changed — dev/test pushes built and
-      # pushed a new dev-latest/test-latest image but never actually told
-      # dadock to pull it, so rafactools-dev/rafactools-test kept running
-      # whatever was live at last manual trigger indefinitely. dadock's
-      # "1. Deploy docker stack" reconciles the *whole* stack against
-      # whatever each service's compose entry is pinned to (dev/test/main
-      # each pin a different tag — see dadock's docker-compose.yml), so
-      # running it for any of the three branches is the correct, safe thing
-      # regardless of which one triggered this.
-      #
-      # DADOCK_DEPLOY_TOKEN is a fine-grained PAT scoped to Actions:write on
-      # kolonuk/dadock only, same secret/pattern used by sbcwaste.top and
-      # johnwood.dev. Set it as a repo secret here to enable auto-redeploy;
-      # without it this step just prints a reminder to pull manually.
-      - name: Dispatch dadock deploy workflow
-        env:
-          GH_TOKEN: ${{ secrets.DADOCK_DEPLOY_TOKEN }}
-        run: |
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "DADOCK_DEPLOY_TOKEN not set - skipping dadock reload. Pull the new image manually." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          gh workflow run "1. Deploy docker stack" --repo kolonuk/dadock
