@@ -17,6 +17,7 @@ on:
       - "go.mod"
       - "go.sum"
       - "Dockerfile"
+      - "CHANGELOG.md" # a changelog-only push to test still cuts the release
       - ".github/workflows/deploy.yml"
   workflow_dispatch: {}
 
