@@ -104,13 +104,16 @@ func releaseDocs(root, changelog string) (version string, released bool, err err
 	if err := snapshotDocs(root, version); err != nil {
 		return "", false, err
 	}
-	if raw, rerr := os.ReadFile(changelog); rerr == nil { // #nosec G304 -- fixed path chosen by the caller
-		if i, _, ok := unreleasedSection(string(raw)); ok {
-			lines := strings.Split(string(raw), "\n")
-			lines[i] = "## " + version
-			if err := os.WriteFile(changelog, []byte(strings.Join(lines, "\n")), 0o644); err != nil { // #nosec G306 -- repo content
-				return "", false, err
-			}
+	raw, rerr := os.ReadFile(changelog) // #nosec G304 -- fixed path chosen by the caller
+	if rerr != nil {
+		return version, true, nil // no changelog to rename
+	}
+	if i, _, ok := unreleasedSection(string(raw)); ok {
+		lines := strings.Split(string(raw), "\n")
+		lines[i] = "## " + version
+		err = os.WriteFile(changelog, []byte(strings.Join(lines, "\n")), 0o644) // #nosec G306 -- checked-in repo content
+		if err != nil {
+			return "", false, err
 		}
 	}
 	return version, true, nil
