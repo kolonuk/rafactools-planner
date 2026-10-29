@@ -278,6 +278,7 @@ type recordingMail struct {
 	reportTo  []string
 	reportErr error
 	tests     []string
+	notices   []string
 	testErr   error
 }
 
@@ -296,6 +297,13 @@ func (m *recordingMail) SendVerification(to, _, token string) error {
 func (m *recordingMail) SendInvite(to, _, token, _, _ string) error {
 	return m.add("invite", to, token)
 }
+func (m *recordingMail) SendMasterViewNotice(to, squadronName, whenUTC string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notices = append(m.notices, to+"|"+squadronName)
+	return nil
+}
+
 func (m *recordingMail) SendTest(to string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -349,3 +357,10 @@ func (m *recordingMail) count(kind string) int {
 	}
 	return n
 }
+
+// Every page carries its own request id in a <meta> tag (and error pages show
+// it as "(reference ...)"); comparisons of "these
+// two responses must be identical" strip it first.
+var requestIDMeta = regexp.MustCompile(`<meta name="request-id" content="[0-9a-f]+">|\(reference [0-9a-f]+\)`)
+
+func stripRequestID(s string) string { return requestIDMeta.ReplaceAllString(s, "") }

@@ -915,3 +915,52 @@ func TestResetProgrammeEmptiesContentKeepsStructure(t *testing.T) {
 		t.Error("reset leaked into another squadron's programme")
 	}
 }
+
+func TestCopyRequirementCategoriesCopiesNamesNeverCadets(t *testing.T) {
+	st, _ := newStore(t)
+	jan := mustProg(t, st, 1, 2031, 1)
+	mar := mustProg(t, st, 1, 2031, 3)
+	otherSq := mustProg(t, st, 2, 2031, 2)
+	apr := mustProg(t, st, 1, 2031, 4)
+
+	// Nothing to copy from yet.
+	if n, err := st.CopyRequirementCategories(1, jan.ID); err != nil || n != 0 {
+		t.Fatalf("first month: %d, %v", n, err)
+	}
+
+	c1, _ := st.AddRequirementCategory(jan.ID, "Old category", "by Jan")
+	st.AddRequirementEntry(jan.ID, c1, "Cdt Old", "old note")
+	c2, _ := st.AddRequirementCategory(mar.ID, "Fieldcraft", "by Apr")
+	c3, _ := st.AddRequirementCategory(mar.ID, "First aid", "")
+	st.AddRequirementEntry(mar.ID, c2, "Cdt Secret", "secret note")
+	_ = c3
+	oc, _ := st.AddRequirementCategory(otherSq.ID, "Other squadron's", "")
+	st.AddRequirementEntry(otherSq.ID, oc, "Cdt Other", "")
+
+	n, err := st.CopyRequirementCategories(1, apr.ID)
+	if err != nil || n != 2 {
+		t.Fatalf("copy into April: %d, %v (want the 2 categories of March, the nearest earlier month)", n, err)
+	}
+	got, _ := st.GetFullProgramme(1, apr.ID)
+	if len(got.Requirements) != 2 || got.Requirements[0].Name != "Fieldcraft" || got.Requirements[0].DueLabel != "by Apr" || got.Requirements[1].Name != "First aid" {
+		t.Fatalf("copied = %+v", got.Requirements)
+	}
+	for _, c := range got.Requirements {
+		if len(c.Entries) != 0 {
+			t.Errorf("category %q copied %d cadet entries, want none", c.Name, len(c.Entries))
+		}
+	}
+	// The source is untouched, and another squadron's months are never used.
+	if mar2, _ := st.GetFullProgramme(1, mar.ID); len(mar2.Requirements[0].Entries) != 1 {
+		t.Error("the source month lost its entries")
+	}
+	for _, c := range got.Requirements {
+		if c.Name == "Other squadron's" {
+			t.Error("a category was copied from another squadron")
+		}
+	}
+	// Another squadron cannot copy into this programme.
+	if _, err := st.CopyRequirementCategories(2, apr.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("cross-tenant copy = %v, want ErrNotFound", err)
+	}
+}

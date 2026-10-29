@@ -105,7 +105,7 @@
 
 <section class="card">
   <h2>Security log</h2>
-  <p class="muted">Who looked at or changed who can get into this squadron. The newest 50 entries from the last year.</p>
+  <p class="muted">Who looked at or changed who can get into this squadron. The newest 100 events from the last year (sign-ins are listed separately below). <a href="{{url "/squadron/security-log.csv"}}">Download all as a spreadsheet (CSV)</a>.</p>
   {{if .Audit}}
   <table class="list">
     <thead><tr><th scope="col">When (UTC)</th><th scope="col">Who</th><th scope="col">What</th><th scope="col">Detail</th></tr></thead>
@@ -141,5 +141,22 @@
     </label>
     <button type="submit">Delete the squadron and everything in it</button>
   </form>
+</section>
+
+<section class="card">
+  <h2>Recent sign-ins</h2>
+  <p class="muted">The newest 30 sign-ins and wrong passwords for accounts in this squadron (a repeated wrong password counts once every 5 minutes).</p>
+  {{if .SignIns}}
+  <table class="list">
+    <thead><tr><th scope="col">When (UTC)</th><th scope="col">Who</th><th scope="col">What</th></tr></thead>
+    <tbody>
+    {{range .SignIns}}
+      <tr><td>{{.At.UTC.Format "2 Jan 2006 15:04"}}</td><td data-private>{{.ActorEmail}}</td><td>{{auditText .Action}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Nothing recorded yet.</p>
+  {{end}}
 </section>
 {{end}}

@@ -83,6 +83,11 @@ func (s *server) programmeCreate(w http.ResponseWriter, r *http.Request) {
 		s.renderDashboard(w, r, err.Error())
 		return
 	}
+	if r.FormValue("copy_categories") == "1" {
+		if _, err := s.Store.CopyRequirementCategories(u.SquadronID, p.ID); err != nil {
+			log.Printf("copy requirement categories into programme %d: %v", p.ID, err)
+		}
+	}
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(p.ID, 10)), http.StatusSeeOther)
 }
 
@@ -373,7 +378,7 @@ func (s *server) programmePDF(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := pdfgen.Render(sq, fp)
 	if err != nil {
-		log.Printf("render pdf for programme %d: %v", fp.ID, err)
+		log.Printf("render pdf failed for programme %d: %v", fp.ID, err)
 		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not render the PDF — try again, and if it keeps happening ask an admin to check the server logs.")
 		return
 	}

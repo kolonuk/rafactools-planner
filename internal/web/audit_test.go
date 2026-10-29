@@ -11,8 +11,9 @@ func TestSecurityLogShowsMasterViewsAndMemberChangesToOwnersOnly(t *testing.T) {
 	ts, master, sqA, _ := masterApp(t)
 	idA := strconv.FormatInt(sqA, 10)
 
-	if page := body(ts.ownerA.get("/squadron")); !strings.Contains(page, "Nothing recorded yet.") {
-		t.Fatalf("log not empty to begin with:\n%s", page)
+	// Signing in is itself recorded now, but nobody has looked yet.
+	if page := body(ts.ownerA.get("/squadron")); strings.Contains(page, "Site administrator viewed") {
+		t.Fatalf("a master admin visit is listed before there was one:\n%s", page)
 	}
 
 	// The master admin looks at squadron A: the owner can see that they did.

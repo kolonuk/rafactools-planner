@@ -143,7 +143,11 @@ func (s *Service) ResetPassword(token, newPassword string) error {
 	if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = ?`, userID); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	_ = s.AuditUser(userID, AuditPasswordReset, "")
+	return nil
 }
 
 // ErrWrongPassword is returned when the "current password" given to
@@ -185,5 +189,9 @@ func (s *Service) ChangePassword(userID int64, keepSessionToken, current, newPas
 	if _, err := tx.Exec(`DELETE FROM password_resets WHERE user_id = ?`, userID); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	_ = s.AuditUser(userID, AuditPasswordChange, "")
+	return nil
 }

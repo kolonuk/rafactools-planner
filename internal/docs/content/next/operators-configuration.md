@@ -136,3 +136,7 @@ It also exits if its own built-in documentation is malformed.
 Changing `SESSION_KEY` makes any form that is open in someone's browser fail
 once with `Form expired, try again.` Signed-in sessions are kept in the
 database and stay valid.
+
+Two things stored encrypted with a key derived from it can no longer be read after a change: the
+email password saved on the website (enter it again) and the master admin's two-step sign-in secret
+(start once with `MASTER_ADMIN_RESET_2FA=true` and set it up again).

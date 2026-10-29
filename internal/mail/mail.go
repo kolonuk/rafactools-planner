@@ -9,8 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/smtp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Sender struct {
@@ -61,29 +64,36 @@ func (s Sender) send(to, subject, body string) error {
 	return s.deliver(to, msg)
 }
 
-// deliver hands a complete, already-built message to the SMTP server.
+// Timeouts for talking to the mail server. They are variables so tests can
+// shorten them; a server that never answers must not hold a request, or a
+// goroutine, forever.
+var (
+	dialTimeout = 15 * time.Second
+	ioTimeout   = 60 * time.Second
+)
+
+// deliver hands a complete, already-built message to the SMTP server. Port 465
+// uses TLS from the first byte; any other port starts in plain text and is
+// upgraded with STARTTLS when the server offers it. The password is never sent
+// over an unencrypted connection (net/smtp's PlainAuth refuses, except to
+// localhost for development). Every step has a deadline.
 func (s Sender) deliver(to string, msg []byte) error {
-	addr := fmt.Sprintf("%s:%d", s.Host, s.Port)
+	addr := net.JoinHostPort(s.Host, strconv.Itoa(s.Port))
+	tlsCfg := &tls.Config{ServerName: s.Host, MinVersion: tls.VersionTLS12}
+	d := &net.Dialer{Timeout: dialTimeout}
 
-	// Mailpit (dev) and most relays on 587/25 accept plain SMTP with
-	// optional AUTH; only reach for implicit TLS on 465.
+	var conn net.Conn
+	var err error
 	if s.Port == 465 {
-		return s.sendImplicitTLS(addr, to, msg)
+		conn, err = tls.DialWithDialer(d, "tcp", addr, tlsCfg)
+	} else {
+		conn, err = d.Dial("tcp", addr)
 	}
-
-	var auth smtp.Auth
-	if s.User != "" {
-		auth = smtp.PlainAuth("", s.User, s.Pass, s.Host)
-	}
-	return smtp.SendMail(addr, auth, s.From, []string{to}, msg)
-}
-
-func (s Sender) sendImplicitTLS(addr, to string, msg []byte) error {
-	conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: s.Host, MinVersion: tls.VersionTLS12})
 	if err != nil {
-		return fmt.Errorf("tls dial: %w", err)
+		return fmt.Errorf("connect to the mail server: %w", err)
 	}
 	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(ioTimeout))
 
 	client, err := smtp.NewClient(conn, s.Host)
 	if err != nil {
@@ -91,6 +101,13 @@ func (s Sender) sendImplicitTLS(addr, to string, msg []byte) error {
 	}
 	defer client.Close()
 
+	if s.Port != 465 {
+		if ok, _ := client.Extension("STARTTLS"); ok {
+			if err := client.StartTLS(tlsCfg); err != nil {
+				return fmt.Errorf("starttls: %w", err)
+			}
+		}
+	}
 	if s.User != "" {
 		if err := client.Auth(smtp.PlainAuth("", s.User, s.Pass, s.Host)); err != nil {
 			return fmt.Errorf("smtp auth: %w", err)

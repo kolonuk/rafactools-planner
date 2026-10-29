@@ -107,5 +107,14 @@ export function pageInfo() {
         dpr: window.devicePixelRatio || 1,
         touch: navigator.maxTouchPoints > 0,
         at: Date.now(),
+        requestId: document.querySelector('meta[name="request-id"]')?.content.slice(0, 16) ?? "",
+        timing: navigationTiming(),
     };
+}
+function navigationTiming() {
+    const nav = performance.getEntriesByType("navigation")[0];
+    if (!nav)
+        return { ttfb: 0, domContentLoaded: 0, load: 0 };
+    const ms = (v) => (Number.isFinite(v) && v > 0 ? Math.round(v) : 0);
+    return { ttfb: ms(nav.responseStart), domContentLoaded: ms(nav.domContentLoadedEventEnd), load: ms(nav.loadEventEnd) };
 }

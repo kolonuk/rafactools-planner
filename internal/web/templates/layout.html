@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
+  {{if .RequestID}}<meta name="request-id" content="{{.RequestID}}">{{end}}
   <title>{{.Title}} · RAFACTools Planner</title>
   <!-- No Google Fonts / other third-party requests: every page load would
        otherwise leak the visitor's IP to a third party on a tool used by
@@ -33,7 +34,7 @@
   {{end}}
   <main class="container">
     {{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
-    {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+    {{if .Error}}<p class="error">{{.Error}}{{if .ErrorRef}} <span class="muted">(reference {{.RequestID}})</span>{{end}}</p>{{end}}
     {{template "content" .}}
   </main>
   <footer class="version-footer">

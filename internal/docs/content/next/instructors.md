@@ -3,6 +3,8 @@ title: Instructors
 order: 45
 summary: Keeping a list of instructors for the programme grid's suggestions, and setting your own name.
 since: next
+changed:
+  - next: An entry can now be edited (name and rank) instead of removed and added again.
 ---
 # Instructors
 
@@ -27,6 +29,8 @@ Owners and editors can keep the list. Open **Instructors** in the top bar (or
 
 - **Add someone:** enter their **Name** (required, up to 80 characters) and optionally
   their **Rank** (up to 40 characters, for example `Sgt`), then select **Add**.
+- **Edit someone:** select **Edit** beside them to change their name or rank (the same limits and
+  duplicate rule apply). Names already typed into programmes are free text and are not changed.
 - **Remove someone:** select **Remove** beside them. Names already typed into
   programmes are not changed.
 - The same name with the same rank cannot be added twice. The same name with a

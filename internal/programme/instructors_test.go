@@ -107,3 +107,52 @@ func TestInstructorsCascadeWithTheSquadron(t *testing.T) {
 		t.Errorf("%d instructors survived their squadron", n)
 	}
 }
+
+func TestUpdateInstructorRulesAndTenancy(t *testing.T) {
+	st, _ := newStore(t)
+	st.AddInstructor(1, "Smith", "Fg Off")
+	st.AddInstructor(1, "Jones", "")
+	st.AddInstructor(2, "Other", "")
+	list, _ := st.ListInstructors(1)
+	var smith, jones int64
+	for _, i := range list {
+		if i.Name == "Smith" {
+			smith = i.ID
+		} else {
+			jones = i.ID
+		}
+	}
+	other, _ := st.ListInstructors(2)
+
+	if err := st.UpdateInstructor(1, smith, "  Smythe ", " Flt Lt "); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := st.GetInstructor(1, smith); got.Name != "Smythe" || got.Rank != "Flt Lt" {
+		t.Errorf("after rename: %+v", got)
+	}
+	for name, err := range map[string]error{
+		"blank name":    st.UpdateInstructor(1, smith, "   ", ""),
+		"too long":      st.UpdateInstructor(1, smith, strings.Repeat("x", 81), ""),
+		"control char":  st.UpdateInstructor(1, smith, "Sm\x00ith", ""),
+		"duplicate":     st.UpdateInstructor(1, smith, "Jones", ""),
+		"rank too long": st.UpdateInstructor(1, smith, "Smith", strings.Repeat("r", 41)),
+	} {
+		if !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("%s: err = %v, want ErrInvalidInput", name, err)
+		}
+	}
+	if got, _ := st.GetInstructor(1, smith); got.Name != "Smythe" {
+		t.Errorf("a refused rename changed the entry: %+v", got)
+	}
+	_ = jones
+	// Another squadron's entry can be neither read nor changed.
+	if err := st.UpdateInstructor(1, other[0].ID, "Hijacked", ""); !errors.Is(err, ErrNotFound) {
+		t.Errorf("cross-tenant update = %v, want ErrNotFound", err)
+	}
+	if _, err := st.GetInstructor(1, other[0].ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("cross-tenant get = %v, want ErrNotFound", err)
+	}
+	if got, _ := st.GetInstructor(2, other[0].ID); got.Name != "Other" {
+		t.Errorf("the other squadron's entry changed: %+v", got)
+	}
+}

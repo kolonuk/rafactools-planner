@@ -12,6 +12,18 @@
       {{range .Categories}}<option value="{{.Value}}" {{if eq .Value $.Category}}selected{{end}}>{{.Label}}</option>{{end}}
     </select>
   </label>
+  <label>How much does it matter? (optional)
+    <select name="severity">
+      <option value="">Choose…</option>
+      {{range .Severities}}<option value="{{.Value}}" {{if eq .Value $.Severity}}selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </label>
+  <label>Does it happen every time? (optional)
+    <select name="repeat">
+      <option value="">Choose…</option>
+      {{range .Repeats}}<option value="{{.Value}}" {{if eq .Value $.Repeat}}selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </label>
   <label>What happened?
     <textarea name="description" rows="6" required maxlength="4000" placeholder="What were you doing, and what went wrong?">{{.Description}}</textarea>
   </label>

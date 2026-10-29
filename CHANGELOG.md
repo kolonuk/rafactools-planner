@@ -13,6 +13,12 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **security**: the authenticator secret is encrypted in the database; sign-ins are listed apart from the security log so frequent sign-ins or password guessing cannot push rarer events off it; failed-login entries are collapsed to one per account every five minutes; connections to the mail server have timeouts and STARTTLS is used whenever offered.
+- **fix**: the top bar and tables wrapped badly on a phone and made every page scroll sideways; `/health` now fails (503) when the database does not answer.
+- **security**: the security log also records sign-ins, wrong passwords (once a minute per account), password changes and resets, signing out other sessions and squadron settings; owners can download it as a CSV (formula-safe) and are emailed, at most hourly, when the master admin opens their squadron.
+- **feat**: the New month box can copy the previous month's requirement category names (never cadet names).
+- **feat**: an instructor's name and rank can be edited.
+- **feat**: problem reports carry a request reference (also on every response header, page and error page), the database migration count, whether mail is set up, the size (numbers only) of the programme being viewed, page load timings, failed page requests, and "how much it matters" and "how often" answers.
 - **feat**: email settings. `MAIL_PROVIDER` presets for Cloudflare, Gmail, Google Workspace and Amazon SES (plus any SMTP server), and a master-admin **Email settings** page with fields, an encrypted password, a **Send a test email** button and a reset; saved values win over the environment, which stays the default. Every message now carries a Date and a unique Message-ID, and non-English subjects are encoded. Problem-report screenshots are capped at 3 MB so the email fits the 5 MiB some providers allow. New docs page "Set up email" with per-provider steps.
 - **security**: the site refuses to start without `SMTP_HOST` unless `ALLOW_LOG_MAIL=true` (development), so confirmation, invite and reset links are no longer written to the log by accident; new `DISABLE_SIGNUPS` closes the claim form.
 - **security**: **Your details** lists where you are signed in (browser, start, expiry) and can sign out one session or all others; the master admin signs in for 8 hours instead of 30 days and can turn on two-step sign-in (authenticator app code, single use, locks after 5 wrong codes; `MASTER_ADMIN_RESET_2FA` to recover).

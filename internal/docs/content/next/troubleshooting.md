@@ -4,6 +4,7 @@ order: 90
 summary: What the messages mean and what to do.
 since: 1.0
 changed:
+  - next: Error pages show a reference to quote.
   - next: Added the email settings and test email messages.
   - next: Added the sign-up closed, authenticator code and delete-squadron messages, and the site refusing to start without mail.
   - next: Curly quotes and accents no longer print as odd symbols; other scripts print as a question mark.
@@ -35,6 +36,7 @@ changed:
 | `Nothing was deleted: ...` | Deleting a squadron needs your password and its number typed exactly. | Check both and try again. |
 | `The test email was not sent: ...` | The mail server refused the settings you saved. | See the table in [set up email](operators-email). |
 | `Not saved: MAIL_PROVIDER=... needs ...` | The provider you chose needs a value you left empty. | Fill in the named value and save again. |
+| `(reference ...)` after an error | A short code for that request. | Quote it when you report the problem, or tell whoever runs the site: it finds the matching line in the server log. |
 | `Please describe what went wrong.` | The report needs a description. | Type what happened, then send again. |
 | Closure dates rejected | Dates must be real, in order, and at most 366 days apart. | Check the dates: see [programmes](programmes). |
 | Question marks in the PDF | Characters outside Western European text, such as Greek, Cyrillic or Chinese. | Use Latin letters: see [PDF export](pdf-export). |

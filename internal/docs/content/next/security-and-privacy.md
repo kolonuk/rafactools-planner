@@ -4,6 +4,7 @@ order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
+  - next: The security log also records sign-ins and password changes; owners can download it and are emailed when the master admin looks at their squadron.
   - next: The site's email password can be saved on the website by the master admin; it is stored encrypted.
   - next: Added a privacy notice page, a security log for owners, the list of places you are signed in, deleting a squadron, and two-step sign-in for the master admin.
   - next: Added Report a problem, which can email a screenshot and recent activity to the site's operators.
@@ -24,7 +25,7 @@ changed:
 | Accounts | Email address, role, and a salted bcrypt hash of the password. The password itself is never stored. |
 | Sign-in sessions | A random token per browser, valid for 30 days (8 hours for the master admin) or until logout, with when it started and a coarse description of the browser such as "Firefox on Linux". |
 | Email settings | If the master admin saves them on the website: the mail server, login, sender and password. The password is **encrypted** (with a key derived from the site's signing key) and never shown again. |
-| Security log | When the master admin looks at a squadron, and when an owner invites, changes or removes a member: who, what and when. Kept for a year; owners can read their squadron's. |
+| Security log | When the master admin looks at a squadron; sign-ins and wrong passwords for an existing account; password changes and resets; signing out other sessions; and invites, role changes, removals and settings changes: who, what and when (never a password). Kept for a year; owners can read and download their squadron's. |
 | Password reset requests | A SHA-256 hash of the emailed link, who it is for, and when it expires (1 hour). Deleted when used or replaced. |
 | Problem reports | **Not stored.** A report you send is emailed to the site's operators, and the server briefly remembers your last 20 requests (method, path and result code only, in memory) so that a report can include them. See [report a problem](report-a-problem). |
 | Names | The name each person chooses to display (optional), and your squadron's instructor list: a name and a rank each, no contact details. |
@@ -67,7 +68,7 @@ See [configuration](operators-configuration).
   place you are signed in and can sign any of them out, or all but this one.
 - **Two-step sign-in** is available to the master admin, the account that can read every
   squadron: after the password it asks for a 6-digit code from an authenticator app. Each code
-  works once, five wrong codes lock the account for 15 minutes, and turning it off needs the
+  works once, the authenticator secret is stored encrypted, five wrong codes lock the account for 15 minutes, and turning it off needs the
   password and a current code.
 - **Deleting a squadron:** an owner can delete the whole squadron and everything in it (members,
   programmes, the tracker with cadets' names, instructors, its security log) from Squadron

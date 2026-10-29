@@ -476,6 +476,7 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+		_ = s.AuditUser(u.ID, AuditLoginFailed, "")
 		return nil, ErrInvalidCredentials
 	}
 	if !u.Verified() {

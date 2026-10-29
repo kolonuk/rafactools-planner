@@ -4,6 +4,7 @@ order: 40
 summary: Name, classifications, parade nights, members and invites (owners only).
 since: 1.0
 changed:
+  - next: The security log also records sign-ins, wrong passwords, password changes and resets, signing out other sessions and settings changes; owners can download it and are emailed when the site's administrator looks at the squadron.
   - next: Added the security log and the Delete this squadron section.
   - next: Changing the classifications now updates existing months; removing a classification that still has text is refused.
   - next: Added the Squadron website field, and owners can change roles and remove members from the Members table.
@@ -48,9 +49,22 @@ See [roles and invites](roles-and-invites).
 
 ## Security log
 
-At the bottom of the page the **Security log** lists the newest 50 events of the last year:
-when the site's administrator looked at your squadron (read-only), and when an owner invited,
-changed the role of, or removed someone. Each line shows who, what and when (UTC).
+At the bottom of the page the **Security log** lists the newest 100 events of the last year. Each line
+shows who, what and when (UTC). Ordinary sign-ins are listed apart, under **Recent sign-ins** (the newest 30),
+so that frequent sign-ins, or someone guessing a password, can never push the rarer events off the screen.
+The log records:
+
+- when the site's administrator looked at your squadron (read-only);
+- when someone **signed in**, and a **wrong password** entered for a real account (repeats within five minutes
+  count once; unknown addresses are not recorded, and passwords never are);
+- password changes, password resets from the emailed link, and signing out other sessions;
+- when an owner invited, changed the role of, or removed someone, or saved the squadron settings.
+
+**Download all as a spreadsheet (CSV)** gives the whole year, not just the newest 100. Cells that a
+spreadsheet could run as a formula are made harmless first.
+
+When the site's administrator opens your squadron, **each owner is emailed** (at most once an hour
+however often they look), so you hear about it when it happens, not just afterwards.
 
 ## Delete this squadron
 

@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -249,5 +250,34 @@ func TestChangingClassificationsKeepsExistingMonthsConsistent(t *testing.T) {
 	}
 	if got, _ := app.store.GetSquadron(sq); len(got.Classifications) != 4 {
 		t.Errorf("classification list changed despite the refusal: %v", got.Classifications)
+	}
+}
+
+func TestNewMonthCanCopyLastMonthsCategoryNames(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1601")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	prev, _ := app.store.CreateProgramme(sq, 2031, 5, 1)
+	cat, _ := app.store.AddRequirementCategory(prev.ID, "Fieldcraft", "by June")
+	app.store.AddRequirementEntry(prev.ID, cat, "Cdt Private Name", "note")
+
+	if page := body(c.get("/")); !strings.Contains(page, `name="copy_categories"`) {
+		t.Error("the New month form has no copy option")
+	}
+
+	resp := c.post("/programmes", url.Values{"year": {"2031"}, "month": {"6"}, "copy_categories": {"1"}})
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("create = %d", resp.StatusCode)
+	}
+	page := body(c.get(strings.TrimPrefix(resp.Header.Get("Location"), "")))
+	if !strings.Contains(page, "Fieldcraft") || strings.Contains(page, "Cdt Private Name") {
+		t.Errorf("copied page should list the category but not the cadet:\n%s", page)
+	}
+
+	// Left unticked, nothing is copied.
+	resp = c.post("/programmes", url.Values{"year": {"2031"}, "month": {"7"}})
+	if page := body(c.get(resp.Header.Get("Location"))); strings.Contains(page, "Fieldcraft") {
+		t.Error("categories were copied although the box was not ticked")
 	}
 }

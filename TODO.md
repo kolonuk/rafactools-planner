@@ -35,10 +35,6 @@ Chromium), plus the "Add a second half" fix. Still to do:
   Pro or a public repo, the same limit that stops CodeQL results uploading.
   The repo must stay private (see the PDF anonymisation history), so this needs
   a plan upgrade.
-- [ ] **[P1 security]** **Retention rule for old programmes.** The privacy notice and
-  "Delete this squadron" exist; still to decide (ask the owner first): how long old
-  months, and above all the requirements tracker's cadet names, should be kept before
-  they are removed or blanked automatically.
 
 ## The app and its image
 
@@ -82,14 +78,24 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
   and configure mail on a brand-new site without `ALLOW_LOG_MAIL`.
 - [ ] **[P3 usability]** **Alibaba Cloud DirectMail preset** if wanted (the request said
   "Cloudflare Ali"; read as the Cloudflare API/SMTP). Needs its regional SMTP host.
+- [ ] **[P1 security]** **Let a member delete their own account** (privacy). Today they must ask an
+  owner to remove them, or ask the site's operators. Needs: password to confirm, last-owner guard (an
+  owner who is the only owner must hand over or delete the squadron first), sessions and invites
+  removed, an entry in the security log.
+- [ ] **[P2 helpful feature]** **Change my email address.** There is no way to change the address on an
+  account. Needs confirmation by a link sent to the new address, the old address told, and sessions
+  kept.
+- [ ] **[P3 usability]** **Phone layout for the programme grid and a browser test that guards it.** The top
+  bar and tables now wrap instead of widening the page (checked in Chromium at 390 px); the grid itself
+  still scrolls sideways. A Playwright check that no page overflows at 390 px would keep it so.
+- [ ] **[P3 usability]** **Password quality:** a check against very common passwords (the 12-character
+  minimum is the only rule today), and "last used" on the sessions list.
 - [ ] **[P4 nicety]** **Squadron crest/logo image** in the PDF header. The website link is done;
   an image needs a first upload path (storage plus an upload form), which the
   app does not have yet.
 
 ## Planned improvements to existing screens
 
-- [ ] **[P2 helpful feature]** **Copy last month forward:** requirement categories (not cadet names)
-  and standing notes. Confirm with a real user first.
 - [ ] **[P3 usability]** **Reorder rows within a night / requirement entries:** moving a night's
   activities to another date is done (drag or the Move control). Reordering
   requirement categories and entries is not; reuse the same pattern.
@@ -100,9 +106,8 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
 
 Roughly ordered by value for the effort.
 
-1. **[P2 helpful feature]** **Instructors list, next step.** The list (name and rank) and display names
-   exist. Still to do: rename an entry (today you remove and re-add), and
-   per-instructor availability (see the duty rota idea below).
+1. **[P2 helpful feature]** **Instructors list, next step.** The list (name and rank, now editable) and
+   display names exist. Still to do: per-instructor availability (see the duty rota idea below).
 2. **[P2 helpful feature]** **Activities and training classes library.** A per-squadron catalogue
    (title, syllabus/class, default instructor, notes) to pick from when
    filling the grid. A proper searchable popup needs a small first-party
@@ -147,10 +152,7 @@ Roughly ordered by value for the effort.
    same person is on two things at once.
 9. **[P3 usability]** **Audit trail:** "last edited by X at Y" on each programme, and an
     optional change log.
-10. **[P1 security]** **Account hygiene:** two-step sign-in for ordinary accounts (see the master
-    admin section). Change password, the list of sessions and sign out everywhere are done.
-11. **[P2 helpful feature]** **Data export and backup:** download a squadron's data as JSON/CSV.
-12. **[P3 usability]** **Documentation, next steps.** The versioned in-app docs exist
+10. **[P3 usability]** **Documentation, next steps.** The versioned in-app docs exist
     (`/docs`, see `.claude/skills/docs/SKILL.md`). Still to do: add pages for
     each feature on this list as it is built; take the first release snapshot
     with `go run ./cmd/devtools docs-snapshot 1.<PR number>` once a release is
@@ -188,21 +190,6 @@ lines are built and tested. What is left, and why it is not done here:
   helps create the GitHub settings). The app creates or updates the account on
   every start.
 - [x] **Issue reporting** (done: "Report a problem", emailed to `ISSUE_EMAIL`, not stored).
-- [ ] **[P2 helpful feature]** **Report diagnostics, next round**: a request ID shown in the page, the
-  response header, the log and the report so all three can be matched; DB
-  migration version and "SMTP configured" flags in the server section; an
-  anonymised shape of the programme being viewed (counts of nights, halves,
-  classifications; no text); failed fetch/network statuses and page timing;
-  a "can you repeat it?" and "how bad is it?" question; recent PDF-render
-  errors. Then, if wanted, store reports so the master admin has an inbox with
-  a status (new / looking / done) instead of only email.
-- [ ] **[P1 security]** **Security log, next round:** also record sign-ins (and failed ones), password
-  changes and resets, and squadron settings changes; let an owner download the log; alert owners by
-  email when the master admin views their squadron.
-- [ ] **[P1 security]** **Two-step sign-in for everyone else, and recovery codes.** Done for the master
-  admin (authenticator app, `MASTER_ADMIN_RESET_2FA` to recover). Still to do: offer it to ordinary
-  accounts (owners first), one-time recovery codes, and a QR code for the key (a small Go QR
-  encoder; today the key is typed in).
 - [ ] **[P3 usability]** **Let the master admin act as an editor or owner** in a squadron when
   helping fix something (today it is strictly read-only, on purpose). If added,
   make it an explicit second step with its own audit line.

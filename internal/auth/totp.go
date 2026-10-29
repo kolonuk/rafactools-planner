@@ -133,7 +133,11 @@ func (s *Service) BeginTOTP(userID int64) (secret, otpauthURI string, err error)
 		return "", "", err
 	}
 	secret = secretEnc.EncodeToString(raw)
-	if _, err := s.db.Exec(`UPDATE users SET totp_pending = ? WHERE id = ?`, secret, userID); err != nil {
+	sealed, err := s.sealSecret(secret)
+	if err != nil {
+		return "", "", err
+	}
+	if _, err := s.db.Exec(`UPDATE users SET totp_pending = ? WHERE id = ?`, sealed, userID); err != nil {
 		return "", "", err
 	}
 	return secret, s.otpauth(userID, secret), nil
@@ -142,6 +146,9 @@ func (s *Service) BeginTOTP(userID int64) (secret, otpauthURI string, err error)
 // PendingTOTP returns the unconfirmed secret and its otpauth address, if any.
 func (s *Service) PendingTOTP(userID int64) (secret, otpauthURI string) {
 	if err := s.db.QueryRow(`SELECT totp_pending FROM users WHERE id = ?`, userID).Scan(&secret); err != nil || secret == "" {
+		return "", ""
+	}
+	if secret = s.openSecret(secret); secret == "" {
 		return "", ""
 	}
 	return secret, s.otpauth(userID, secret)
@@ -167,7 +174,7 @@ func (s *Service) ConfirmTOTP(userID int64, code string) error {
 	if pending == "" {
 		return ErrNoTOTPSetup
 	}
-	step := matchTOTP(pending, code, time.Now())
+	step := matchTOTP(s.openSecret(pending), code, time.Now())
 	if step < 0 {
 		s.totp.fail(userID, time.Now())
 		return ErrBadCode
@@ -192,7 +199,7 @@ func (s *Service) VerifyTOTP(userID int64, code string) error {
 	} else if err != nil {
 		return err
 	}
-	step := matchTOTP(secret, code, now)
+	step := matchTOTP(s.openSecret(secret), code, now)
 	if secret == "" || step < 0 || step <= last {
 		s.totp.fail(userID, now)
 		return ErrBadCode

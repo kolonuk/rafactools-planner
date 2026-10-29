@@ -46,6 +46,10 @@ export interface PageInfo {
   dpr: number;
   touch: boolean;
   at: number;
+  /** The id the server gave this page's request (a <meta name="request-id">), to match it with the server log. */
+  requestId: string;
+  /** Navigation timing in milliseconds, 0 when the browser does not say. */
+  timing: { ttfb: number; domContentLoaded: number; load: number };
 }
 
 export const KEY_TRAIL = "rt.trail";
@@ -158,5 +162,14 @@ export function pageInfo(): PageInfo {
     dpr: window.devicePixelRatio || 1,
     touch: navigator.maxTouchPoints > 0,
     at: Date.now(),
+    requestId: document.querySelector<HTMLMetaElement>('meta[name="request-id"]')?.content.slice(0, 16) ?? "",
+    timing: navigationTiming(),
   };
+}
+
+function navigationTiming(): { ttfb: number; domContentLoaded: number; load: number } {
+  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+  if (!nav) return { ttfb: 0, domContentLoaded: 0, load: 0 };
+  const ms = (v: number): number => (Number.isFinite(v) && v > 0 ? Math.round(v) : 0);
+  return { ttfb: ms(nav.responseStart), domContentLoaded: ms(nav.domContentLoadedEventEnd), load: ms(nav.loadEventEnd) };
 }
