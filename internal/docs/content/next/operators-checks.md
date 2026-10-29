@@ -4,7 +4,7 @@ order: 130
 summary: What runs on every change, and what to do when one fails.
 since: 1.0
 changed:
-  - next: Added staticcheck, gosec, CSS and HTML linting, workflow linting, secret and configuration scanning, fuzzing, operational tests and the documentation check.
+  - 1.9: Added staticcheck, gosec, CSS and HTML linting, workflow linting, secret and configuration scanning, fuzzing, operational tests and the documentation check.
 ---
 # Automated checks
 

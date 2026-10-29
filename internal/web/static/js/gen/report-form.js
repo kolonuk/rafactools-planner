@@ -19,6 +19,7 @@ const fileInput = el("shot-file", HTMLInputElement);
 const contextField = el("client-context", HTMLInputElement);
 const undoButton = el("mask-undo", HTMLButtonElement);
 const clearButton = el("mask-clear", HTMLButtonElement);
+const captureButton = el("shot-capture", HTMLButtonElement);
 if (form && canvas && editor && include && fileInput && contextField) {
     document.documentElement.classList.add("js");
     init(form, canvas, editor, include, fileInput, contextField);
@@ -74,8 +75,23 @@ function init(form, canvas, editor, include, fileInput, contextField) {
     }
     else {
         setStatus(window.isSecureContext && typeof navigator.mediaDevices?.getDisplayMedia === "function"
-            ? "No screenshot was taken (you may have declined). You can attach one below."
-            : "Your browser can't take a screenshot of the page for you. You can attach one below.");
+            ? "No screenshot yet. Use Take a screenshot now, or attach a picture, below."
+            : "This browser can't take a screenshot here (it needs a secure https:// address), so please attach a picture instead.");
+    }
+    // 1b. Or take one now: the browser asks which tab or window to share. Only
+    //     offered where the browser can do it (a secure https:// address).
+    const canCapture = window.isSecureContext && typeof navigator.mediaDevices?.getDisplayMedia === "function";
+    if (captureButton) {
+        if (!canCapture) {
+            const item = captureButton.closest("li");
+            if (item)
+                item.style.display = "none"; // (the hidden attribute loses to the .js-only rule)
+        }
+        else {
+            captureButton.addEventListener("click", () => {
+                void takeScreenshotNow(captureButton, setStatus, (dataUrl) => loadImage(dataUrl, "chosen-capture", [], () => setStatus("The picture could not be shown. Try attaching one instead.")));
+            });
+        }
     }
     // 2. Or a file the person attaches: it goes through the same preview, so it
     //    can be masked in exactly the same way.
@@ -182,6 +198,47 @@ function init(form, canvas, editor, include, fileInput, contextField) {
             submit();
         }
     });
+}
+/**
+ * Asks the browser to share a tab or window and grabs one frame. The person
+ * picks what to share (the browser always asks), so nothing is captured
+ * without them choosing it.
+ */
+async function takeScreenshotNow(button, say, done) {
+    button.disabled = true;
+    say("Choose the tab or window to share in the box your browser just opened…");
+    let stream = null;
+    try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const video = document.createElement("video");
+        video.muted = true;
+        video.playsInline = true;
+        video.srcObject = stream;
+        await video.play();
+        await new Promise((resolve) => {
+            if (typeof video.requestVideoFrameCallback === "function")
+                video.requestVideoFrameCallback(() => resolve());
+            else
+                window.setTimeout(resolve, 300);
+        });
+        const scale = Math.min(1, MAX_WIDTH / video.videoWidth);
+        const grab = document.createElement("canvas");
+        grab.width = Math.max(1, Math.round(video.videoWidth * scale));
+        grab.height = Math.max(1, Math.round(video.videoHeight * scale));
+        const grabCtx = grab.getContext("2d");
+        if (!grabCtx)
+            throw new Error("no canvas");
+        grabCtx.drawImage(video, 0, 0, grab.width, grab.height);
+        done(grab.toDataURL("image/jpeg", 0.85));
+        say("");
+    }
+    catch {
+        say("No screenshot was taken (you may have cancelled). You can try again or attach a picture.");
+    }
+    finally {
+        stream?.getTracks().forEach((t) => t.stop());
+        button.disabled = false;
+    }
 }
 function setStatus(text) {
     if (status)

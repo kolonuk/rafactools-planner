@@ -4,11 +4,11 @@ order: 90
 summary: What the messages mean and what to do.
 since: 1.0
 changed:
-  - next: Error pages show a reference to quote.
-  - next: Added the email settings and test email messages.
-  - next: Added the sign-up closed, authenticator code and delete-squadron messages, and the site refusing to start without mail.
-  - next: Curly quotes and accents no longer print as odd symbols; other scripts print as a question mark.
-  - next: Added the password reset, change password, last-owner, website, classification and report messages.
+  - 1.9: Error pages show a reference to quote.
+  - 1.9: Added the email settings and test email messages.
+  - 1.9: Added the sign-up closed, authenticator code and delete-squadron messages, and the site refusing to start without mail.
+  - 1.9: Curly quotes and accents no longer print as odd symbols; other scripts print as a question mark.
+  - 1.9: Added the password reset, change password, last-owner, website, classification and report messages.
 ---
 # Troubleshooting
 

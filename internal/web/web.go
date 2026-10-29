@@ -39,6 +39,9 @@ type Mailer interface {
 	SendIssueReport(to string, r mail.IssueReport) error
 	SendTest(to string) error
 	SendMasterViewNotice(to, squadronName, whenUTC string) error
+	SendTempPassword(to, squadronName, loginURL, password, expiresUTC string) error
+	SendEmailChangeVerify(to, link string) error
+	SendEmailChanged(to, newEmail string) error
 }
 
 var _ Mailer = mail.Dynamic{}
@@ -71,7 +74,7 @@ type server struct {
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
 	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "confirm_reset_programme",
-	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit",
+	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit", "force_password", "email_confirm", "history", "confirm_restore",
 }
 
 // urlFunc builds the "url" template function: it joins basePath with the
@@ -166,6 +169,8 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
 	mux.HandleFunc("POST /squadron/invites/{token}/revoke", s.requireOwner(s.inviteRevoke))
 	mux.HandleFunc("POST /squadron/members/{memberID}/role", s.requireOwner(s.memberSetRole))
+	mux.HandleFunc("POST /squadron/members/{memberID}/active", s.requireOwner(s.memberSetActive))
+	mux.HandleFunc("POST /squadron/members/{memberID}/temp-password", authLimiter.rateLimited(s.requireOwner(s.memberTempPassword)))
 	mux.HandleFunc("POST /squadron/members/{memberID}/remove", s.requireOwner(s.memberRemove))
 
 	mux.HandleFunc("GET /instructors", s.requireEditor(s.instructorsPage))
@@ -185,25 +190,32 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /admin/mail", authLimiter.rateLimited(s.requireMasterAdmin(s.mailSave)))
 	mux.HandleFunc("POST /admin/mail/reset", authLimiter.rateLimited(s.requireMasterAdmin(s.mailReset)))
 	mux.HandleFunc("POST /admin/mail/test", authLimiter.rateLimited(s.requireMasterAdmin(s.mailTest)))
+	mux.HandleFunc("GET /account/new-password", s.requireAuth(s.newPasswordForm))
+	mux.HandleFunc("POST /account/email", authLimiter.rateLimited(s.requireAuth(s.emailChangeRequest)))
+	mux.HandleFunc("GET /email/confirm/{token}", s.withUserOptional(s.emailConfirmForm))
+	mux.HandleFunc("POST /email/confirm/{token}", authLimiter.rateLimited(s.withUserOptional(s.emailConfirmSubmit)))
 	mux.HandleFunc("POST /account/password", authLimiter.rateLimited(s.requireAuth(s.accountPassword)))
 
 	mux.HandleFunc("POST /programmes", s.requireEditor(s.programmeCreate))
 	mux.HandleFunc("GET /programmes/{id}", s.requireAuth(s.programmeEdit))
-	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.programmeSave))
+	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.versioned("Saved the programme", s.programmeSave)))
 	mux.HandleFunc("GET /programmes/{id}/pdf", s.requireAuth(s.programmePDF))
+	mux.HandleFunc("GET /programmes/{id}/history", s.requireAuth(s.historyPage))
+	mux.HandleFunc("GET /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreConfirm))
+	mux.HandleFunc("POST /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreSubmit))
 	mux.HandleFunc("GET /programmes/{id}/reset", s.requireEditor(s.programmeResetConfirm))
-	mux.HandleFunc("POST /programmes/{id}/reset", s.requireEditor(s.programmeReset))
-	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/add-half", s.requireEditor(s.dayAddHalf))
-	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/move", s.requireEditor(s.dayMove))
-	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/remove-half", s.requireEditor(s.dayRemoveHalf))
-	mux.HandleFunc("POST /programmes/{id}/closures", s.requireEditor(s.closureAdd))
-	mux.HandleFunc("POST /programmes/{id}/closures/{closureID}/delete", s.requireEditor(s.closureDelete))
-	mux.HandleFunc("POST /programmes/{id}/weekend-notes", s.requireEditor(s.weekendNoteAdd))
-	mux.HandleFunc("POST /programmes/{id}/weekend-notes/{noteID}/delete", s.requireEditor(s.weekendNoteDelete))
-	mux.HandleFunc("POST /programmes/{id}/requirements", s.requireEditor(s.reqCategoryAdd))
-	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/delete", s.requireEditor(s.reqCategoryDelete))
-	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries", s.requireEditor(s.reqEntryAdd))
-	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries/{entryID}/delete", s.requireEditor(s.reqEntryDelete))
+	mux.HandleFunc("POST /programmes/{id}/reset", s.requireEditor(s.versioned("Reset the month to blank", s.programmeReset)))
+	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/add-half", s.requireEditor(s.versioned("Added a second half to a night", s.dayAddHalf)))
+	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/move", s.requireEditor(s.versioned("Moved a night's activities to another date", s.dayMove)))
+	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/remove-half", s.requireEditor(s.versioned("Removed a night's second half", s.dayRemoveHalf)))
+	mux.HandleFunc("POST /programmes/{id}/closures", s.requireEditor(s.versioned("Added a closure", s.closureAdd)))
+	mux.HandleFunc("POST /programmes/{id}/closures/{closureID}/delete", s.requireEditor(s.versioned("Deleted a closure", s.closureDelete)))
+	mux.HandleFunc("POST /programmes/{id}/weekend-notes", s.requireEditor(s.versioned("Added a weekend note", s.weekendNoteAdd)))
+	mux.HandleFunc("POST /programmes/{id}/weekend-notes/{noteID}/delete", s.requireEditor(s.versioned("Deleted a weekend note", s.weekendNoteDelete)))
+	mux.HandleFunc("POST /programmes/{id}/requirements", s.requireEditor(s.versioned("Added a requirement category", s.reqCategoryAdd)))
+	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/delete", s.requireEditor(s.versioned("Deleted a requirement category", s.reqCategoryDelete)))
+	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries", s.requireEditor(s.versioned("Added a requirement entry", s.reqEntryAdd)))
+	mux.HandleFunc("POST /programmes/{id}/requirements/{catID}/entries/{entryID}/delete", s.requireEditor(s.versioned("Deleted a requirement entry", s.reqEntryDelete)))
 
 	// 1MB for every form; only the problem report (which may carry a
 	// screenshot) is allowed more.

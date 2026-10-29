@@ -2,24 +2,26 @@
 title: Report a problem
 order: 85
 summary: How to report something that went wrong, what is sent, what is never sent, and how screenshots and masking work.
-since: next
+since: 1.9
 changed:
-  - next: Reports can say how much it matters and whether it happens every time, and carry a request reference, page load timings, failed requests, and the size (never the text) of the programme being viewed.
+  - 1.9: The screenshot step is boxed and spelled out on the form, with a Take a screenshot now button, and Report a problem is in the top bar.
+  - 1.9: Reports can say how much it matters and whether it happens every time, and carry a request reference, page load timings, failed requests, and the size (never the text) of the programme being viewed.
 ---
 # Report a problem
 
 If something is broken, looks wrong, or you cannot do what you need, use **Report a
-problem**. The link is at the bottom of every page, including the login page and error
-pages, so you can use it when you are stuck. If you do not see it, reporting has not
+problem**. There is a **Report a problem** button in the top bar and a link at the bottom of every
+page, including the login page and error pages, so you can use it when you are stuck. If you do not see it, reporting has not
 been switched on for this site ([for the person who runs it](operators-configuration)).
 
 ## How to send a report
 
-1. Go to the page where the problem is, then select **Report a problem** at the foot of the
-   page. Do this **before** you leave that page, so the screenshot and the list of what you
-   did are about the right place.
+1. Go to the page where the problem is, then select **Report a problem** (top bar, or the foot of the
+   page). Do this **before** you leave that page, so the list of what you did is about the right place.
 2. Your browser may ask whether you want to share the current tab. Say yes to include a
    picture of the page (see [screenshots](#screenshots)); say no to carry on without one.
+   On the form, the boxed **Add a screenshot** section lets you **Take a screenshot now** or
+   **attach a picture** from your device.
 3. Choose what kind of problem it is, say **what happened** (required), and optionally
    what you **expected**, **how much it matters** and **whether it happens every time**.
 4. Tick the box if you are happy to be **replied to by email**. If you are signed in the
@@ -37,6 +39,9 @@ A picture of the page is the single most useful thing you can add.
 - **Automatic:** in browsers that can do it, the planner asks your browser for a picture of
   the **current tab only** at the moment you select the link. Your browser always asks you
   first, and you can say no. Phones and some browsers cannot do this.
+- **Take a screenshot now:** a button in the boxed screenshot section of the form. Your browser asks
+  which tab or window to share (pick the page with the problem). It only appears where the browser can do
+  it, which needs a secure `https://` address; where it can't, the form says so.
 - **Your own file:** you can instead attach a PNG or JPEG (up to 3 MB). It is shown in the
   form first, in exactly the same way.
 - You always see the picture before it is sent, and you can untick **Include this

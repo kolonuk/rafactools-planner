@@ -4,8 +4,8 @@ order: 110
 summary: Starting, stopping, checking health, and running behind a proxy.
 since: 1.0
 changed:
-  - next: The health check now fails (503) when the database does not answer.
-  - next: Every response carries an X-Request-ID, and connections to the mail server have timeouts.
+  - 1.9: The health check now fails (503) when the database does not answer.
+  - 1.9: Every response carries an X-Request-ID, and connections to the mail server have timeouts.
 ---
 # Running the site
 

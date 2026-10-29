@@ -114,3 +114,28 @@ func TestReportFormOffersSeverityAndRepeat(t *testing.T) {
 	}
 	_ = http.StatusOK
 }
+
+func TestScreenshotStepIsSpelledOutAndReportIsInTheTopBar(t *testing.T) {
+	app := newApp(t, withReports(true))
+	form := body(app.anon().get("/report"))
+	for _, want := range []string{`class="field shot-box"`, "Add a screenshot", `id="shot-capture"`, "Take a screenshot now", `id="shot-file"`, "Attach a picture from your device", `id="shot-status"`} {
+		if !strings.Contains(form, want) {
+			t.Errorf("report form lacks %q", want)
+		}
+	}
+	// The top bar has the button on signed-out and signed-in pages alike.
+	for name, page := range map[string]string{
+		"login":     body(app.anon().get("/login")),
+		"dashboard": body(app.login(app.owner("1801")).get("/")),
+	} {
+		head, _, _ := strings.Cut(page, "</header>")
+		if !strings.Contains(head, `class="report-button"`) || !strings.Contains(head, "data-report-link") {
+			t.Errorf("%s: no Report a problem button in the top bar", name)
+		}
+	}
+	// And not at all when reporting is off.
+	off := newApp(t)
+	if strings.Contains(body(off.anon().get("/login")), "report-button") {
+		t.Error("a report button is shown although reporting is off")
+	}
+}

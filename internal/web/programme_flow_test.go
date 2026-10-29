@@ -225,7 +225,7 @@ func TestChangingClassificationsKeepsExistingMonthsConsistent(t *testing.T) {
 	}
 	headings := func() int {
 		page := body(c.get("/programmes/" + pid))
-		return len(regexp.MustCompile(`<th[ >]`).FindAllString(page[strings.Index(page, "<thead>"):strings.Index(page, "</thead>")], -1)) - 5
+		return len(regexp.MustCompile(`<th[ >]`).FindAllString(page[strings.Index(page, "<thead>"):strings.Index(page, "</thead>")], -1)) - 6
 	}
 
 	wantRedirect(t, c.post("/squadron", url.Values{"name": {"N"}, "classifications": {"A\nB\nC\nD\nE\nF"}}), "/squadron")

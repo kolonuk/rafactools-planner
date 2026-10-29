@@ -153,7 +153,7 @@ func standardMonth() *programme.FullProgramme {
 	}
 
 	return &programme.FullProgramme{
-		Programme: programme.Programme{ID: 1, Year: exampleYear, Month: exampleMonth, Status: "draft"},
+		Programme: programme.Programme{ID: 1, Year: exampleYear, Month: exampleMonth},
 		Days:      days,
 		Closures:  nil,
 		WeekendNotes: []programme.WeekendNote{
@@ -210,7 +210,7 @@ func fiveClassificationMonth() *programme.FullProgramme {
 	}
 
 	return &programme.FullProgramme{
-		Programme: programme.Programme{ID: 2, Year: exampleYear, Month: exampleMonth, Status: "draft"},
+		Programme: programme.Programme{ID: 2, Year: exampleYear, Month: exampleMonth},
 		Days:      days,
 		WeekendNotes: []programme.WeekendNote{
 			{Date: exampleDate(4), Text: "Example Course - Sample Base"},

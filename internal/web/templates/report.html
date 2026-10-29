@@ -39,14 +39,22 @@
   </label>
   {{end}}
 
-  <fieldset class="field" id="shot-section">
-    <legend>Screenshot (optional, but it helps a lot)</legend>
+  <fieldset class="field shot-box" id="shot-section">
+    <legend>Add a screenshot (optional, but it helps a lot)</legend>
+    <p id="shot-howto"><strong>Two ways to add one:</strong></p>
+    <ol class="shot-steps">
+      <li class="js-only"><button type="button" id="shot-capture">Take a screenshot now</button>
+        <span class="muted">Your browser will ask which tab or window to share. Pick the page that shows the problem.</span></li>
+      <li><label for="shot-file">Attach a picture from your device (PNG or JPEG, up to 3 MB).</label>
+        <input type="file" name="screenshot" id="shot-file" accept="image/png,image/jpeg">
+        <span class="muted">On a phone, take a screenshot with its buttons first, then choose it here.</span></li>
+    </ol>
     {{if .Masking}}
     <p class="muted" id="shot-notice">Before you send, you can <strong>black out</strong> anything private, such as names. Parts of the page marked as private are already blacked out for you; check the picture and add more if needed. Only the picture you see here is sent.</p>
     {{else}}
     <p class="notice" id="shot-notice"><strong>Your screenshot is sent exactly as it is.</strong> It may show names and other details that are on the page. Only include it if you are happy for the people who run this site to see it.</p>
     {{end}}
-    <p class="js-only muted" id="shot-status"></p>
+    <p class="js-only shot-status" id="shot-status" role="status"></p>
     <div id="shot-editor" hidden>
       <p>
         <label class="checkbox"><input type="checkbox" id="shot-include" checked> Include this screenshot</label>
@@ -58,9 +66,6 @@
       </p>
       <canvas id="shot-canvas" role="img" aria-label="Screenshot preview"></canvas>
     </div>
-    <label id="shot-file-label">Attach a screenshot file (PNG or JPEG)
-      <input type="file" name="screenshot" id="shot-file" accept="image/png,image/jpeg">
-    </label>
   </fieldset>
 
   <p class="muted">The report also includes the page you were on, your last few clicks and the server's last few requests (never anything you typed), your browser type and screen size, and any error messages. <a href="{{url "/docs/next/report-a-problem"}}">Exactly what is sent</a>.</p>

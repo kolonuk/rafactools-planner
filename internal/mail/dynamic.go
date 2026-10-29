@@ -106,3 +106,59 @@ func (s Sender) SendTest(to string) error {
 		"This is a test message from RAFACTools Planner.\r\n\r\n"+
 			"If you can read it, the site can send email with the settings you saved.\r\n")
 }
+
+// SendTempPassword emails a member the temporary password an owner asked for.
+func (d Dynamic) SendTempPassword(to, squadronName, loginURL, password, expiresUTC string) error {
+	s, err := d.sender()
+	if err != nil {
+		log.Printf("mail not sent: %v", err)
+		return err
+	}
+	return s.SendTempPassword(to, squadronName, loginURL, password, expiresUTC)
+}
+
+// SendEmailChangeVerify sends the link that confirms a new address.
+func (d Dynamic) SendEmailChangeVerify(to, link string) error {
+	s, err := d.sender()
+	if err != nil {
+		log.Printf("mail not sent: %v", err)
+		return err
+	}
+	return s.SendEmailChangeVerify(to, link)
+}
+
+// SendEmailChanged tells the OLD address that the account's address was changed.
+func (d Dynamic) SendEmailChanged(to, newEmail string) error {
+	s, err := d.sender()
+	if err != nil {
+		log.Printf("mail not sent: %v", err)
+		return err
+	}
+	return s.SendEmailChanged(to, newEmail)
+}
+
+// SendTempPassword is the temporary-password message. It is the one email that
+// carries a password, so it says plainly that it works once and for a week.
+func (s Sender) SendTempPassword(to, squadronName, loginURL, password, expiresUTC string) error {
+	return s.send(to, "A temporary password for RAFACTools Planner",
+		"An owner of "+squadronName+" has sent you a temporary password for RAFACTools Planner.\r\n\r\n"+
+			"Temporary password: "+password+"\r\n\r\n"+
+			"Sign in at "+loginURL+" with your email address and this password. You will be asked to choose your own password straight away.\r\n\r\n"+
+			"It stops working on "+expiresUTC+" UTC. After that, use \"Forgot your password?\" on the sign-in page.\r\n\r\n"+
+			"If you didn't expect this, tell an owner of your squadron. Your old password no longer works.\r\n")
+}
+
+// SendEmailChangeVerify asks the new address to confirm.
+func (s Sender) SendEmailChangeVerify(to, link string) error {
+	return s.send(to, "Confirm your new email address for RAFACTools Planner",
+		"Someone (you, we hope) asked to use this address for a RAFACTools Planner account.\r\n\r\n"+
+			"To confirm, open:\r\n"+link+"\r\n\r\n"+
+			"This link works once and expires in 24 hours. If you didn't ask for this, ignore this email and nothing changes.\r\n")
+}
+
+// SendEmailChanged tells the old address, so a hijacked change is noticed.
+func (s Sender) SendEmailChanged(to, newEmail string) error {
+	return s.send(to, "Your RAFACTools Planner email address was changed",
+		"The email address on your RAFACTools Planner account was changed to "+newEmail+".\r\n\r\n"+
+			"If that was you, nothing more is needed. If it wasn't, tell an owner of your squadron straight away.\r\n")
+}

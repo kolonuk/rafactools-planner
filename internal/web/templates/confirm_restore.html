@@ -1,0 +1,12 @@
+{{define "content"}}
+<h1>Restore version {{.Version.Version}}?</h1>
+<p>This puts {{.MonthName}} {{.Year}} back to how it was in version {{.Version.Version}}
+  ({{.Version.At.UTC.Format "2 Jan 2006 15:04"}} UTC, <span data-private>{{if .Version.UserEmail}}{{.Version.UserEmail}}{{else}}the system{{end}}</span>: {{.Version.Action}}):
+  every activity, instructor, note, closure, weekend entry and the requirement tracker, including cadets' names.
+  What is there now is kept in the history first, so you can go back.</p>
+<form method="post" action="{{url "/programmes/" .ProgrammeID "/history/" .Version.Version "/restore"}}" class="inline">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <button type="submit">Yes, restore version {{.Version.Version}}</button>
+</form>
+<a href="{{url "/programmes/" .ProgrammeID "/history"}}">Cancel</a>
+{{end}}

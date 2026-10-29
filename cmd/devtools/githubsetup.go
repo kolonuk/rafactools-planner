@@ -28,7 +28,7 @@ var (
 // reporting need. The password is a SECRET: GitHub variables are plain text.
 func masterAdminSettings(prefix string) []setting {
 	return []setting{
-		{"variable", prefix + "ISSUE_EMAIL", "CHANGE_ME", "Where problem reports are emailed (for example issues@your-domain). Leave the feature off by not setting it."},
+		{"variable", prefix + "ISSUE_EMAIL", "issues@rafac.mod.gov.uk", "Where problem reports are emailed. Only keep this if you control that mailbox and its DNS/SPF/DKIM/DMARC; otherwise use an address you own. Leave the feature off by not setting it."},
 		{"variable", prefix + "ISSUE_MASKING", "true", "true lets people black out parts of a screenshot before sending; set false only on a site you run for others."},
 		{"variable", prefix + "MASTER_ADMIN_EMAIL", "CHANGE_ME", "Email address of the site-wide master admin (not secret)."},
 		{"secret", prefix + "MASTER_ADMIN_PASSWORD", "", "Password of the master admin, 12 to 72 characters. Must be a secret."},

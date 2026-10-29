@@ -4,11 +4,12 @@ order: 40
 summary: Name, classifications, parade nights, members and invites (owners only).
 since: 1.0
 changed:
-  - next: The security log also records sign-ins, wrong passwords, password changes and resets, signing out other sessions and settings changes; owners can download it and are emailed when the site's administrator looks at the squadron.
-  - next: Added the security log and the Delete this squadron section.
-  - next: Changing the classifications now updates existing months; removing a classification that still has text is refused.
-  - next: Added the Squadron website field, and owners can change roles and remove members from the Members table.
-  - next: Parade weekdays outside Monday to Sunday are ignored, and an empty name keeps the existing name.
+  - 1.9: Owners can mark members inactive or email them a temporary password.
+  - 1.9: The security log also records sign-ins, wrong passwords, password changes and resets, signing out other sessions and settings changes; owners can download it and are emailed when the site's administrator looks at the squadron.
+  - 1.9: Added the security log and the Delete this squadron section.
+  - 1.9: Changing the classifications now updates existing months; removing a classification that still has text is refused.
+  - 1.9: Added the Squadron website field, and owners can change roles and remove members from the Members table.
+  - 1.9: Parade weekdays outside Monday to Sunday are ignored, and an empty name keeps the existing name.
 ---
 # Squadron settings
 
@@ -44,7 +45,7 @@ Select **Save** to apply.
 
 The page lists everyone in the squadron with their name (if they have set one, see
 [instructors](instructors)), their email and their role, and any pending
-invites. Owners can change a role or remove a person here, and invite new people.
+invites. Owners can change a role, mark a person inactive, send a temporary password or remove them here, and invite new people.
 See [roles and invites](roles-and-invites).
 
 ## Security log
@@ -72,3 +73,16 @@ The last section permanently deletes the squadron and **everything in it**: ever
 all programmes, the requirements tracker (including cadets' names), the instructor list and the
 security log. To do it you type the squadron number and your password. **It cannot be undone and
 there is no backup to restore from**, so export each month's PDF first.
+
+## Inactive members and temporary passwords
+
+In the **Members** table each person has a **Status**.
+
+- **Mark inactive** stops someone signing in or resetting their password, signs them out, and keeps
+  their account and entries. **Mark active** brings them back. An inactive owner does not count as an
+  owner, so the last active owner cannot be made inactive, demoted or removed.
+- **Send temporary password** emails the member a new password (you never see it). Their old password
+  stops working, they must choose their own the next time they sign in, and the temporary one expires
+  after **7 days**. It cannot be sent to an inactive member, or to yourself.
+
+Both actions are written to the security log. Members do not delete their own accounts: ask an owner.

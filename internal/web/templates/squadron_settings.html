@@ -35,7 +35,7 @@
 <section class="card">
   <h2>Members</h2>
   <table class="list">
-    <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     {{range .Members}}
       <tr>
@@ -54,7 +54,27 @@
             <button type="submit" aria-label="Set role for {{.Email}}">Set</button>
           </form>
         </td>
+        <td>{{if .Active}}Active{{else}}<strong>Inactive</strong>{{end}}</td>
         <td>
+          {{if ne .ID $.SelfID}}
+          {{if .Active}}
+          <form method="post" action="{{url "/squadron/members/" .ID "/temp-password"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button" aria-label="Email {{.Email}} a temporary password">Send temporary password</button>
+          </form>
+          <form method="post" action="{{url "/squadron/members/" .ID "/active"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <input type="hidden" name="active" value="0">
+            <button type="submit" class="link-button" aria-label="Mark {{.Email}} inactive">Mark inactive</button>
+          </form>
+          {{else}}
+          <form method="post" action="{{url "/squadron/members/" .ID "/active"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <input type="hidden" name="active" value="1">
+            <button type="submit" class="link-button" aria-label="Mark {{.Email}} active again">Mark active</button>
+          </form>
+          {{end}}
+          {{end}}
           <form method="post" action="{{url "/squadron/members/" .ID "/remove"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
             <button type="submit" class="link-button" aria-label="Remove {{.Email}} from the squadron">Remove</button>
@@ -64,7 +84,10 @@
     {{end}}
     </tbody>
   </table>
-  <p class="muted">The squadron's last owner can't be removed or demoted — promote someone else first.</p>
+  <p class="muted">The squadron's last owner can't be removed, demoted or made inactive — promote someone else first.
+    <strong>Inactive</strong> members can't sign in or reset their password until you make them active again.
+    <strong>Send temporary password</strong> emails the member a new password (you never see it): their old one stops
+    working, they must choose their own at their next sign-in, and it expires after 7 days.</p>
 </section>
 
 <section class="card">

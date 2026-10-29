@@ -4,15 +4,19 @@ order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
 changed:
-  - next: The New month box can copy last month's requirement category names (never cadet names).
-  - next: A month can be reset to blank, after a confirmation.
-  - next: The day label is worked out from the date and can no longer be edited.
-  - next: A new second half starts as a copy of the first, and a second half can be removed (with a warning if the halves differ).
-  - next: Instructor boxes suggest All Staff, your instructor list and your members as you type.
-  - next: Activities can be moved to another date, by dragging or with the Move control.
-  - next: "+ Add a second half to this night" now works in the browser (it previously saved the grid instead).
-  - next: Closure and weekend-note dates are checked when saved; a closure must end on or after its start and last at most 366 days.
-  - next: Ticking Parade on a night that was not generated as a parade night now gives it activity and instructor rows.
+  - 1.9: Every save, reset and restore is kept as a version; the History page lists them (who, when, what) and any can be restored. The draft status is gone: every month is live.
+  - 1.9: This month is made automatically when anyone signs in; past months cannot be created.
+  - 1.9: Ticking Parade shows the night's rows straight away; nothing is saved until Save. "Show parade evenings only" is a switch, on by default.
+  - 1.9: Activity and Instructor labels have their own column after Uniform, which now has a heading.
+  - 1.9: The New month box can copy last month's requirement category names (never cadet names).
+  - 1.9: A month can be reset to blank, after a confirmation.
+  - 1.9: The day label is worked out from the date and can no longer be edited.
+  - 1.9: A new second half starts as a copy of the first, and a second half can be removed (with a warning if the halves differ).
+  - 1.9: Instructor boxes suggest All Staff, your instructor list and your members as you type.
+  - 1.9: Activities can be moved to another date, by dragging or with the Move control.
+  - 1.9: "+ Add a second half to this night" now works in the browser (it previously saved the grid instead).
+  - 1.9: Closure and weekend-note dates are checked when saved; a closure must end on or after its start and last at most 366 days.
+  - 1.9: Ticking Parade on a night that was not generated as a parade night now gives it activity and instructor rows.
 ---
 # Programmes
 
@@ -83,7 +87,7 @@ a session is rescheduled. Only owners and editors can.
 its date. Drag it and drop it on any row of the date you want. You are asked to
 confirm first, and nothing changes if you cancel.
 
-**With the keyboard, a touch screen, or if scripts are switched off:** under the
+**On a touch screen, or if scripts are switched off:** under the
 date of each parade night, open **Move**, choose the date and select
 **Move activities**.
 
@@ -141,3 +145,28 @@ You are asked to confirm first, and **Cancel** changes nothing.
 
 Viewers can open a programme and its PDF but do not see the editing forms. See
 [roles and invites](roles-and-invites).
+
+## This month, made for you
+
+You never need to create the current month. When anyone in the squadron signs in (or opens the
+dashboard after a month change), the current month is made if it is missing, using the squadron's
+parade weekdays and classifications. Months in the past cannot be created. The master admin's sign-in
+makes nothing, because the master admin has no squadron of their own.
+
+## Ticking a night
+
+Tick **Parade** on a night and its Activity and Instructor rows appear straight away so you can type
+into them. Nothing is stored until you select **Save**. **Show parade evenings only** is a switch
+above the grid and is on by default; turn it off to see every day.
+
+## History and restoring
+
+There is no draft or final status: every programme is live. Instead the planner keeps a **version**
+every time the programme is saved, reset, restored, or changed in any other way (closures, weekend
+notes, the tracker, second halves and so on). Select **History** at the top of a programme to see the
+newest first: the version number, the date and time (UTC), who made the change and what it was.
+Identical consecutive versions are kept once, and the newest 200 are kept.
+
+Editors and owners can **Restore** any version after a confirmation page. Restoring is itself saved as
+a new version, so it can be undone by restoring the one before. A restored programme is fitted to the
+squadron's current classifications. There is no preview.

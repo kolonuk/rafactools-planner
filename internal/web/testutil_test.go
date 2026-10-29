@@ -59,6 +59,9 @@ func newAppWithDocs(t *testing.T, lib *docs.Library, tweak ...func(*config.Confi
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The site's clock stands before the supported years, so signing in does
+	// not make a "this month" programme unless a test sets the clock itself.
+	setClock(t, time.Date(1999, 12, 15, 12, 0, 0, 0, time.UTC))
 	cfg := config.Config{
 		SessionKey:  "test-session-key-0123456789abcdef0123",
 		ClaimDomain: "rafac.mod.gov.uk",
@@ -278,6 +281,10 @@ type recordingMail struct {
 	reportTo  []string
 	reportErr error
 	tests     []string
+	temps     []tempMail
+	tempErr   error
+	verifies  []string
+	changed   []string
 	notices   []string
 	testErr   error
 }
@@ -303,6 +310,32 @@ func (m *recordingMail) SendMasterViewNotice(to, squadronName, whenUTC string) e
 	m.notices = append(m.notices, to+"|"+squadronName)
 	return nil
 }
+
+func (m *recordingMail) SendTempPassword(to, squadronName, loginURL, password, expiresUTC string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.tempErr != nil {
+		return m.tempErr
+	}
+	m.temps = append(m.temps, tempMail{To: to, Squadron: squadronName, URL: loginURL, Password: password, Expires: expiresUTC})
+	return nil
+}
+
+func (m *recordingMail) SendEmailChangeVerify(to, link string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.verifies = append(m.verifies, to+"|"+link)
+	return nil
+}
+
+func (m *recordingMail) SendEmailChanged(to, newEmail string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.changed = append(m.changed, to+"|"+newEmail)
+	return nil
+}
+
+type tempMail struct{ To, Squadron, URL, Password, Expires string }
 
 func (m *recordingMail) SendTest(to string) error {
 	m.mu.Lock()
@@ -364,3 +397,25 @@ func (m *recordingMail) count(kind string) int {
 var requestIDMeta = regexp.MustCompile(`<meta name="request-id" content="[0-9a-f]+">|\(reference [0-9a-f]+\)`)
 
 func stripRequestID(s string) string { return requestIDMeta.ReplaceAllString(s, "") }
+
+// waitFor polls until cond is true (for work the server does in the background,
+// such as sending a notice email), or fails the test after a few seconds.
+func waitFor(t *testing.T, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("timed out waiting for a background action")
+}
+
+// setClock sets the programme package's clock until the test ends.
+func setClock(t *testing.T, at time.Time) {
+	t.Helper()
+	old := programme.Now
+	programme.Now = func() time.Time { return at }
+	t.Cleanup(func() { programme.Now = old })
+}

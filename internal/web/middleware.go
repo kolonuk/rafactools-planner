@@ -83,9 +83,20 @@ func (s *server) ensureAnonCSRFCookie(w http.ResponseWriter, r *http.Request) st
 
 func (s *server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return s.withUserOptional(func(w http.ResponseWriter, r *http.Request) {
-		if userFrom(r.Context()) == nil {
+		u := userFrom(r.Context())
+		if u == nil {
 			http.Redirect(w, r, s.url("/login"), http.StatusSeeOther)
 			return
+		}
+		// Someone signed in with a temporary password may do nothing but choose
+		// their own (and log out).
+		if u.MustChangePassword {
+			switch r.URL.Path {
+			case "/account/new-password", "/account/password", "/logout":
+			default:
+				http.Redirect(w, r, s.url("/account/new-password"), http.StatusSeeOther)
+				return
+			}
 		}
 		next(w, r)
 	})

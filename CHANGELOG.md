@@ -11,8 +11,16 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.9
 
+- **feat**: owners can mark members inactive (no sign-in or reset) or email them a temporary password (forced change at next sign-in, expires after 7 days); people with non-rafac.mod.gov.uk addresses can change their email address by a confirmation link.
+- **feat**: every programme save, reset, restore and other change is kept as a version; a History page lists who, when and what, and any version can be restored. The draft status is removed: every month is live.
+- **feat**: the current month is made automatically when anyone signs in; past months cannot be created.
+- **feat**: ticking Parade shows the night's rows at once (saved on Save); "Show parade evenings only" is a switch, on by default; Activity and Instructor labels have their own column and Uniform has a heading.
+- **feat**: the PDF prints only ticked nights and merges a closed day into one block; emoji are safe in every text field (printed as ? in the PDF).
+- **feat**: Report a problem: a clearer screenshot step and a button in the top bar.
+- **fix**: the Docker image runs as a non-root user (Trivy DS-0002); CI installs the stylelint config it needs; saving the grid no longer blanks hidden rows of unticked nights; the master admin is never given a programme.
+- **chore**: docs and version history now show the real version (1.9) instead of "Unreleased"; the problem-report address defaults to issues@rafac.mod.gov.uk in the GitHub setup helper.
 - **security**: the authenticator secret is encrypted in the database; sign-ins are listed apart from the security log so frequent sign-ins or password guessing cannot push rarer events off it; failed-login entries are collapsed to one per account every five minutes; connections to the mail server have timeouts and STARTTLS is used whenever offered.
 - **fix**: the top bar and tables wrapped badly on a phone and made every page scroll sideways; `/health` now fails (503) when the database does not answer.
 - **security**: the security log also records sign-ins, wrong passwords (once a minute per account), password changes and resets, signing out other sessions and squadron settings; owners can download it as a CSV (formula-safe) and are emailed, at most hourly, when the master admin opens their squadron.

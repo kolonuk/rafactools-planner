@@ -115,6 +115,25 @@
   {{end}}
 </section>
 
+{{if .EmailChangeAllowed}}
+<h2>Change email address</h2>
+<form method="post" action="{{url "/account/email"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  {{if .EmailError}}<p class="error">{{.EmailError}}</p>{{end}}
+  <label>New email address
+    <input type="email" name="new_email" required maxlength="200" autocomplete="email" data-private>
+  </label>
+  <label>Your password
+    <input type="password" name="current_password" required autocomplete="current-password">
+  </label>
+  <p class="muted">We send a link to the new address; your address changes when you open it, and the old address is told. Addresses on the RAFAC domain can't be used.</p>
+  <button type="submit">Send the confirmation link</button>
+</form>
+{{else if .EmailChangeFixed}}
+<h2>Email address</h2>
+<p class="muted">Your address is on the RAFAC domain, which is what your squadron was claimed with, so it can't be changed here.</p>
+{{end}}
+
 <h2>Change password</h2>
 <form method="post" action="{{url "/account/password"}}" class="card">
   <input type="hidden" name="csrf" value="{{.CSRF}}">

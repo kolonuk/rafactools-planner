@@ -18,6 +18,10 @@ const (
 	AuditPasswordChange = "password.change"        // a signed-in user changed their password
 	AuditPasswordReset  = "password.reset"         // a password was reset from the emailed link
 	AuditSignOutOthers  = "session.signout_others" // someone signed out their other sessions
+	AuditMemberInactive = "member.inactive"        // an owner marked a member inactive
+	AuditMemberActive   = "member.active"          // an owner made a member active again
+	AuditTempPassword   = "member.temp_password"   // an owner emailed a member a temporary password
+	AuditEmailChange    = "email.change"           // someone changed their email address
 	AuditSquadronEdit   = "squadron.settings"      // an owner saved the squadron settings
 )
 
@@ -157,6 +161,14 @@ func AuditText(action string) string {
 		return "Signed out their other sessions"
 	case AuditSquadronEdit:
 		return "Saved the squadron settings"
+	case AuditMemberInactive:
+		return "Marked a member inactive"
+	case AuditMemberActive:
+		return "Made a member active again"
+	case AuditTempPassword:
+		return "Sent a member a temporary password"
+	case AuditEmailChange:
+		return "Changed their email address"
 	}
 	return "Changed something"
 }

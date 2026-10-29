@@ -39,7 +39,8 @@ func (s *Service) RequestPasswordReset(email string) (token string, ok bool, err
 	email = strings.ToLower(strings.TrimSpace(email))
 	var userID int64
 	var verified sql.NullTime
-	err = s.db.QueryRow(`SELECT id, email_verified_at FROM users WHERE email = ?`, email).Scan(&userID, &verified)
+	var active bool
+	err = s.db.QueryRow(`SELECT id, email_verified_at, active FROM users WHERE email = ?`, email).Scan(&userID, &verified, &active)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false, nil
 	} else if err != nil {
@@ -47,6 +48,9 @@ func (s *Service) RequestPasswordReset(email string) (token string, ok bool, err
 	}
 	if !verified.Valid {
 		return "", false, nil // they must confirm their address first
+	}
+	if !active {
+		return "", false, nil // an owner has marked them inactive: no reset until reactivated
 	}
 
 	now := time.Now()
@@ -107,6 +111,10 @@ func (s *Service) resetUser(q queryer, token string) (int64, error) {
 	if time.Now().After(expires) {
 		return 0, ErrResetInvalid
 	}
+	var active bool
+	if err := q.QueryRow(`SELECT active FROM users WHERE id = ?`, userID).Scan(&active); err != nil || !active {
+		return 0, ErrResetInvalid
+	}
 	return userID, nil
 }
 
@@ -134,7 +142,7 @@ func (s *Service) ResetPassword(token, newPassword string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, string(hash), userID); err != nil {
+	if _, err := tx.Exec(`UPDATE users SET password_hash = ?, must_change_password = 0, temp_password_expires_at = NULL WHERE id = ?`, string(hash), userID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(`DELETE FROM password_resets WHERE user_id = ?`, userID); err != nil {
@@ -180,7 +188,7 @@ func (s *Service) ChangePassword(userID int64, keepSessionToken, current, newPas
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, string(newHash), userID); err != nil {
+	if _, err := tx.Exec(`UPDATE users SET password_hash = ?, must_change_password = 0, temp_password_expires_at = NULL WHERE id = ?`, string(newHash), userID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = ? AND token != ?`, userID, keepSessionToken); err != nil {

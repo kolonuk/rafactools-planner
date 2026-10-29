@@ -4,17 +4,17 @@ order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 changed:
-  - next: The security log also records sign-ins and password changes; owners can download it and are emailed when the master admin looks at their squadron.
-  - next: The site's email password can be saved on the website by the master admin; it is stored encrypted.
-  - next: Added a privacy notice page, a security log for owners, the list of places you are signed in, deleting a squadron, and two-step sign-in for the master admin.
-  - next: Added Report a problem, which can email a screenshot and recent activity to the site's operators.
-  - next: Documented the optional master admin, who can view any squadron read-only.
-  - next: Added the optional displayed name and the instructor list (name and rank only).
-  - next: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
-  - next: Added password reset (see above); reset links are stored only as hashes.
-  - next: Unknown email addresses now take as long to reject as real ones, so response time does not reveal which addresses have accounts.
-  - next: Sign-in sessions and form tokens are unchanged, but the site refuses to start with a weak signing key.
-  - next: The browser is now allowed to run the site's own scripts (previously it was told to refuse all scripts); inline, third-party and eval scripts are still refused.
+  - 1.9: The security log also records sign-ins and password changes; owners can download it and are emailed when the master admin looks at their squadron.
+  - 1.9: The site's email password can be saved on the website by the master admin; it is stored encrypted.
+  - 1.9: Added a privacy notice page, a security log for owners, the list of places you are signed in, deleting a squadron, and two-step sign-in for the master admin.
+  - 1.9: Added Report a problem, which can email a screenshot and recent activity to the site's operators.
+  - 1.9: Documented the optional master admin, who can view any squadron read-only.
+  - 1.9: Added the optional displayed name and the instructor list (name and rank only).
+  - 1.9: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
+  - 1.9: Added password reset (see above); reset links are stored only as hashes.
+  - 1.9: Unknown email addresses now take as long to reject as real ones, so response time does not reveal which addresses have accounts.
+  - 1.9: Sign-in sessions and form tokens are unchanged, but the site refuses to start with a weak signing key.
+  - 1.9: The browser is now allowed to run the site's own scripts (previously it was told to refuse all scripts); inline, third-party and eval scripts are still refused.
 ---
 # Security and privacy
 

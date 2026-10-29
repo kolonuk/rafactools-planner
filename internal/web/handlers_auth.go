@@ -82,6 +82,8 @@ func (s *server) loginForm(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Query().Get("verified") == "1":
 		extra["Flash"] = "Email confirmed — you can log in now."
+	case r.URL.Query().Get("emailchanged") == "1":
+		extra["Flash"] = "Your email address has been changed. Sign in with the new one."
 	case r.URL.Query().Get("deleted") == "1":
 		extra["Flash"] = "Your squadron and all its data have been deleted."
 	case r.URL.Query().Get("reset") == "1":
@@ -100,8 +102,13 @@ func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	user, err := s.Auth.Authenticate(r.FormValue("email"), r.FormValue("password"))
 	if err != nil {
 		msg := "Invalid email or password."
-		if errors.Is(err, auth.ErrEmailNotVerified) {
+		switch {
+		case errors.Is(err, auth.ErrEmailNotVerified):
 			msg = "Confirm your email first — check your inbox for the verification link."
+		case errors.Is(err, auth.ErrAccountInactive), errors.Is(err, auth.ErrTempPasswordExpired):
+			// Only reached with the right password, so this says nothing to
+			// someone guessing which addresses have accounts.
+			msg = err.Error() + "."
 		}
 		s.renderError(w, r, http.StatusUnauthorized, "Log in", msg)
 		return
@@ -126,6 +133,7 @@ func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setSessionCookie(w, token, expiresAt)
+	s.ensureThisMonth(user)
 	if err := s.Auth.AuditUser(user.ID, auth.AuditLogin, ""); err != nil {
 		log.Printf("audit login: %v", err)
 	}

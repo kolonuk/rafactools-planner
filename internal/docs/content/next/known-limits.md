@@ -4,13 +4,13 @@ order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
 changed:
-  - next: Two-step sign-in exists for the master admin only.
-  - next: A month can be reset to blank; months are deliberately never deleted.
-  - next: Curly quotes, dashes and accents now print on the PDF; only non-Western-European characters do not.
-  - next: Added the Report a problem feature, and its limits.
-  - next: Role changes, member removal, removing a second half and automatic day labels now exist, so they are no longer listed.
-  - next: Password reset and change password now exist, and changing the classifications updates existing months;
-  - next: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works; activities can be moved between dates.
+  - 1.9: Two-step sign-in exists for the master admin only.
+  - 1.9: A month can be reset to blank; months are deliberately never deleted.
+  - 1.9: Curly quotes, dashes and accents now print on the PDF; only non-Western-European characters do not.
+  - 1.9: Added the Report a problem feature, and its limits.
+  - 1.9: Role changes, member removal, removing a second half and automatic day labels now exist, so they are no longer listed.
+  - 1.9: Password reset and change password now exist, and changing the classifications updates existing months;
+  - 1.9: Passwords over 72 characters are refused; ticking Parade on a non-parade night now works; activities can be moved between dates.
 ---
 # Known limits
 
@@ -20,7 +20,7 @@ These are not mistakes in how you are using the planner.
 - Two-step sign-in exists only for the master admin; ordinary accounts have a password only.
 
 **Programmes**
-- Months are never deleted (a month can be reset to blank), and their status stays `draft`.
+- Months are never deleted (a month can be reset to blank). History keeps the newest 200 versions of each month.
 - Unticking **Parade** on a night that has activities leaves them stored but
   hidden; there is no "cancel this night" action.
 - Moving activities swaps two dates; there is no way to move one night's
