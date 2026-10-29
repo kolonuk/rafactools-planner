@@ -4,10 +4,11 @@ order: 20
 summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
 changed:
-  - next: Your details now lists where you are signed in and can sign out other places; the master admin signs in for 8 hours and can use two-step sign-in.
-  - next: Added Change password on the Your details page.
-  - next: Added "Forgot your password?": a reset link by email.
-  - next: Passwords longer than 72 characters are now refused with a clear message instead of an internal error.
+  - 1.9: A member given a temporary password must choose their own at first sign-in; an inactive account cannot sign in. Email address can be changed on Your details for non-rafac.mod.gov.uk addresses.
+  - 1.9: Your details now lists where you are signed in and can sign out other places; the master admin signs in for 8 hours and can use two-step sign-in.
+  - 1.9: Added Change password on the Your details page.
+  - 1.9: Added "Forgot your password?": a reset link by email.
+  - 1.9: Passwords longer than 72 characters are now refused with a clear message instead of an internal error.
 ---
 # Signing in
 
@@ -81,3 +82,17 @@ Things to know:
   gets no reset link: use the original confirmation email instead (see
   [getting started](getting-started)).
 - If you did not ask for a reset, ignore the email: your password has not changed.
+
+## A temporary password
+
+If an owner sends you a temporary password, sign in with it within 7 days. You are taken straight to
+a page to choose your own password and can use nothing else until you do. After 7 days it stops
+working: ask the owner for another, or use **Forgot your password?**. An **inactive** account cannot
+sign in at all; ask an owner to make it active.
+
+## Changing your email address
+
+On [Your details](app:/account), **Change email address** sends a confirmation link to the new
+address; the change happens only when you follow it, and the old address is told. This is offered only
+when your current address is **not** a `rafac.mod.gov.uk` address (those are tied to the service
+and fixed), and the new address cannot be a `rafac.mod.gov.uk` one or one already in use.

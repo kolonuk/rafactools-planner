@@ -69,6 +69,7 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 		"Squadron":            sq,
 		"Members":             members,
 		"Invites":             inviteRows,
+		"SelfID":              u.ID,
 		"Audit":               auditEntries,
 		"SignIns":             signIns,
 		"WeekdayOptions":      weekdayOptions,
@@ -220,7 +221,7 @@ func (s *server) memberRemove(w http.ResponseWriter, r *http.Request) {
 // database error) for anything else.
 func (s *server) memberError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
-	case errors.Is(err, auth.ErrLastOwner), errors.Is(err, auth.ErrInvalidRole):
+	case errors.Is(err, auth.ErrLastOwner), errors.Is(err, auth.ErrInvalidRole), errors.Is(err, auth.ErrSelfAction), errors.Is(err, auth.ErrMemberInactive):
 		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", err.Error())
 	case errors.Is(err, auth.ErrNotMember):
 		s.renderError(w, r, http.StatusNotFound, "Squadron settings", err.Error())
@@ -354,4 +355,69 @@ func csvSafe(s string) string {
 		return "'" + s
 	}
 	return s
+}
+
+// memberSetActive marks a member active or inactive (owners only).
+func (s *server) memberSetActive(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	memberID, ok := parseID(r, "memberID")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
+		return
+	}
+	active := r.FormValue("active") == "1"
+	target := s.memberEmail(u.SquadronID, memberID)
+	if err := s.Auth.SetMemberActive(u.SquadronID, memberID, u.ID, active); err != nil {
+		s.memberError(w, r, err)
+		return
+	}
+	action := auth.AuditMemberInactive
+	if active {
+		action = auth.AuditMemberActive
+	}
+	s.audit(r, u.SquadronID, action, target)
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
+}
+
+// memberTempPassword emails a member a temporary password. The password goes
+// to the member's own address and is never shown to the owner. It is only
+// applied once the email has been handed to the mail server, so a failed email
+// cannot lock the member out of an account with a password nobody knows.
+func (s *server) memberTempPassword(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	memberID, ok := parseID(r, "memberID")
+	if !ok {
+		s.renderError(w, r, http.StatusNotFound, "Not found", "Invalid member.")
+		return
+	}
+	tp, err := s.Auth.PrepareTempPassword(u.SquadronID, memberID, u.ID)
+	if err != nil {
+		s.memberError(w, r, err)
+		return
+	}
+	squadronName := "your squadron"
+	if sq, err := s.Store.GetSquadron(u.SquadronID); err == nil {
+		squadronName = sq.Name
+	}
+	loginURL := strings.TrimSuffix(s.Cfg.BaseURL, "/") + "/login"
+	if err := s.Mail.SendTempPassword(tp.Email, squadronName, loginURL, tp.Plain, tp.ExpiresAt.UTC().Format("2 Jan 2006 15:04")); err != nil {
+		log.Printf("temporary password email to member %d failed: %v", memberID, err)
+		s.renderError(w, r, http.StatusBadGateway, "Squadron settings", "The email could not be sent, so nothing was changed. Check the site's email settings and try again.")
+		return
+	}
+	if err := s.Auth.ApplyTempPassword(tp); err != nil {
+		log.Printf("apply temporary password for member %d failed: %v", memberID, err)
+		s.memberError(w, r, err)
+		return
+	}
+	s.audit(r, u.SquadronID, auth.AuditTempPassword, tp.Email)
+	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
 }

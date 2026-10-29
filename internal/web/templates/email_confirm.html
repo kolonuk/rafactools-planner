@@ -1,0 +1,8 @@
+{{define "content"}}
+<h1>Confirm your new email address</h1>
+<p>Use <strong data-private>{{.NewEmail}}</strong> as the address for your RAFACTools Planner account? From then on you sign in with it, and the old address is told about the change.</p>
+<form method="post" action="{{url "/email/confirm/" .Token}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <button type="submit">Yes, use this address</button>
+</form>
+{{end}}

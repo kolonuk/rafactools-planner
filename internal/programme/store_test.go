@@ -22,6 +22,9 @@ func newStore(t *testing.T) (*Store, *sql.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { d.Close() })
+	// The clock stands in the last month before the supported years begin, so
+	// every month a test creates is in the future and no "this month" exists.
+	setClock(t, time.Date(1999, 12, 15, 12, 0, 0, 0, time.UTC))
 	for _, n := range []string{"1", "2"} {
 		if _, err := d.Exec(`INSERT INTO squadrons (number, name) VALUES (?, ?)`, n, n); err != nil {
 			t.Fatal(err)
@@ -170,9 +173,6 @@ func TestProgrammeAccessIsScopedToSquadron(t *testing.T) {
 	if _, err := st.GetFullProgramme(1, 99999); !errors.Is(err, ErrNotFound) {
 		t.Errorf("missing programme: %v", err)
 	}
-	if err := st.SetProgrammeStatus(2, p.ID, "final"); !errors.Is(err, ErrNotFound) {
-		t.Errorf("SetProgrammeStatus cross-tenant: %v", err)
-	}
 	if err := st.DeleteProgramme(2, p.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("DeleteProgramme cross-tenant: %v", err)
 	}
@@ -183,16 +183,8 @@ func TestProgrammeAccessIsScopedToSquadron(t *testing.T) {
 		t.Errorf("AddHalf cross-tenant: %v", err)
 	}
 	// Nothing above may have had an effect.
-	fp, _ := st.GetFullProgramme(1, p.ID)
-	if fp.Status != "draft" {
-		t.Errorf("status changed to %q", fp.Status)
-	}
-
-	if err := st.SetProgrammeStatus(1, p.ID, "final"); err != nil {
-		t.Fatal(err)
-	}
-	if fp, _ := st.GetFullProgramme(1, p.ID); fp.Status != "final" {
-		t.Errorf("status = %q", fp.Status)
+	if _, err := st.GetFullProgramme(1, p.ID); err != nil {
+		t.Errorf("a refused cross-tenant call changed the programme: %v", err)
 	}
 }
 
@@ -963,4 +955,12 @@ func TestCopyRequirementCategoriesCopiesNamesNeverCadets(t *testing.T) {
 	if _, err := st.CopyRequirementCategories(2, apr.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("cross-tenant copy = %v, want ErrNotFound", err)
 	}
+}
+
+// setClock makes the store think it is the given moment until the test ends.
+func setClock(t *testing.T, at time.Time) {
+	t.Helper()
+	old := Now
+	Now = func() time.Time { return at }
+	t.Cleanup(func() { Now = old })
 }

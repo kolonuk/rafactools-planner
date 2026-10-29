@@ -4,13 +4,13 @@ order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
 changed:
-  - next: Added MAIL_PROVIDER and SES_REGION, and the master admin's Email settings page, whose saved values win over these.
-  - next: SMTP_HOST is now required unless ALLOW_LOG_MAIL=true, so secret links are no longer logged by accident.
-  - next: Added DISABLE_SIGNUPS and MASTER_ADMIN_RESET_2FA; the master admin's sessions last 8 hours and can use two-step sign-in.
-  - next: Added ISSUE_EMAIL and ISSUE_MASKING for the Report a problem feature.
-  - next: Added the optional master admin account (MASTER_ADMIN_EMAIL and MASTER_ADMIN_PASSWORD).
-  - next: Password reset emails also depend on the mail settings.
-  - next: SESSION_KEY must now be at least 32 characters, or the site refuses to start.
+  - 1.9: Added MAIL_PROVIDER and SES_REGION, and the master admin's Email settings page, whose saved values win over these.
+  - 1.9: SMTP_HOST is now required unless ALLOW_LOG_MAIL=true, so secret links are no longer logged by accident.
+  - 1.9: Added DISABLE_SIGNUPS and MASTER_ADMIN_RESET_2FA; the master admin's sessions last 8 hours and can use two-step sign-in.
+  - 1.9: Added ISSUE_EMAIL and ISSUE_MASKING for the Report a problem feature.
+  - 1.9: Added the optional master admin account (MASTER_ADMIN_EMAIL and MASTER_ADMIN_PASSWORD).
+  - 1.9: Password reset emails also depend on the mail settings.
+  - 1.9: SESSION_KEY must now be at least 32 characters, or the site refuses to start.
 ---
 # Configuration
 

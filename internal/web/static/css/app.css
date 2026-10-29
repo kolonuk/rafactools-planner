@@ -208,7 +208,34 @@ a { color: var(--md-primary); }
 /* Parade-evenings-only toggle on the programme grid (programme_edit.html) —
    CSS-only, no JS: the checkbox and table are kept as direct siblings so
    this general-sibling selector can reach the table at all. */
-.parade-toggle-input { margin: 10px 0 4px; }
+/* "Show parade evenings only" is a switch, on by default. It stays a plain
+   checkbox underneath (no script), so the sibling selector below keeps working. */
+.parade-toggle-input {
+  appearance: none;
+  position: relative;
+  width: 40px;
+  height: 22px;
+  margin: 10px 0 4px;
+  vertical-align: middle;
+  border-radius: 11px;
+  border: 2px solid var(--md-outline);
+  background: var(--md-surface-container-high);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.parade-toggle-input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--md-outline);
+  transition: transform 0.15s, background 0.15s;
+}
+.parade-toggle-input:checked { background: var(--md-primary); border-color: var(--md-primary); }
+.parade-toggle-input:checked::after { transform: translateX(18px); background: var(--md-on-primary); }
 .parade-toggle-label { display: inline-block; margin: 10px 0 10px 6px; font-size: 0.9em; cursor: pointer; }
 #parade-only-toggle:checked ~ table.grid tr.non-parade-row { display: none; }
 
@@ -297,6 +324,7 @@ fieldset.field legend { padding: 0; font-size: 0.85rem; color: var(--md-on-surfa
 /* --- Report a problem ------------------------------------------------- */
 .js-only { display: none; }
 .js .js-only { display: block; }
+.js li.js-only { display: list-item; }
 .notice { background: var(--md-error-container); color: var(--md-on-error-container); padding: 10px 14px; border-radius: 8px; }
 #shot-canvas { max-width: 100%; height: auto; border: 1px solid var(--md-outline-variant); border-radius: 4px; background: var(--md-surface-container); }
 .version-footer a[data-report-link] { white-space: nowrap; }
@@ -318,3 +346,20 @@ table.list th, table.list td { overflow-wrap: anywhere; }
   table.list select { max-width: 100%; }
   table.list td form.inline { display: inline-block; }
 }
+
+/* The screenshot step of the report form is boxed and spelled out, so it cannot be missed. */
+.shot-box { border: 2px solid var(--md-primary); border-radius: 8px; padding: 12px 16px; }
+.shot-box legend { font-weight: 600; padding: 0 6px; }
+.shot-steps { padding-left: 1.2em; }
+.shot-steps li { margin: 12px 0; }
+.shot-steps .muted { display: block; margin-top: 4px; }
+.shot-status { font-weight: 500; }
+
+/* Always-visible way to report a problem, in the top bar on every page. */
+.report-button {
+  border: 1px solid var(--md-outline);
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 0.9em;
+}
+.report-button:hover { background: var(--md-surface-container-high); }

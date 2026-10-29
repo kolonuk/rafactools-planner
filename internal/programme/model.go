@@ -23,10 +23,9 @@ type Squadron struct {
 }
 
 type Programme struct {
-	ID     int64
-	Year   int
-	Month  int
-	Status string
+	ID    int64
+	Year  int
+	Month int
 }
 
 type Row struct {

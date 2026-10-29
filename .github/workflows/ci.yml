@@ -77,7 +77,12 @@ jobs:
         with:
           node-version: "22"
       - name: Stylelint (CSS)
-        run: npx --yes -p stylelint@16.10.0 -p stylelint-config-recommended@14.0.1 stylelint "internal/web/static/**/*.css"
+        # Installed into a folder of its own and pointed at with --config-basedir:
+        # stylelint looks for the shared config next to the config file, not
+        # in the folder npx unpacks its packages into.
+        run: |
+          npm install --prefix "$RUNNER_TEMP/stylelint" --no-audit --no-fund stylelint@16.10.0 stylelint-config-recommended@14.0.1
+          "$RUNNER_TEMP/stylelint/node_modules/.bin/stylelint" --config-basedir "$RUNNER_TEMP/stylelint" "internal/web/static/**/*.css"
       # Templates are Go templates (HTML linters can't parse {{ }}), so
       # this boots the server and validates the rendered public pages.
       - name: html-validate (rendered pages)

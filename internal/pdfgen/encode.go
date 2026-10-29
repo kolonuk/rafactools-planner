@@ -1,6 +1,9 @@
 package pdfgen
 
-import "reflect"
+import (
+	"reflect"
+	"strings"
+)
 
 // mapStrings returns a deep copy of v (a pointer to a struct, as passed to
 // Render) with f applied to every string it holds. The built-in PDF fonts are
@@ -62,4 +65,37 @@ func byteRunes(s string) string {
 		r[i] = rune(s[i])
 	}
 	return string(r)
+}
+
+// pdfText makes user text safe for the PDF's built-in font: it keeps whatever
+// that font can show (accents, curly quotes, dashes), drops the invisible parts
+// of emoji (joiners, variation selectors, skin-tone modifiers), and turns each
+// run of anything else it cannot show (an emoji, a Greek or Chinese word) into
+// a single "?" rather than one per character.
+func pdfText(tr func(string) string) func(string) string {
+	return func(s string) string {
+		var b strings.Builder
+		lastUnknown := false
+		for _, r := range s {
+			switch {
+			case r == 0x200D || (r >= 0xFE00 && r <= 0xFE0F) || (r >= 0x1F3FB && r <= 0x1F3FF) || r == 0x20E3:
+				continue // invisible parts of emoji sequences
+			case r == '\n' || r == '\r' || r == '\t' || r == ' ':
+				lastUnknown = false
+				b.WriteString(tr(string(r)))
+			default:
+				out := tr(string(r))
+				if r != '.' && out == "." { // the translator shows what it cannot map as a full stop
+					if !lastUnknown {
+						b.WriteByte('?')
+					}
+					lastUnknown = true
+					continue
+				}
+				lastUnknown = false
+				b.WriteString(out)
+			}
+		}
+		return b.String()
+	}
 }

@@ -38,6 +38,10 @@ const (
 	cellPad = 1.0 // mm horizontal inset used when estimating wrap width
 )
 
+// compressOutput is only switched off by tests, which then read the text of the
+// page straight out of the file.
+var compressOutput = true
+
 var monthNames = []string{"", "January", "February", "March", "April", "May", "June",
 	"July", "August", "September", "October", "November", "December"}
 
@@ -71,6 +75,7 @@ func newColumns(usableWidth float64, numClassifications int) columns {
 // fix here (tighter columns/fonts), not a second page to add.
 func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error) {
 	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.SetCompression(compressOutput)
 	pdf.SetMargins(8, 8, 8)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
@@ -78,7 +83,8 @@ func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error)
 	// Re-encode all user text for the single-byte core fonts (smart quotes,
 	// dashes and accented letters survive; anything else prints as "?").
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
-	sq, fp = mapStrings(sq, tr), mapStrings(fp, tr)
+	text := pdfText(tr)
+	sq, fp = mapStrings(sq, text), mapStrings(fp, text)
 
 	pageW, _ := pdf.GetPageSize()
 	left, _, right, _ := pdf.GetMargins()
@@ -113,9 +119,16 @@ func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error)
 		}
 	}
 
+	// A closure covering several ticked nights is drawn as ONE cell across those
+	// rows and across the classification columns. So first count how many rows
+	// each closure has and how tall its message needs to be, so the rows can
+	// share that height; then draw the rows, noting where each closure's rows
+	// start and end; then draw each merged cell over them.
+	closures := newClosureBlocks(pdf, cols, weeks, closureByDate)
 	for _, week := range weeks {
-		drawWeek(pdf, cols, sq, week, weekendByDate, closureByDate, colourByKey)
+		drawWeek(pdf, cols, sq, week, weekendByDate, closureByDate, closures, colourByKey)
 	}
+	closures.draw(pdf, cols)
 
 	drawUniformKey(pdf, sq, usableWidth)
 	drawRequirementsFooter(pdf, fp.Requirements, usableWidth)
@@ -181,7 +194,8 @@ func drawGridHeader(pdf *fpdf.Fpdf, cols columns, classifications []string) {
 }
 
 type week struct {
-	days []programme.Day // only days within the current month, Monday first
+	days []programme.Day // every day of the week within the month, Monday first (the weekend dates come from here)
+	rows []programme.Day // the days that get a row: only the ticked ones (parade nights)
 }
 
 // groupIntoWeeks splits a month's days (already ordered by date) into
@@ -197,6 +211,9 @@ func groupIntoWeeks(days []programme.Day) []week {
 			current = week{}
 		}
 		current.days = append(current.days, d)
+		if d.IsParade {
+			current.rows = append(current.rows, d)
+		}
 	}
 	if len(current.days) > 0 {
 		weeks = append(weeks, current)
@@ -274,38 +291,18 @@ type subRow struct {
 // (pageBreakGuard) and the actual drawing (drawDayRow) so they can never
 // disagree.
 type dayLayout struct {
-	total      float64
-	subRows    []subRow // parade days only
-	closure    *programme.Closure
-	closureLns int
+	total   float64
+	subRows []subRow // the parade night's lines
+	closure *programme.Closure
 }
 
-func computeDayLayout(pdf *fpdf.Fpdf, cols columns, d programme.Day, closureByDate map[string]programme.Closure, startX float64) dayLayout {
+func computeDayLayout(pdf *fpdf.Fpdf, cols columns, d programme.Day, closureByDate map[string]programme.Closure, closures *closureBlocks, startX float64) dayLayout {
 	if c, closed := closureByDate[d.Date]; closed {
-		pdf.SetFont("Helvetica", "B", 9)
-		lines := strings.Split(c.Message, "\n")
-		maxLines := 0
-		bodyW := cols.half + cols.label + sum(cols.classification) + cols.notes
-		for _, l := range lines {
-			maxLines += wrapLineCount(pdf, l, bodyW)
-		}
-		if maxLines < 1 {
-			maxLines = 1
-		}
-		h := float64(maxLines) * 5.0
-		return dayLayout{total: h, closure: &c, closureLns: maxLines}
+		return dayLayout{total: closures.rowHeight(c), closure: &c}
 	}
 
 	pdf.SetFont("Helvetica", "", 6.5)
 	notesLines := wrapLineCount(pdf, d.Notes, cols.notes)
-
-	if !d.IsParade {
-		h := float64(notesLines) * lineH
-		if h < lineH {
-			h = lineH
-		}
-		return dayLayout{total: h}
-	}
 
 	classX := startX + cols.half + cols.label
 	var subRows []subRow
@@ -345,10 +342,25 @@ func computeDayLayout(pdf *fpdf.Fpdf, cols columns, d programme.Day, closureByDa
 
 func drawWeek(pdf *fpdf.Fpdf, cols columns, _ *programme.Squadron, w week,
 	weekendByDate map[string][]string, closureByDate map[string]programme.Closure,
-	colourByKey map[string]programme.UniformColour) {
+	closures *closureBlocks, colourByKey map[string]programme.UniformColour) {
 
 	left, _, _, _ := pdf.GetMargins()
 	startY := pdf.GetY()
+
+	// A week with no ticked night has no rows. If it still has weekend notes
+	// (a camp, say) it gets one empty row tall enough to hold them; otherwise
+	// it is left out altogether.
+	if len(w.rows) == 0 {
+		need := weekendRequiredHeight(pdf, cols, w.days, weekendByDate)
+		if !weekHasWeekendNotes(w.days, weekendByDate) {
+			return
+		}
+		pdf.SetXY(left, startY)
+		pdf.CellFormat(cols.date+cols.day+cols.half+cols.label+sum(cols.classification)+cols.notes, need, "", "1", 0, "C", false, 0, "")
+		pdf.SetXY(left, startY+need)
+		drawWeekendCell(pdf, cols, startY, startY+need, w.days, weekendByDate)
+		return
+	}
 
 	// Pre-measure every day in the week before drawing any of it: the
 	// Weekends column spans the whole week in one merged cell, so if its
@@ -358,10 +370,10 @@ func drawWeek(pdf *fpdf.Fpdf, cols columns, _ *programme.Squadron, w week,
 	// and collides with whatever comes next (this is exactly the bug a
 	// narrower portrait Weekends column made newly visible: the same text
 	// needs more wrapped lines in a narrower cell).
-	layouts := make([]dayLayout, len(w.days))
+	layouts := make([]dayLayout, len(w.rows))
 	daysTotal := 0.0
-	for i, d := range w.days {
-		layouts[i] = computeDayLayout(pdf, cols, d, closureByDate, left+cols.date+cols.day)
+	for i, d := range w.rows {
+		layouts[i] = computeDayLayout(pdf, cols, d, closureByDate, closures, left+cols.date+cols.day)
 		daysTotal += layouts[i].total
 	}
 	if need := weekendRequiredHeight(pdf, cols, w.days, weekendByDate); need > daysTotal && daysTotal > 0 {
@@ -374,8 +386,8 @@ func drawWeek(pdf *fpdf.Fpdf, cols columns, _ *programme.Squadron, w week,
 		}
 	}
 
-	for i, d := range w.days {
-		drawDayRow(pdf, cols, left, d, layouts[i], colourByKey)
+	for i, d := range w.rows {
+		drawDayRow(pdf, cols, left, d, layouts[i], closures, colourByKey)
 	}
 	endY := pdf.GetY()
 
@@ -410,13 +422,20 @@ func weekendRequiredHeight(pdf *fpdf.Fpdf, cols columns, days []programme.Day, w
 }
 
 func drawDayRow(pdf *fpdf.Fpdf, cols columns, left float64, d programme.Day,
-	layout dayLayout, colourByKey map[string]programme.UniformColour) {
+	layout dayLayout, closures *closureBlocks, colourByKey map[string]programme.UniformColour) {
 
 	y := pdf.GetY()
 	h := layout.total
 
 	if layout.closure != nil {
-		drawClosureRow(pdf, cols, left, y, d, *layout.closure, h)
+		// Only the date and day belong to this row; the body is the closure's
+		// one merged cell, drawn once all the rows are down.
+		pdf.SetFillColor(201, 201, 201)
+		pdf.SetFont("Helvetica", "B", 7)
+		pdf.SetXY(left, y)
+		pdf.CellFormat(cols.date, h, dateDay(d.Date), "1", 0, "C", true, 0, "")
+		pdf.CellFormat(cols.day, h, d.DayLabel, "1", 0, "C", true, 0, "")
+		closures.note(*layout.closure, y, y+h)
 		pdf.SetXY(left, y+h)
 		return
 	}
@@ -439,11 +458,7 @@ func drawDayRow(pdf *fpdf.Fpdf, cols columns, left float64, d programme.Day,
 
 	notesX := left + cols.date + cols.day + cols.half + cols.label + sum(cols.classification)
 
-	if !d.IsParade {
-		blankW := cols.half + cols.label + sum(cols.classification)
-		pdf.CellFormat(blankW, h, "", "1", 0, "C", false, 0, "")
-		pdf.CellFormat(cols.notes, h, "", "1", 0, "L", false, 0, "")
-	} else {
+	{
 		halfColX := left + cols.date + cols.day
 		curY := y
 		for _, sr := range layout.subRows {
@@ -468,7 +483,7 @@ func drawDayRow(pdf *fpdf.Fpdf, cols columns, left float64, d programme.Day,
 	pdf.CellFormat(cols.date, lineH, dateNum, "0", 0, "C", false, 0, "")
 	pdf.CellFormat(cols.day, lineH, d.DayLabel, "0", 0, "C", false, 0, "")
 
-	if d.IsParade {
+	{
 		halfColX := left + cols.date + cols.day
 		curY := y
 		for _, sr := range layout.subRows {
@@ -505,21 +520,109 @@ func drawDayRow(pdf *fpdf.Fpdf, cols columns, left float64, d programme.Day,
 	pdf.SetXY(left, y+h)
 }
 
-func drawClosureRow(pdf *fpdf.Fpdf, cols columns, left, y float64, d programme.Day, c programme.Closure, h float64) {
-	pdf.SetFillColor(201, 201, 201)
-	pdf.SetFont("Helvetica", "B", 7)
-	pdf.SetXY(left, y)
-	pdf.CellFormat(cols.date, h, dateDay(d.Date), "1", 0, "C", true, 0, "")
-	pdf.CellFormat(cols.day, h, d.DayLabel, "1", 0, "C", true, 0, "")
+// closureBlocks tracks the closures that fall on ticked nights: how many rows
+// each has, how tall its message needs to be, and (once drawn) where its rows
+// start and end, so the closure can be one merged cell.
+type closureBlocks struct {
+	rows   map[int64]int
+	needed map[int64]float64
+	spans  map[int64]*closureSpan
+	order  []int64
+	list   map[int64]programme.Closure
+}
 
+type closureSpan struct{ y0, y1 float64 }
+
+const closureLineH = 5.0
+
+func newClosureBlocks(pdf *fpdf.Fpdf, cols columns, weeks []week, byDate map[string]programme.Closure) *closureBlocks {
+	cb := &closureBlocks{rows: map[int64]int{}, needed: map[int64]float64{}, spans: map[int64]*closureSpan{}, list: map[int64]programme.Closure{}}
 	bodyW := cols.half + cols.label + sum(cols.classification) + cols.notes
-	if d.Date == c.StartDate {
-		pdf.SetFont("Helvetica", "B", 9)
-		pdf.SetXY(left+cols.date+cols.day, y)
-		pdf.MultiCell(bodyW, h, c.Message, "1", "C", true)
-	} else {
-		pdf.CellFormat(bodyW, h, "", "1", 0, "C", true, 0, "")
+	for _, w := range weeks {
+		for _, d := range w.rows {
+			c, closed := byDate[d.Date]
+			if !closed {
+				continue
+			}
+			if cb.rows[c.ID] == 0 {
+				pdf.SetFont("Helvetica", "B", 9)
+				lines := 0
+				for _, l := range strings.Split(c.Message, "\n") {
+					lines += wrapLineCount(pdf, l, bodyW)
+				}
+				if lines < 1 {
+					lines = 1
+				}
+				cb.needed[c.ID] = float64(lines)*closureLineH + 2
+				cb.list[c.ID] = c
+				cb.order = append(cb.order, c.ID)
+			}
+			cb.rows[c.ID]++
+		}
 	}
+	return cb
+}
+
+// rowHeight is the height of each row of the closure: the message's height
+// shared between its rows, but never thinner than a line of text.
+func (cb *closureBlocks) rowHeight(c programme.Closure) float64 {
+	h := cb.needed[c.ID] / float64(max(cb.rows[c.ID], 1))
+	return max(h, lineH*1.5)
+}
+
+// note records that a row of the closure was drawn between y0 and y1.
+func (cb *closureBlocks) note(c programme.Closure, y0, y1 float64) {
+	if s, ok := cb.spans[c.ID]; ok {
+		s.y1 = y1
+		return
+	}
+	cb.spans[c.ID] = &closureSpan{y0: y0, y1: y1}
+}
+
+// draw puts each closure's one merged cell over its rows: across the half,
+// activity and classification columns and the notes column, with the message
+// centred in it.
+func (cb *closureBlocks) draw(pdf *fpdf.Fpdf, cols columns) {
+	left, _, _, _ := pdf.GetMargins()
+	x := left + cols.date + cols.day
+	bodyW := cols.half + cols.label + sum(cols.classification) + cols.notes
+	for _, id := range cb.order {
+		span, ok := cb.spans[id]
+		if !ok {
+			continue
+		}
+		c := cb.list[id]
+		h := span.y1 - span.y0
+		pdf.SetFillColor(201, 201, 201)
+		pdf.SetXY(x, span.y0)
+		pdf.CellFormat(bodyW, h, "", "1", 0, "C", true, 0, "")
+
+		pdf.SetFont("Helvetica", "B", 9)
+		lines := 0
+		for _, l := range strings.Split(c.Message, "\n") {
+			lines += wrapLineCount(pdf, l, bodyW)
+		}
+		if lines < 1 {
+			lines = 1
+		}
+		top := span.y0 + (h-float64(lines)*closureLineH)/2
+		if top < span.y0 {
+			top = span.y0
+		}
+		pdf.SetXY(x, top)
+		pdf.MultiCell(bodyW, closureLineH, c.Message, "0", "C", false)
+	}
+}
+
+// weekHasWeekendNotes reports whether any Saturday or Sunday of the week has text.
+func weekHasWeekendNotes(days []programme.Day, byDate map[string][]string) bool {
+	for _, d := range days {
+		t, err := time.Parse("2006-01-02", d.Date)
+		if err == nil && (t.Weekday() == time.Saturday || t.Weekday() == time.Sunday) && strings.TrimSpace(joinLines(byDate[d.Date])) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func drawWeekendCell(pdf *fpdf.Fpdf, cols columns, startY, endY float64, days []programme.Day, weekendByDate map[string][]string) {

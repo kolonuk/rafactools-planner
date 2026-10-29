@@ -1,6 +1,6 @@
 {{define "content"}}
 <h1>{{.MonthName}} {{.Year}}</h1>
-<p><a href="{{url "/"}}">&larr; Dashboard</a> · <a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a>{{if .CanEdit}} · <a href="{{url "/instructors"}}">Manage instructors</a> · <a href="{{url "/programmes/" .ProgrammeID "/reset"}}">Reset this month</a>{{end}}</p>
+<p><a href="{{url "/"}}">&larr; Dashboard</a> · <a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a> · <a href="{{url "/programmes/" .ProgrammeID "/history"}}">History</a>{{if .CanEdit}} · <a href="{{url "/instructors"}}">Manage instructors</a> · <a href="{{url "/programmes/" .ProgrammeID "/reset"}}">Reset this month</a>{{end}}</p>
 
 {{if .CanEdit}}
 <form method="post" action="{{url "/programmes/" .ProgrammeID}}" class="grid-form">
@@ -10,7 +10,7 @@
        table must stay direct siblings for app.css's
        "#parade-only-toggle:checked ~ table.grid" rule to reach the table at
        all — don't nest the input inside the label. -->
-  <input type="checkbox" id="parade-only-toggle" class="parade-toggle-input">
+  <input type="checkbox" id="parade-only-toggle" class="parade-toggle-input" role="switch" checked>
   <label for="parade-only-toggle" class="parade-toggle-label">Show parade evenings only</label>
   <!-- Native browser autocomplete, no JS: Instructor cells get list=
        "instructor-options" below; the input stays free text either way. -->
@@ -20,7 +20,7 @@
   <table class="grid">
     <thead>
       <tr>
-        <th scope="col">Date</th><th scope="col">Day</th><th scope="col">Parade</th><th scope="col"></th>
+        <th scope="col">Date</th><th scope="col">Day</th><th scope="col">Parade</th><th scope="col">Uniform</th><th scope="col"><span class="visually-hidden">Row</span></th>
         {{range .Classifications}}<th scope="col">{{.}}</th>{{end}}
         <th scope="col">Notes</th>
       </tr>
@@ -93,10 +93,21 @@
               {{range $.UniformOptions}}<option value="{{.Key}}" {{if eq .Key $day.UniformKey}}selected{{end}}>{{.Label}}</option>{{end}}
             </select>
           </td>
-          <td class="muted">—</td>
-          {{range $.Classifications}}<td></td>{{end}}
-          <td><textarea name="day_{{.ID}}_notes" rows="2">{{.Notes}}</textarea></td>
+          <td class="row-label"><span class="pending-none muted">—</span><span class="pending-label" hidden>Activity</span></td>
+          {{if .PendingActivity}}
+            {{range .PendingActivity}}<td><input type="text" class="pending-input" name="{{.Name}}" value="{{.Value}}" disabled hidden></td>{{end}}
+          {{else}}
+            {{range $.Classifications}}<td></td>{{end}}
+          {{end}}
+          <td class="pending-notes"><textarea name="day_{{.ID}}_notes" rows="2">{{.Notes}}</textarea></td>
         </tr>
+        {{if .PendingInstructor}}
+        <tr class="pending-row" data-day="{{.ID}}" data-label="{{.FullLabel}}" hidden>
+          <td></td><td></td><td></td><td></td>
+          <td class="row-label">Instructor</td>
+          {{range .PendingInstructor}}<td><input type="text" class="pending-input" list="instructor-options" name="{{.Name}}" value="{{.Value}}" disabled hidden></td>{{end}}
+        </tr>
+        {{end}}
       {{end}}
     {{end}}
     </tbody>
@@ -120,6 +131,7 @@
 {{end}}{{end}}
 <p id="grid-status" class="muted" role="status" aria-live="polite"></p>
 <script type="module" src="{{url "/static/js/gen/programme-grid.js"}}"></script>
+<script type="module" src="{{url "/static/js/gen/programme-parade.js"}}"></script>
 {{end}}
 
 <section class="card">

@@ -39,6 +39,8 @@ var (
 	ErrEmailNotVerified      = errors.New("email address has not been verified yet")
 	ErrTokenInvalid          = errors.New("verification link is invalid or has expired")
 	ErrInviteInvalid         = errors.New("invite link is invalid, expired, or already used")
+	ErrAccountInactive       = errors.New("this account is inactive: ask an owner of your squadron to make it active again")
+	ErrTempPasswordExpired   = errors.New("that temporary password has expired: use \"Forgot your password?\", or ask an owner to send a new one")
 )
 
 // claimPattern matches the local-part of an email that's allowed to claim a
@@ -68,6 +70,13 @@ type User struct {
 	DisplayName     string
 	Role            string // owner | editor | viewer
 	EmailVerifiedAt sql.NullTime
+
+	// Active is false once an owner has marked the member inactive: they cannot
+	// sign in or reset their password until reactivated.
+	Active bool
+	// MustChangePassword is set while the member is using a temporary password
+	// an owner sent: every page but the change-password one is closed to them.
+	MustChangePassword bool
 
 	// IsMasterAdmin marks the one site-wide administrator account.
 	IsMasterAdmin bool
@@ -339,7 +348,7 @@ func (s *Service) RevokeInvite(squadronID int64, token string) error {
 // ListMembers returns every user belonging to a squadron, for the squadron
 // settings page.
 func (s *Service) ListMembers(squadronID int64) ([]User, error) {
-	rows, err := s.db.Query(`SELECT id, squadron_id, email, display_name, role, email_verified_at FROM users WHERE squadron_id = ? ORDER BY role, email`, squadronID)
+	rows, err := s.db.Query(`SELECT id, squadron_id, email, display_name, role, email_verified_at, active FROM users WHERE squadron_id = ? ORDER BY role, email`, squadronID)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +357,7 @@ func (s *Service) ListMembers(squadronID int64) ([]User, error) {
 	var out []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &u.EmailVerifiedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &u.EmailVerifiedAt, &u.Active); err != nil {
 			return nil, err
 		}
 		out = append(out, u)
@@ -362,12 +371,22 @@ var (
 	ErrInvalidRole = errors.New("invalid role")
 )
 
-func ownerCount(q interface {
+// isLastActiveOwner reports whether target is an active owner and the squadron
+// has no other active owner: removing, demoting or deactivating them would
+// leave nobody who can manage it. An inactive owner does not count either way.
+func isLastActiveOwner(q interface {
 	QueryRow(query string, args ...any) *sql.Row
-}, squadronID int64) (int, error) {
-	var n int
-	err := q.QueryRow(`SELECT COUNT(*) FROM users WHERE squadron_id = ? AND role = 'owner'`, squadronID).Scan(&n)
-	return n, err
+}, squadronID, targetID int64) (bool, error) {
+	var targetActiveOwner int
+	if err := q.QueryRow(`SELECT COUNT(*) FROM users WHERE id = ? AND squadron_id = ? AND role = 'owner' AND active = 1`, targetID, squadronID).Scan(&targetActiveOwner); err != nil {
+		return false, err
+	}
+	if targetActiveOwner == 0 {
+		return false, nil
+	}
+	var others int
+	err := q.QueryRow(`SELECT COUNT(*) FROM users WHERE squadron_id = ? AND role = 'owner' AND active = 1 AND id != ?`, squadronID, targetID).Scan(&others)
+	return others == 0, err
 }
 
 // SetMemberRole changes a squadron member's role. Refuses to demote the
@@ -397,11 +416,11 @@ func (s *Service) SetMemberRole(squadronID, targetUserID int64, newRole string) 
 		return fmt.Errorf("lookup member: %w", err)
 	}
 	if currentRole == "owner" && newRole != "owner" {
-		n, err := ownerCount(tx, squadronID)
+		last, err := isLastActiveOwner(tx, squadronID, targetUserID)
 		if err != nil {
 			return err
 		}
-		if n <= 1 {
+		if last {
 			return ErrLastOwner
 		}
 	}
@@ -430,11 +449,11 @@ func (s *Service) RemoveMember(squadronID, targetUserID int64) error {
 		return fmt.Errorf("lookup member: %w", err)
 	}
 	if role == "owner" {
-		n, err := ownerCount(tx, squadronID)
+		last, err := isLastActiveOwner(tx, squadronID, targetUserID)
 		if err != nil {
 			return err
 		}
-		if n <= 1 {
+		if last {
 			return ErrLastOwner
 		}
 	}
@@ -464,8 +483,9 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	var u User
 	var hash string
-	err := s.db.QueryRow(`SELECT id, squadron_id, email, display_name, role, password_hash, email_verified_at FROM users WHERE email = ?`, email).
-		Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &hash, &u.EmailVerifiedAt)
+	var tempExpires sql.NullTime
+	err := s.db.QueryRow(`SELECT id, squadron_id, email, display_name, role, password_hash, email_verified_at, active, is_master_admin, must_change_password, temp_password_expires_at FROM users WHERE email = ?`, email).
+		Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &hash, &u.EmailVerifiedAt, &u.Active, &u.IsMasterAdmin, &u.MustChangePassword, &tempExpires)
 	if errors.Is(err, sql.ErrNoRows) {
 		// Burn the same bcrypt time as a real check so response latency
 		// doesn't reveal which emails have accounts.
@@ -478,6 +498,12 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
 		_ = s.AuditUser(u.ID, AuditLoginFailed, "")
 		return nil, ErrInvalidCredentials
+	}
+	if !u.Active {
+		return nil, ErrAccountInactive
+	}
+	if u.MustChangePassword && tempExpires.Valid && time.Now().After(tempExpires.Time) {
+		return nil, ErrTempPasswordExpired
 	}
 	if !u.Verified() {
 		return nil, ErrEmailNotVerified
@@ -514,16 +540,20 @@ func (s *Service) UserBySession(token string) (*User, error) {
 	var actingName string
 	err := s.db.QueryRow(`
 		SELECT u.id, u.squadron_id, u.email, u.display_name, u.role, u.email_verified_at, se.expires_at,
-		       u.is_master_admin, se.acting_squadron_id, COALESCE(sq.name, '')
+		       u.is_master_admin, se.acting_squadron_id, COALESCE(sq.name, ''), u.active, u.must_change_password
 		FROM sessions se JOIN users u ON u.id = se.user_id
 		LEFT JOIN squadrons sq ON sq.id = se.acting_squadron_id
 		WHERE se.token = ?`, token).
 		Scan(&u.ID, &u.SquadronID, &u.Email, &u.DisplayName, &u.Role, &u.EmailVerifiedAt, &expiresAt,
-			&u.IsMasterAdmin, &acting, &actingName)
+			&u.IsMasterAdmin, &acting, &actingName, &u.Active, &u.MustChangePassword)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("lookup session: %w", err)
+	}
+	if !u.Active {
+		_ = s.DeleteSession(token) // marked inactive since they signed in
+		return nil, nil
 	}
 	if time.Now().After(expiresAt) {
 		_ = s.DeleteSession(token)

@@ -31,7 +31,7 @@ func TestOnlyTheMasterAdminSeesOrUsesTheSwitcher(t *testing.T) {
 		t.Error("an ordinary owner was switched")
 	}
 	// the forged post did not touch their session either
-	if strings.Contains(body(ts.ownerA.get("/")), "502") {
+	if strings.Contains(body(ts.ownerA.get("/")), "502 Sqn") {
 		t.Error("an ordinary owner now sees another squadron")
 	}
 

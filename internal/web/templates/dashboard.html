@@ -6,12 +6,11 @@
   <h2>Training programmes</h2>
   {{if .Programmes}}
   <table class="list">
-    <thead><tr><th scope="col">Month</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+    <thead><tr><th scope="col">Month</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .Programmes}}
       <tr>
         <td>{{.MonthName}} {{.Year}}</td>
-        <td>{{.Status}}</td>
         <td>
           <a href="{{url "/programmes/" .ID}}">Edit</a>
           · <a href="{{url "/programmes/" .ID "/pdf"}}">PDF</a>

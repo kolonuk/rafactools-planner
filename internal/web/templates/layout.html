@@ -16,6 +16,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="{{url "/"}}">RAFACTools Planner</a>
+    {{if .ReportEnabled}}<a class="report-button" href="{{url "/report"}}" data-report-link>Report a problem</a>{{end}}
     {{if .User}}
       <nav aria-label="Account and help">
         <a href="{{url "/account"}}" class="muted" data-private>{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Email}}{{end}} ({{.User.Role}})</a>

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	_ "time/tzdata" // the UK time zone must exist even in an image with no zone database
 )
 
 var ErrNotFound = errors.New("not found")
@@ -187,7 +188,7 @@ func resizeRows(tx *sql.Tx, squadronID int64, oldNames []string, want int) error
 // --- Programmes --------------------------------------------------------
 
 func (s *Store) ListProgrammes(squadronID int64) ([]Programme, error) {
-	rows, err := s.db.Query(`SELECT id, year, month, status FROM programmes WHERE squadron_id = ? ORDER BY year DESC, month DESC`, squadronID)
+	rows, err := s.db.Query(`SELECT id, year, month FROM programmes WHERE squadron_id = ? ORDER BY year DESC, month DESC`, squadronID)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +197,7 @@ func (s *Store) ListProgrammes(squadronID int64) ([]Programme, error) {
 	var out []Programme
 	for rows.Next() {
 		var p Programme
-		if err := rows.Scan(&p.ID, &p.Year, &p.Month, &p.Status); err != nil {
+		if err := rows.Scan(&p.ID, &p.Year, &p.Month); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -208,6 +209,12 @@ func (s *Store) ListProgrammes(squadronID int64) ([]Programme, error) {
 // month, flags parade nights per the squadron's configured weekdays, and
 // seeds each parade night with an empty half-1 activity/instructor row pair.
 func (s *Store) CreateProgramme(squadronID int64, year, month int, createdBy int64) (*Programme, error) {
+	if month < 1 || month > 12 || year < 2000 || year > 2100 {
+		return nil, fmt.Errorf("%w: choose a real month and year", ErrInvalidInput)
+	}
+	if curY, curM := CurrentMonth(); year*12+month < curY*12+curM {
+		return nil, fmt.Errorf("%w: a programme can't be created for a month that has already passed", ErrInvalidInput)
+	}
 	sq, err := s.GetSquadron(squadronID)
 	if err != nil {
 		return nil, err
@@ -270,7 +277,7 @@ func (s *Store) CreateProgramme(squadronID int64, year, month int, createdBy int
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &Programme{ID: programmeID, Year: year, Month: month, Status: "draft"}, nil
+	return &Programme{ID: programmeID, Year: year, Month: month}, nil
 }
 
 func (s *Store) DeleteProgramme(squadronID, programmeID int64) error {
@@ -284,24 +291,12 @@ func (s *Store) DeleteProgramme(squadronID, programmeID int64) error {
 	return nil
 }
 
-func (s *Store) SetProgrammeStatus(squadronID, programmeID int64, status string) error {
-	res, err := s.db.Exec(`UPDATE programmes SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND squadron_id = ?`,
-		status, programmeID, squadronID)
-	if err != nil {
-		return err
-	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
 // GetFullProgramme loads everything needed to render the edit page or export
 // a PDF, scoped to squadronID so one squadron can never read another's data.
 func (s *Store) GetFullProgramme(squadronID, programmeID int64) (*FullProgramme, error) {
 	var fp FullProgramme
-	err := s.db.QueryRow(`SELECT id, year, month, status FROM programmes WHERE id = ? AND squadron_id = ?`, programmeID, squadronID).
-		Scan(&fp.ID, &fp.Year, &fp.Month, &fp.Status)
+	err := s.db.QueryRow(`SELECT id, year, month FROM programmes WHERE id = ? AND squadron_id = ?`, programmeID, squadronID).
+		Scan(&fp.ID, &fp.Year, &fp.Month)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -382,6 +377,12 @@ type DayInput struct {
 	UniformKey string
 	Notes      string
 	Rows       []RowInput
+
+	// NewActivity and NewInstructor hold text typed into the boxes of a night
+	// that was ticked as a parade night in this save. They are used only if the
+	// night had no rows yet (so the rows are made now); nil means nothing typed.
+	NewActivity   []string
+	NewInstructor []string
 }
 
 // SaveDaysAndRows writes back the whole edit-grid form in one transaction.
@@ -420,8 +421,26 @@ func (s *Store) SaveDaysAndRows(squadronID, programmeID int64, days []DayInput) 
 			return fmt.Errorf("day %d does not belong to programme %d", d.ID, programmeID)
 		}
 		if d.IsParade {
+			var had int
+			if err := tx.QueryRow(`SELECT COUNT(*) FROM programme_rows WHERE day_id = ?`, d.ID).Scan(&had); err != nil {
+				return err
+			}
 			if err := seedParadeRows(tx, squadronID, d.ID); err != nil {
 				return err
+			}
+			if had == 0 {
+				for rt, texts := range map[string][]string{"activity": d.NewActivity, "instructor": d.NewInstructor} {
+					if texts == nil {
+						continue
+					}
+					j, err := json.Marshal(texts)
+					if err != nil {
+						return err
+					}
+					if _, err := tx.Exec(`UPDATE programme_rows SET texts = ? WHERE day_id = ? AND half = 1 AND row_type = ?`, string(j), d.ID, rt); err != nil {
+						return err
+					}
+				}
 			}
 		}
 
@@ -951,4 +970,44 @@ func (s *Store) CopyRequirementCategories(squadronID, programmeID int64) (int, e
 	}
 	n, _ := res.RowsAffected()
 	return int(n), tx.Commit()
+}
+
+// Now is the clock; tests replace it.
+var Now = time.Now
+
+// CurrentMonth is this month in the squadron's own time (the UK), so a
+// programme is not made for the wrong month in the hour either side of midnight
+// at the turn of a month.
+func CurrentMonth() (year, month int) {
+	t := Now()
+	if loc, err := time.LoadLocation("Europe/London"); err == nil {
+		t = t.In(loc)
+	}
+	return t.Year(), int(t.Month())
+}
+
+// EnsureCurrentProgramme makes this month's programme for the squadron if it
+// does not exist yet, starting it with the requirement category names of the
+// last month that had any (never cadets' names). It reports whether it made
+// one. Two people signing in at once cannot make two: the month is unique.
+func (s *Store) EnsureCurrentProgramme(squadronID, createdBy int64) (bool, error) {
+	year, month := CurrentMonth()
+	var n int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM programmes WHERE squadron_id = ? AND year = ? AND month = ?`, squadronID, year, month).Scan(&n); err != nil {
+		return false, err
+	}
+	if n > 0 {
+		return false, nil
+	}
+	p, err := s.CreateProgramme(squadronID, year, month, createdBy)
+	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return false, nil // someone else got there first
+		}
+		return false, err
+	}
+	if _, err := s.CopyRequirementCategories(squadronID, p.ID); err != nil {
+		return true, err
+	}
+	return true, nil
 }

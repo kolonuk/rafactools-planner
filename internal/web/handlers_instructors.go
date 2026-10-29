@@ -122,6 +122,12 @@ func (s *server) accountPage(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("changed") == "1" {
 		extra["Flash"] = "Password changed. Your other sessions were signed out."
 	}
+	switch {
+	case r.URL.Query().Get("emailsent") == "1":
+		extra["Flash"] = "We've sent a confirmation link to your new address. Your address changes when you open it."
+	case r.URL.Query().Get("emailchanged") == "1":
+		extra["Flash"] = "Your email address has been changed."
+	}
 	switch r.URL.Query().Get("twostep") {
 	case "on":
 		extra["Flash"] = "Two-step sign-in is on. You will need a code each time you log in."
@@ -169,6 +175,10 @@ func (s *server) accountPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	case errors.Is(err, auth.ErrWrongPassword), errors.Is(err, auth.ErrPasswordShort), errors.Is(err, auth.ErrPasswordLong):
 		w.WriteHeader(http.StatusBadRequest)
+		if u.MustChangePassword {
+			s.render(w, r, "force_password", "Choose your password", map[string]any{"Error": err.Error()})
+			return
+		}
 		extra := s.accountExtra(r, u)
 		extra["PasswordError"] = err.Error()
 		s.render(w, r, "account", "Your details", extra)
@@ -233,6 +243,13 @@ func (s *server) accountExtra(r *http.Request, u *auth.User) map[string]any {
 		log.Printf("list sessions for user %d: %v", u.ID, err)
 	}
 	extra["Sessions"] = sessions
+	if !u.IsMasterAdmin {
+		if s.Auth.CanChangeEmail(u.ID) {
+			extra["EmailChangeAllowed"] = true
+		} else {
+			extra["EmailChangeFixed"] = true
+		}
+	}
 	if u.IsMasterAdmin {
 		extra["TwoStepOffered"] = true
 		extra["TwoStepOn"] = s.Auth.TOTPEnabled(u.ID)
@@ -405,4 +422,91 @@ func (s *server) instructorEditSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, s.url("/instructors"), http.StatusSeeOther)
+}
+
+// newPasswordForm is the only page open to someone who signed in with a
+// temporary password: it asks them to choose their own.
+func (s *server) newPasswordForm(w http.ResponseWriter, r *http.Request) {
+	if !userFrom(r.Context()).MustChangePassword {
+		http.Redirect(w, r, s.url("/account"), http.StatusSeeOther)
+		return
+	}
+	s.render(w, r, "force_password", "Choose your password", nil)
+}
+
+// emailChangeRequest starts a change of the account's address: the link goes
+// to the NEW address and nothing changes until it is opened and confirmed.
+func (s *server) emailChangeRequest(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Your details", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	fail := func(status int, msg string) {
+		extra := s.accountExtra(r, u)
+		extra["EmailError"] = msg
+		w.WriteHeader(status)
+		s.render(w, r, "account", "Your details", extra)
+	}
+	token, newEmail, err := s.Auth.RequestEmailChange(u.ID, strings.TrimSpace(r.FormValue("new_email")), r.FormValue("current_password"))
+	switch {
+	case err == nil:
+	case errors.Is(err, auth.ErrEmailChangeNotAllowed), errors.Is(err, auth.ErrNewEmailInvalid), errors.Is(err, auth.ErrNewEmailOnClaimDomain),
+		errors.Is(err, auth.ErrWrongPassword), errors.Is(err, auth.ErrEmailTaken):
+		fail(http.StatusBadRequest, err.Error()+".")
+		return
+	default:
+		log.Printf("email change request for user %d: %v", u.ID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Your details", "Could not start the change. Try again.")
+		return
+	}
+	link := strings.TrimSuffix(s.Cfg.BaseURL, "/") + "/email/confirm/" + token
+	if err := s.Mail.SendEmailChangeVerify(newEmail, link); err != nil {
+		log.Printf("email change verification mail failed: %v", err)
+		fail(http.StatusBadGateway, "The confirmation email could not be sent, so nothing was changed. Try again later.")
+		return
+	}
+	http.Redirect(w, r, s.url("/account?emailsent=1"), http.StatusSeeOther)
+}
+
+// emailConfirmForm shows what the link would do and asks for a click, so
+// mail scanners that open links cannot confirm a change on their own.
+func (s *server) emailConfirmForm(w http.ResponseWriter, r *http.Request) {
+	to, err := s.Auth.EmailChangeTarget(r.PathValue("token"))
+	if err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Confirm email address", "That link is invalid or has expired.")
+		return
+	}
+	s.render(w, r, "email_confirm", "Confirm your new email address", map[string]any{"Token": r.PathValue("token"), "NewEmail": to})
+}
+
+func (s *server) emailConfirmSubmit(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Confirm email address", "Form expired, try again.")
+		return
+	}
+	userID, oldEmail, newEmail, err := s.Auth.ConfirmEmailChange(r.PathValue("token"))
+	switch {
+	case err == nil:
+	case errors.Is(err, auth.ErrEmailChangeInvalid), errors.Is(err, auth.ErrEmailChangeNotAllowed), errors.Is(err, auth.ErrEmailTaken):
+		s.renderError(w, r, http.StatusBadRequest, "Confirm email address", "That link is invalid or has expired, or the address can no longer be used.")
+		return
+	default:
+		log.Printf("confirm email change: %v", err)
+		s.renderError(w, r, http.StatusInternalServerError, "Confirm email address", "Something went wrong. Try again.")
+		return
+	}
+	if err := s.Auth.AuditUser(userID, auth.AuditEmailChange, oldEmail+" to "+newEmail); err != nil {
+		log.Printf("audit email change: %v", err)
+	}
+	go func() {
+		if err := s.Mail.SendEmailChanged(oldEmail, newEmail); err != nil {
+			log.Printf("email-changed notice failed: %v", err)
+		}
+	}()
+	if userFrom(r.Context()) != nil {
+		http.Redirect(w, r, s.url("/account?emailchanged=1"), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, s.url("/login?emailchanged=1"), http.StatusSeeOther)
 }

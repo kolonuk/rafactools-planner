@@ -2,7 +2,7 @@
 title: Set up email
 order: 105
 summary: How to make the site send email (Cloudflare, Gmail, Google Workspace, Amazon SES or any SMTP server), the master admin's Email settings page and test button, and the DNS records that make receivers trust your mail.
-since: next
+since: 1.9
 ---
 # Set up email
 

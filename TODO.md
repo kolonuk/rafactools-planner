@@ -78,13 +78,9 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
   and configure mail on a brand-new site without `ALLOW_LOG_MAIL`.
 - [ ] **[P3 usability]** **Alibaba Cloud DirectMail preset** if wanted (the request said
   "Cloudflare Ali"; read as the Cloudflare API/SMTP). Needs its regional SMTP host.
-- [ ] **[P1 security]** **Let a member delete their own account** (privacy). Today they must ask an
-  owner to remove them, or ask the site's operators. Needs: password to confirm, last-owner guard (an
-  owner who is the only owner must hand over or delete the squadron first), sessions and invites
-  removed, an entry in the security log.
-- [ ] **[P2 helpful feature]** **Change my email address.** There is no way to change the address on an
-  account. Needs confirmation by a link sent to the new address, the old address told, and sessions
-  kept.
+- [ ] **[P3 usability]** **Day/week label after a move.** When a row is dragged or moved to another night, decide whether its day/week label should follow (labels are bound to dates today). Waiting on a decision.
+- [ ] **[P2 helpful feature]** **Compare two programme versions** side by side on the history page (today you can only restore).
+- [ ] **[P1 security]** **Confirm the sender domain** for `issues@rafac.mod.gov.uk` (SPF/DKIM/DMARC) before relying on problem reports reaching it.
 - [ ] **[P3 usability]** **Phone layout for the programme grid and a browser test that guards it.** The top
   bar and tables now wrap instead of widening the page (checked in Chromium at 390 px); the grid itself
   still scrolls sideways. A Playwright check that no page overflows at 390 px would keep it so.

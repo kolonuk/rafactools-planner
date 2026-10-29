@@ -28,6 +28,10 @@ WORKDIR /app
 COPY --from=builder /out/server .
 COPY --from=builder --chown=65532:65532 /appdata /data
 
+# Explicit, even though the :nonroot image already defaults to this user: scanners
+# (Trivy DS-0002) read the Dockerfile, not the base image.
+USER 65532:65532
+
 ENV PORT=8080
 ENV DB_PATH=/data/rafactools.db
 EXPOSE 8080

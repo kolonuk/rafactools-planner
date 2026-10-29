@@ -2,9 +2,9 @@
 title: Instructors
 order: 45
 summary: Keeping a list of instructors for the programme grid's suggestions, and setting your own name.
-since: next
+since: 1.9
 changed:
-  - next: An entry can now be edited (name and rank) instead of removed and added again.
+  - 1.9: An entry can now be edited (name and rank) instead of removed and added again.
 ---
 # Instructors
 

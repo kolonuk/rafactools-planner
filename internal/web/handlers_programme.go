@@ -4,9 +4,11 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
+	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/pdfgen"
 	"rafactools-planner/internal/programme"
 )
@@ -23,7 +25,27 @@ func parseID(r *http.Request, name string) (int64, bool) {
 // --- Dashboard -----------------------------------------------------------
 
 func (s *server) dashboard(w http.ResponseWriter, r *http.Request) {
+	s.ensureThisMonth(userFrom(r.Context()))
 	s.renderDashboard(w, r, "")
+}
+
+// ensureThisMonth makes the current month's programme for the person's
+// squadron if it does not exist yet. It runs when anyone signs in (and when the
+// dashboard opens, for sessions that last across a month end). The master admin
+// has no squadron of their own to plan, and only looks at others read-only.
+func (s *server) ensureThisMonth(u *auth.User) {
+	if u == nil || u.IsMasterAdmin {
+		return
+	}
+	if made, err := s.Store.EnsureCurrentProgramme(u.SquadronID, u.ID); err != nil {
+		log.Printf("make this month's programme for squadron %d failed: %v", u.SquadronID, err)
+	} else if made {
+		log.Printf("made this month's programme for squadron %d", u.SquadronID)
+		year, month := programme.CurrentMonth()
+		if p, err := s.Store.FindProgramme(u.SquadronID, year, month); err == nil {
+			s.recordVersion(u.SquadronID, p, u.ID, u.Email, "Created the month automatically when someone signed in")
+		}
+	}
 }
 
 func (s *server) renderDashboard(w http.ResponseWriter, r *http.Request, errMsg string) {
@@ -43,11 +65,10 @@ func (s *server) renderDashboard(w http.ResponseWriter, r *http.Request, errMsg 
 		ID        int64
 		MonthName string
 		Year      int
-		Status    string
 	}
 	var views []progView
 	for _, p := range progs {
-		views = append(views, progView{p.ID, monthNames[p.Month], p.Year, p.Status})
+		views = append(views, progView{p.ID, monthNames[p.Month], p.Year})
 	}
 
 	now := time.Now()
@@ -80,6 +101,9 @@ func (s *server) programmeCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := s.Store.CreateProgramme(u.SquadronID, year, month, u.ID)
 	if err != nil {
+		if errors.Is(err, programme.ErrInvalidInput) {
+			err = errors.New(errorText(err))
+		}
 		s.renderDashboard(w, r, err.Error())
 		return
 	}
@@ -88,6 +112,7 @@ func (s *server) programmeCreate(w http.ResponseWriter, r *http.Request) {
 			log.Printf("copy requirement categories into programme %d: %v", p.ID, err)
 		}
 	}
+	s.recordVersion(u.SquadronID, p.ID, u.ID, u.Email, "Created the month")
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(p.ID, 10)), http.StatusSeeOther)
 }
 
@@ -110,9 +135,18 @@ type dayView struct {
 	SubRows        []subRowView
 	ShowAddHalf    bool
 	ShowRemoveHalf bool
+
+	// For a night that is not a parade night yet: the boxes that appear when
+	// its Parade tickbox is ticked, so the row looks as it will after saving.
+	// They are named for rows the night already has (kept from an earlier
+	// time it was a parade night) or, if it has none, as new ones.
+	PendingActivity   []pendingCell
+	PendingInstructor []pendingCell
 }
 
-func buildDayViews(days []programme.Day, canEdit bool) []dayView {
+type pendingCell struct{ Name, Value string }
+
+func buildDayViews(days []programme.Day, canEdit bool, classes int) []dayView {
 	var out []dayView
 	for _, d := range days {
 		t, _ := time.Parse("2006-01-02", d.Date)
@@ -129,8 +163,33 @@ func buildDayViews(days []programme.Day, canEdit bool) []dayView {
 			}
 			dv.ShowAddHalf = canEdit && d.Halves == 1
 			dv.ShowRemoveHalf = canEdit && d.Halves == 2
+		} else if canEdit {
+			dv.PendingActivity = pendingCells(d, "activity", classes)
+			dv.PendingInstructor = pendingCells(d, "instructor", classes)
 		}
 		out = append(out, dv)
+	}
+	return out
+}
+
+// pendingCells names the boxes shown when a non-parade night is ticked. If the
+// night kept a half-1 row of this kind its real names and text are used, so
+// what was typed before comes back; otherwise they are new ones, filled in on
+// save.
+func pendingCells(d programme.Day, rowType string, classes int) []pendingCell {
+	if row, ok := d.RowByHalfType(1, rowType); ok {
+		out := make([]pendingCell, classes)
+		for i := range out {
+			out[i].Name = "row_" + strconv.FormatInt(row.ID, 10) + "_text_" + strconv.Itoa(i)
+			if i < len(row.Texts) {
+				out[i].Value = row.Texts[i]
+			}
+		}
+		return out
+	}
+	out := make([]pendingCell, classes)
+	for i := range out {
+		out[i].Name = "day_" + strconv.FormatInt(d.ID, 10) + "_new_" + rowType + "_" + strconv.Itoa(i)
 	}
 	return out
 }
@@ -162,6 +221,9 @@ func (s *server) instructorOptions(squadronID int64) []string {
 		return options
 	}
 	for _, m := range members {
+		if !m.Active {
+			continue // inactive members are not suggested as instructors
+		}
 		name := m.DisplayName
 		if name == "" {
 			name = m.Email
@@ -212,7 +274,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		"Classifications":     sq.Classifications,
 		"LabelClassColsCount": 1 + len(sq.Classifications),
 		"UniformOptions":      uniformOptions,
-		"Days":                buildDayViews(fp.Days, canEdit),
+		"Days":                buildDayViews(fp.Days, canEdit, len(sq.Classifications)),
 		"DayOptions":          dayOptions(fp.Days),
 		"Closures":            fp.Closures,
 		"WeekendNotes":        fp.WeekendNotes,
@@ -237,6 +299,11 @@ func (s *server) programmeSave(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusNotFound, "Not found", "That programme doesn't exist.")
 		return
 	}
+	sq, err := s.Store.GetSquadron(u.SquadronID)
+	if err != nil {
+		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not load squadron.")
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		s.renderError(w, r, http.StatusBadRequest, "Error", "Could not read form.")
 		return
@@ -253,11 +320,23 @@ func (s *server) programmeSave(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, row := range d.Rows {
 			rp := "row_" + strconv.FormatInt(row.ID, 10) + "_text_"
+			// A row that was not on the page (a night that is not a parade
+			// night shows none) sent nothing: leave its text alone rather than
+			// overwrite it with blanks.
+			if !r.PostForm.Has(rp + "0") {
+				continue
+			}
 			texts := make([]string, len(row.Texts))
 			for i := range texts {
 				texts[i] = r.PostForm.Get(rp + strconv.Itoa(i))
 			}
 			di.Rows = append(di.Rows, programme.RowInput{ID: row.ID, Texts: texts})
+		}
+		// A night that has just been ticked as a parade night and had no rows:
+		// the text typed into its new boxes.
+		if di.IsParade && !d.IsParade {
+			di.NewActivity = newRowTexts(r.PostForm, prefix+"new_activity_", len(sq.Classifications))
+			di.NewInstructor = newRowTexts(r.PostForm, prefix+"new_instructor_", len(sq.Classifications))
 		}
 		days = append(days, di)
 	}
@@ -637,4 +716,19 @@ func (s *server) programmeReset(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("programme %d reset by user %d (squadron %d)", id, u.ID, u.SquadronID)
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
+}
+
+// newRowTexts reads the boxes of a row that does not exist yet; nil if none was
+// filled in.
+func newRowTexts(form url.Values, prefix string, n int) []string {
+	out := make([]string, n)
+	any := false
+	for i := range out {
+		out[i] = form.Get(prefix + strconv.Itoa(i))
+		any = any || out[i] != ""
+	}
+	if !any {
+		return nil
+	}
+	return out
 }

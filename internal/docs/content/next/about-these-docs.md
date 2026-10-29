@@ -2,7 +2,7 @@
 title: About these docs
 order: 140
 summary: How versions work, how to compare them, and how the docs are kept accurate.
-since: next
+since: 1.9
 ---
 # About these docs
 
