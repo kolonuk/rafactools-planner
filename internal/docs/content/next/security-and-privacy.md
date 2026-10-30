@@ -51,8 +51,8 @@ The same facts are on the public [privacy notice](app:/privacy) page.
 
 **The help pages** (what you are reading) are public: anyone can read them without
 signing in. They describe how the planner works and contain no squadron data.
-Because they are public, they also describe how a site is run and which protections
-it has, so do not rely on the planner's behaviour being a secret.
+The source code is public too, so the planner's security rests on its design and on your
+secrets (such as the signing key and passwords), never on how it works being hidden.
 
 **Your squadron's data** is visible only to signed-in members of the same squadron. Every page and every change is
 checked against the signed-in person's squadron, so another squadron cannot

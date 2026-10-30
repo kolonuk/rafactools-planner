@@ -23,6 +23,11 @@ a spreadsheet one person maintains.
   version notes. Authoring rules are in `.claude/skills/docs/SKILL.md`; the
   pages live in `internal/docs/content/`.
 
+## Licence
+
+Copyright (C) 2026 kolonuk. Released under the GNU General Public License,
+version 2 only: see [LICENSE](LICENSE).
+
 ## Running it yourself
 
 For security and trust, run your own copy; a free public site is also available from the

@@ -4,6 +4,8 @@ order: 98
 summary: Why and how to run the planner yourself, what you need, which GitHub settings it uses, and the free public site as an alternative.
 since: 1.9
 audience: dev
+changed:
+  - next: The source code is public, so you no longer need to ask for access.
 ---
 # Run your own copy
 
@@ -34,7 +36,7 @@ squadron's data, run your own copy, or keep personal details out of the planner.
 
 | You need | Why |
 | --- | --- |
-| **Access to the code or the container image.** The source repository is private at the moment: ask the maintainer to give you access. | To build or pull the planner. |
+| **Access to the code or the container image.** The source code is public on GitHub under the GNU General Public License version 2 (see [about these docs](about-these-docs#licence-and-copyright)). | To build or pull the planner. |
 | **A computer that is on when people use it**, with **Docker** (or Go 1.26 if you build from source). | The planner is one small program; the container needs nothing else. |
 | **Somewhere to keep the data**: a folder or volume that survives restarts. | Everything is one SQLite file ([backups](operators-backups)). |
 | **A web address with HTTPS** if people will use it from outside your own network, usually through a reverse proxy. | Logins must not travel unencrypted ([running the site](operators-running)). |
