@@ -83,13 +83,35 @@ func (s *server) docsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type navSection struct{ Title, URL string }
 	type navItem struct {
 		Title, URL string
 		Current    bool
+		Sections   []navSection // only for the current page
 	}
-	var nav []navItem
-	for _, p := range v.Pages {
-		nav = append(nav, navItem{p.Title, s.docsPageURL(ver, p.Slug), p.Slug == slug})
+	type navGroup struct {
+		Title string
+		Open  bool
+		Items []navItem
+	}
+	var nav []navGroup
+	for _, g := range v.Groups() {
+		ng := navGroup{Title: g.Title}
+		for _, p := range g.Pages {
+			item := navItem{Title: p.Title, URL: s.docsPageURL(ver, p.Slug), Current: p.Slug == slug}
+			if item.Current {
+				ng.Open = true
+				for _, h := range p.Outline() {
+					item.Sections = append(item.Sections, navSection{h.Text, item.URL + "#" + h.ID})
+				}
+			}
+			ng.Items = append(ng.Items, item)
+		}
+		nav = append(nav, ng)
+	}
+	// On the help home nothing is current, so open the first branch.
+	if slug == "index" && len(nav) > 0 {
+		nav[0].Open = true
 	}
 	type changeView struct{ Version, Note string }
 	var changes []changeView
@@ -105,6 +127,8 @@ func (s *server) docsPage(w http.ResponseWriter, r *http.Request) {
 		"DocIsNext":   ver == docs.Next,
 		"Versions":    s.docsVersionOptions(ver),
 		"Nav":         nav,
+		"HomeURL":     s.docsPageURL(ver, "index"),
+		"HomeCurrent": slug == "index",
 		"Page":        page,
 		"Body":        body,
 		"Since":       docs.DisplayLabel(page.Since),

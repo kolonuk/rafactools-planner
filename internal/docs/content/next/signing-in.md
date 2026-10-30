@@ -3,6 +3,7 @@ title: Signing in
 order: 20
 summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
+audience: user
 changed:
   - 1.9: A member given a temporary password must choose their own at first sign-in; an inactive account cannot sign in. Email address can be changed on Your details for non-rafac.mod.gov.uk addresses.
   - 1.9: Your details now lists where you are signed in and can sign out other places; the master admin signs in for 8 hours and can use two-step sign-in.

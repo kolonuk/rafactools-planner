@@ -18,7 +18,7 @@ a spreadsheet one person maintains.
   activity/instructor per classification, notes, weekend events, closures,
   and a footer requirement tracker), then export it as a PDF matching the
   existing paper format.
-- In-app help at `/docs` (behind login, same theme): versioned Markdown pages
+- In-app help at `/docs` (public, no login needed; same theme): versioned Markdown pages
   built into the binary, with a version selector, a compare view and per-page
   version notes. Authoring rules are in `.claude/skills/docs/SKILL.md`; the
   pages live in `internal/docs/content/`.

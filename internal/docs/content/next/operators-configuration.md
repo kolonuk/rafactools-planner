@@ -3,6 +3,7 @@ title: Configuration
 order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
+audience: dev
 changed:
   - 1.9: Master admin password only seeds the account (stored one has priority), MASTER_ADMIN_RESET_PASSWORD added; SITE_DOMAIN added and ISSUE_EMAIL defaults to issues@ the site domain.
   - 1.9: Added MAIL_PROVIDER and SES_REGION, and the master admin's Email settings page, whose saved values win over these.

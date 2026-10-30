@@ -3,6 +3,7 @@ title: PDF export
 order: 60
 summary: What the exported programme looks like.
 since: 1.0
+audience: user
 changed:
   - 1.9: Only ticked parade nights are printed, and a closed day is one merged block across the classification columns.
   - 1.9: Curly quotes, dashes and accented letters now print correctly; only characters outside Western European text print as a question mark.
