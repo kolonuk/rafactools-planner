@@ -17,6 +17,10 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
+## Unreleased
+
+- **fix**: release commits made by the pipeline no longer ask for CI to be skipped, so promoting one to `main` builds and publishes the image.
+
 ## 1.11
 
 - **chore**: promotion order is enforced: a push to `test` must already be on `dev` with CI passed, and a push to `main` on `test`, or nothing is built or published (`devtools promotion-gate`).
