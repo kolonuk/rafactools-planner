@@ -4,6 +4,7 @@ order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
 changed:
+  - next: Added optional TURNSTILE_SITE_KEY and TURNSTILE_SECRET to put a Cloudflare Turnstile check on the login, claim and delete-squadron forms.
   - 1.9: Master admin password only seeds the account (stored one has priority), MASTER_ADMIN_RESET_PASSWORD added; SITE_DOMAIN added and ISSUE_EMAIL defaults to issues@ the site domain.
   - 1.9: Added MAIL_PROVIDER and SES_REGION, and the master admin's Email settings page, whose saved values win over these.
   - 1.9: SMTP_HOST is now required unless ALLOW_LOG_MAIL=true, so secret links are no longer logged by accident.
@@ -25,6 +26,7 @@ configuration file. See `.env.template` in the repository for an annotated copy.
 | `DB_PATH` | `/data/rafactools.db` | Where the SQLite database file lives. The directory must be writable. |
 | `BASE_URL` | `http://localhost:8080` | The public address, used in links inside emails. A path in it (for example `https://example.org/planner`) becomes the prefix of every link the site generates. |
 | `COOKIE_SECURE` | `true` | Mark cookies HTTPS-only and send the HSTS header. Set `false` **only** for plain-HTTP local use. |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET` | empty | Optional [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) keys (site key and secret key of one widget). When both are set, the login, claim and delete-squadron forms include the Turnstile check and the server verifies it with Cloudflare before acting. Set both or neither. With neither the check is off and the pages do not load anything from Cloudflare. |
 | `CLAIM_DOMAIN` | `rafac.mod.gov.uk` | Email domain allowed to claim a squadron. |
 | `SKIP_EMAIL_VERIFICATION` | `false` | Marks every claimed squadron as confirmed immediately. **Development only**: it removes the proof that the address is real. |
 | `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD` | empty | The optional site-wide **master admin** (see below). The password only **seeds** the account: once one is stored in the database that one has priority. |
@@ -130,6 +132,7 @@ The site checks its settings when it starts and exits with a non-zero status
 and a message naming the problem if:
 
 - `SESSION_KEY` is missing or shorter than 32 characters;
+- only one of `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET` is set;
 - `SMTP_HOST` is empty and `ALLOW_LOG_MAIL` is not `true`;
 - `SMTP_PORT` is not a number, or `BASE_URL` is not a valid address;
 - the database cannot be opened (for example the folder in `DB_PATH` does not exist);
