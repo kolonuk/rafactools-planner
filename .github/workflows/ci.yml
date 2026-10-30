@@ -254,7 +254,7 @@ jobs:
         run: go run ./cmd/devtools promotion-gate
 
   build:
-    needs: [gate, build-test, go-lint, frontend-lint, browser-tests, docs-check, workflow-lint, govulncheck, trivy-fs, codeql]
+    needs: [gate, build-test, go-lint, frontend-lint, browser-tests, workflow-lint, govulncheck, trivy-fs, codeql]
     if: github.event_name != 'pull_request'
     name: Build, scan and push image
     runs-on: ubuntu-24.04
@@ -401,16 +401,3 @@ jobs:
       - name: Summary
         run: |
           echo "Pushed \`${{ steps.meta.outputs.image_ref }}\` — app version \`${{ steps.meta.outputs.app_version }}\`" >> "$GITHUB_STEP_SUMMARY"
-
-  cleanup-images:
-    name: Clean up old container images
-    needs: build
-    runs-on: ubuntu-24.04
-    permissions:
-      packages: write
-    steps:
-      - uses: actions/delete-package-versions@25ad4af5be03aef10e0b3376b248688b7a44c40b # v5
-        with:
-          package-name: "rafactools-planner"
-          package-type: "container"
-          min-versions-to-keep: 10
