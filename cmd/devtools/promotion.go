@@ -33,7 +33,7 @@ type promotionEnv interface {
 // checkPromotion enforces dev -> test -> main. A push to dev is always fine. A
 // push to test or main must already be on the previous branch, and CI must have
 // passed on it there. A release commit made by the pipeline ("release 1.N ...",
-// pushed with [skip ci]) has no CI run of its own, so its parent is checked.
+// made without its own CI run) has none, so its parent is checked.
 func checkPromotion(env promotionEnv, branch, sha string) error {
 	prev, gated := previousStage[branch]
 	if !gated {
