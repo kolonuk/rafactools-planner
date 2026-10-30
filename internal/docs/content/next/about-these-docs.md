@@ -5,6 +5,7 @@ summary: How versions work, how to compare them, and how the docs are kept accur
 since: 1.9
 audience: user
 changed:
+  - next: Added the licence and copyright notice.
   - next: Anyone can read the help without signing in, and the pages are grouped by audience in a tree.
 ---
 # About these docs
@@ -51,6 +52,15 @@ At the foot of every page:
 
 Wording fixes are not listed; changes to behaviour, limits, defaults and
 permissions are.
+
+## Licence and copyright
+
+RAFACTools Planner is copyright (C) 2026 kolonuk and released under the **GNU General Public
+License, version 2** (GPL-2.0-only). You may use, study, change and share it under that licence; if
+you share a changed copy, you must share its source under the same licence and keep the copyright
+notices. There is no warranty. The full text is the `LICENSE` file in the
+[source repository](https://github.com/kolonuk/rafactools-planner/blob/main/LICENSE). These help pages
+are part of the program and are covered by the same licence.
 
 ## How they are kept accurate
 
