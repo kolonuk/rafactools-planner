@@ -85,7 +85,8 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A internal/docs/content CHANGELOG.md
-            git commit -m "release ${VERSION}: freeze the docs and changelog [skip ci]"
+            # No [skip ci] here: a later push of this commit to main must still build and publish.
+            git commit -m "release ${VERSION}: freeze the docs and changelog"
             git push origin HEAD:refs/heads/test
             RELEASE_SHA="$(git rev-parse HEAD)"
             # Bring the release commit back to dev, so the relabelled docs never
@@ -93,7 +94,7 @@ jobs:
             # leave dev alone. The build below must stay on the release commit.
             git fetch origin dev
             git checkout -q -B dev-sync origin/dev
-            if git merge --no-edit -m "Merge release ${VERSION} from test into dev [skip ci]" "${RELEASE_SHA}"; then
+            if git merge --no-edit -m "Merge release ${VERSION} from test into dev" "${RELEASE_SHA}"; then
               git push origin HEAD:refs/heads/dev || echo "::warning::could not update dev after release ${VERSION}; merge test into dev by hand"
             else
               git merge --abort
