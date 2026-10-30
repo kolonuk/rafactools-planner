@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.12
 
 - **fix**: release commits made by the pipeline no longer ask for CI to be skipped, so promoting one to `main` builds and publishes the image.
 
