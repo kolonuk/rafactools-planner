@@ -119,8 +119,8 @@ func runValidateHTML() error {
 			return err
 		}
 	}
-	// The docs sit behind login: claim a squadron (dev mode skips the
-	// confirmation email) and sign in.
+	// Claim a squadron (dev mode skips the confirmation email) and sign
+	// in, so the programme pages below can be validated.
 	if err := post("/claim"); err != nil {
 		return err
 	}

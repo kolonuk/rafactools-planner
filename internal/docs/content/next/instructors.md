@@ -3,6 +3,7 @@ title: Instructors
 order: 45
 summary: Keeping a list of instructors for the programme grid's suggestions, and setting your own name.
 since: 1.9
+audience: user
 changed:
   - 1.10: People with a login are listed on the page as fixed entries.
   - 1.9: An entry can now be edited (name and rank) instead of removed and added again.

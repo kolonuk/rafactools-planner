@@ -3,6 +3,7 @@ title: Run your own copy
 order: 98
 summary: Why and how to run the planner yourself, what you need, which GitHub settings it uses, and the free public site as an alternative.
 since: 1.9
+audience: dev
 ---
 # Run your own copy
 

@@ -3,6 +3,7 @@ title: Squadron settings
 order: 40
 summary: Name, classifications, parade nights, members and invites (owners only).
 since: 1.0
+audience: admin
 changed:
   - 1.9: Owners can mark members inactive or email them a temporary password.
   - 1.9: The security log also records sign-ins, wrong passwords, password changes and resets, signing out other sessions and settings changes; owners can download it and are emailed when the site's administrator looks at the squadron.

@@ -3,7 +3,9 @@ title: Running the site
 order: 110
 summary: Starting, stopping, checking health, and running behind a proxy.
 since: 1.0
+audience: dev
 changed:
+  - next: The help pages under /docs are public; the page lists which pages need no sign-in.
   - 1.9: The health check now fails (503) when the database does not answer.
   - 1.9: Every response carries an X-Request-ID, and connections to the mail server have timeouts.
 ---
@@ -11,12 +13,10 @@ changed:
 
 For whoever runs the site.
 
-## Run it locally
+## Trying it locally
 
-`docker compose up` in the repository starts the planner on port 8080 and a
-mail catcher (Mailpit) whose web page, on port 8025, shows the emails the
-planner sends. Local settings use plain HTTP, so `COOKIE_SECURE` is `false`
-there. See [configuration](operators-configuration).
+`docker compose up` starts the planner on port 8080 and a mail catcher (Mailpit) on
+port 8025. The steps are in [run your own copy](run-your-own#try-it-on-your-own-computer).
 
 ## The container
 
@@ -31,6 +31,14 @@ these docs are built into the program, so there are no other files to deploy.
 it for load-balancer and container health checks. It also asks the database a trivial
 question: if that fails the answer is status `503` with `{"status": "database unavailable"}`, so a
 stuck or unreadable database takes the container out of service instead of looking healthy.
+
+## Pages that need no sign-in
+
+Besides `/health`, these are public: the login, claim, forgot-password and privacy pages, the
+help pages under `/docs` (what you are reading), and the site's static files. If you put another
+login in front of the planner (for example at the proxy), exempt `/docs` and `/health` if you want
+the help and health checks to keep working for people and tools that are not signed in. The help
+pages contain instructions only, never squadron data.
 
 ## Stopping
 

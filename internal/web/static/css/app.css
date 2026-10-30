@@ -261,6 +261,19 @@ a { color: var(--md-primary); }
   color: var(--md-on-surface-variant);
   text-decoration: none;
 }
+.docs-nav-home { margin: 0 0 4px; }
+.docs-group { margin: 4px 0; }
+.docs-group > summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+  color: var(--md-on-surface);
+}
+.docs-group > summary:hover { background: var(--md-surface-container); }
+.docs-nav .docs-group > ul { margin-left: 12px; border-left: 2px solid var(--md-outline-variant); }
+.docs-nav .docs-sections { margin-left: 12px; }
+.docs-sections a { padding: 4px 12px; font-size: 0.85rem; }
 .docs-nav a:hover { background: var(--md-surface-container); }
 .docs-nav a.current { background: var(--md-primary-container); color: var(--md-on-primary-container); font-weight: 500; }
 .docs-content { min-width: 0; max-width: 46rem; line-height: 1.6; }

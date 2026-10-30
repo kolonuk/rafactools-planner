@@ -17,6 +17,12 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
+## Unreleased
+
+- **feat**: the help pages at `/docs` can be read without signing in.
+- **feat**: the help is a tree grouped by audience (using the planner, squadron admins, running the site) with expandable groups and a list of sections under the page you are on.
+- **chore**: help pages reviewed: removed statements that contradicted the app (no way to delete a squadron, help only while signed in), tidied repeated sections, and added the browser tests and release process to the automated checks page.
+
 ## 1.12
 
 - **fix**: release commits made by the pipeline no longer ask for CI to be skipped, so promoting one to `main` builds and publishes the image.

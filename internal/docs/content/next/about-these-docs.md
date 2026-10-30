@@ -3,12 +3,27 @@ title: About these docs
 order: 140
 summary: How versions work, how to compare them, and how the docs are kept accurate.
 since: 1.9
+audience: user
+changed:
+  - next: Anyone can read the help without signing in, and the pages are grouped by audience in a tree.
 ---
 # About these docs
 
-These pages are part of the planner. They are only shown to signed-in people,
-use the same look as the rest of the site, and are built into the program, so
-they always come with the version that is running.
+These pages are part of the planner, use the same look as the rest of the site,
+and are built into the program, so they always come with the version that is
+running. **You do not need to sign in to read them**, so you can look things up
+before you have an account. They contain no squadron data, only instructions.
+
+## Finding your way
+
+The tree on the left groups the pages by who they are for:
+
+- **Using the planner**: everyday use, for everyone with a login.
+- **Squadron admins**: managing people and settings, for owners.
+- **Running the site (dev and power users)**: hosting, settings, email, backups and the automated checks.
+
+Select a group to open or close it. The group holding the page you are on is open,
+and the page you are on lists its own sections underneath, so you can jump straight to one.
 
 ## Versions
 
