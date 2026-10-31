@@ -86,12 +86,13 @@ read the verification/invite emails there) on http://localhost:8025.
 
 Three branches: `dev` → `test` → `main`, promoted by PR. Every push/PR to any
 of them runs `.github/workflows/ci.yml` (build, vet, test, gofmt, govulncheck,
-Trivy filesystem scan, CodeQL). Every push to any of them also runs
-`.github/workflows/deploy.yml`, which builds the image, smoke-tests it against
-`/health`, scans it with Trivy, and pushes it to GHCR tagged
-`<branch>-<short-sha>` (plus a rolling `<branch>-latest`).
+Trivy filesystem scan, CodeQL). Every push to any of them also runs, in the
+same workflow and only after every check above is green, a promotion-order
+gate and an image build that smoke-tests the image against `/health`, scans it
+with Trivy, and pushes it to GHCR tagged `<branch>-<short-sha>` only (an
+immutable tag; there is no `latest` or rolling tag).
 
-`main` is also tagged `latest`. **This repository stops at the image**: running
+**This repository stops at the image**: running
 it (the host, its settings and secrets such as `SESSION_KEY`, TLS, redeploying)
 is done by whoever hosts it; `internal/docs/content/next/run-your-own.md` lists
 what the image needs.

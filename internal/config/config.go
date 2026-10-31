@@ -80,6 +80,13 @@ type Config struct {
 	// still work.
 	DisableSignups bool
 
+	// TurnstileSiteKey / TurnstileSecret (TURNSTILE_SITE_KEY, TURNSTILE_SECRET)
+	// switch on the Cloudflare Turnstile check on the login, claim-a-squadron
+	// and delete-squadron forms. Set both or neither; with neither, no check
+	// runs and no third-party script is loaded. The secret belongs in a secret.
+	TurnstileSiteKey string
+	TurnstileSecret  string
+
 	SMTPHost string
 	SMTPPort int
 	SMTPUser string
@@ -105,6 +112,8 @@ func Load() (Config, error) {
 		IssueMasking:             getenvBool("ISSUE_MASKING", true),
 		AllowLogMail:             getenvBool("ALLOW_LOG_MAIL", false),
 		DisableSignups:           getenvBool("DISABLE_SIGNUPS", false),
+		TurnstileSiteKey:         strings.TrimSpace(os.Getenv("TURNSTILE_SITE_KEY")),
+		TurnstileSecret:          strings.TrimSpace(os.Getenv("TURNSTILE_SECRET")),
 		SMTPHost:                 os.Getenv("SMTP_HOST"),
 		SMTPUser:                 os.Getenv("SMTP_USER"),
 		SMTPPass:                 os.Getenv("SMTP_PASS"),
@@ -114,6 +123,10 @@ func Load() (Config, error) {
 		if a, err := mail.ParseAddress(c.IssueEmail); err != nil || a.Address != c.IssueEmail {
 			return c, fmt.Errorf("ISSUE_EMAIL %q is not a valid email address", c.IssueEmail)
 		}
+	}
+
+	if (c.TurnstileSiteKey == "") != (c.TurnstileSecret == "") {
+		return c, fmt.Errorf("set both TURNSTILE_SITE_KEY and TURNSTILE_SECRET, or neither")
 	}
 
 	if c.SessionKey == "" {
