@@ -259,51 +259,12 @@ jobs:
     name: Build, scan and push image
     runs-on: ubuntu-24.04
     permissions:
-      contents: write # test only: commit the release snapshot back to the branch
+      contents: read
       packages: write
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      # A release is a push to test. If the docs or CHANGELOG.md hold anything
-      # unreleased, freeze them as the next 1.N (go run ./cmd/devtools release),
-      # commit that to test and build with it. Pushes made with GITHUB_TOKEN do
-      # not start another run. Moving test to main later is an ordinary push and
-      # keeps the version; dev never releases.
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
-        if: github.ref_name == 'test'
-        with:
-          go-version: "1.26"
-          cache: true
-
-      - name: Cut the release (test only)
-        id: release
-        if: github.ref_name == 'test'
-        run: |
-          go run ./cmd/devtools release | tee "$RUNNER_TEMP/release.out" >> "$GITHUB_OUTPUT"
-          if grep -qx 'released=true' "$RUNNER_TEMP/release.out"; then
-            VERSION="$(sed -n 's/^version=//p' "$RUNNER_TEMP/release.out")"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A internal/docs/content CHANGELOG.md
-            # No [skip ci] here: a later push of this commit to main must still build and publish.
-            git commit -m "release ${VERSION}: freeze the docs and changelog"
-            git push origin HEAD:refs/heads/test
-            RELEASE_SHA="$(git rev-parse HEAD)"
-            # Bring the release commit back to dev, so the relabelled docs never
-            # conflict with dev's next release. Not fatal: on a conflict, say so and
-            # leave dev alone. The build below must stay on the release commit.
-            git fetch origin dev
-            git checkout -q -B dev-sync origin/dev
-            if git merge --no-edit -m "Merge release ${VERSION} from test into dev" "${RELEASE_SHA}"; then
-              git push origin HEAD:refs/heads/dev || echo "::warning::could not update dev after release ${VERSION}; merge test into dev by hand"
-            else
-              git merge --abort
-              echo "::warning::release ${VERSION} conflicts with dev; merge test into dev by hand"
-            fi
-            git checkout -q "${RELEASE_SHA}"
-          fi
 
       - name: Compute image tags
         id: meta
@@ -319,7 +280,7 @@ jobs:
             echo "env_tag=${ENV_TAG}"
           } >> "$GITHUB_OUTPUT"
           # App version shown in the web/PDF footers. A release is the newest
-          # frozen docs snapshot (cut on test just above) (internal/docs/content/1.N, made with
+          # frozen docs snapshot (cut by the manual Release workflow) (internal/docs/content/1.N, made with
           # "go run ./cmd/devtools docs-snapshot 1.N"), so the footer, the docs
           # version list and CHANGELOG.md always agree. main shows exactly that
           # version, as does test (which cuts it); dev adds the commit,
