@@ -15,6 +15,7 @@ import (
 //	order: 20
 //	summary: One line for the page list.
 //	since: 1.0
+//	audience: user
 //	changed:
 //	  - next: What changed.
 //	  - 1.42: An earlier change.
@@ -86,6 +87,13 @@ func parsePage(slug, raw string) (*Page, error) {
 				return nil, fmt.Errorf("front matter: since %q is not a version (next or 1.<number>)", val)
 			}
 			p.Since = val
+		case "audience":
+			switch a := Audience(val); a {
+			case AudienceUser, AudienceAdmin, AudienceDev:
+				p.Audience = a
+			default:
+				return nil, fmt.Errorf("front matter: audience %q must be user, admin or dev", val)
+			}
 		case "changed":
 			if val != "" {
 				return nil, fmt.Errorf("front matter line %d: 'changed:' takes a list on the following lines", lineNo)

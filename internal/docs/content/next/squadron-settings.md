@@ -3,7 +3,9 @@ title: Squadron settings
 order: 40
 summary: Name, classifications, parade nights, members and invites (owners only).
 since: 1.0
+audience: admin
 changed:
+  - next: Delete this squadron includes a human check when the operator has turned on Turnstile.
   - 1.9: Owners can mark members inactive or email them a temporary password.
   - 1.9: The security log also records sign-ins, wrong passwords, password changes and resets, signing out other sessions and settings changes; owners can download it and are emailed when the site's administrator looks at the squadron.
   - 1.9: Added the security log and the Delete this squadron section.
@@ -72,7 +74,8 @@ however often they look), so you hear about it when it happens, not just afterwa
 The last section permanently deletes the squadron and **everything in it**: every member's account,
 all programmes, the requirements tracker (including cadets' names), the instructor list and the
 security log. To do it you type the squadron number and your password. **It cannot be undone and
-there is no backup to restore from**, so export each month's PDF first.
+there is no backup to restore from**, so export each month's PDF first. If the operator has turned
+on Cloudflare Turnstile, the form also shows a human check, and nothing is deleted unless it passes.
 
 ## Inactive members and temporary passwords
 

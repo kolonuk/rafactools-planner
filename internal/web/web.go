@@ -58,6 +58,10 @@ type Deps struct {
 	// database wins over it. See package settings.
 	Settings *settings.Store
 	Env      func(string) string
+
+	// Turnstile verifies a Turnstile response token. Nil uses Cloudflare's
+	// siteverify endpoint; tests replace it.
+	Turnstile func(ctx context.Context, token, remoteIP string) (bool, error)
 }
 
 type server struct {
@@ -153,14 +157,15 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /{$}", s.requireAuth(s.dashboard))
 
-	// Documentation: behind login like everything else. Version labels are
-	// validated against the library, never used as file paths.
-	mux.HandleFunc("GET /docs", s.requireAuth(s.docsRoot))
-	mux.HandleFunc("GET /docs/{$}", s.requireAuth(s.docsRoot))
-	mux.HandleFunc("GET /docs/go", s.requireAuth(s.docsGo))
-	mux.HandleFunc("GET /docs/compare", s.requireAuth(s.docsCompare))
-	mux.HandleFunc("GET /docs/{version}/{$}", s.requireAuth(s.docsPage))
-	mux.HandleFunc("GET /docs/{version}/{slug}", s.requireAuth(s.docsPage))
+	// Documentation: public, so people can read it before they have an account.
+	// It holds no data of anyone's. Version labels are validated against the
+	// library, never used as file paths.
+	mux.HandleFunc("GET /docs", s.withUserOptional(s.docsRoot))
+	mux.HandleFunc("GET /docs/{$}", s.withUserOptional(s.docsRoot))
+	mux.HandleFunc("GET /docs/go", s.withUserOptional(s.docsGo))
+	mux.HandleFunc("GET /docs/compare", s.withUserOptional(s.docsCompare))
+	mux.HandleFunc("GET /docs/{version}/{$}", s.withUserOptional(s.docsPage))
+	mux.HandleFunc("GET /docs/{version}/{slug}", s.withUserOptional(s.docsPage))
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
@@ -253,8 +258,13 @@ func (s *server) securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=(), usb=(), display-capture=(self)")
-		h.Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; img-src 'self' data:; "+
-			"script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+		csp := "default-src 'self'; style-src 'self'; img-src 'self' data:; " +
+			"script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		if s.Cfg.TurnstileSiteKey != "" {
+			csp = strings.Replace(csp, "script-src 'self'", "script-src 'self' "+turnstileOrigin, 1) +
+				"; frame-src " + turnstileOrigin + "; connect-src 'self' " + turnstileOrigin
+		}
+		h.Set("Content-Security-Policy", csp)
 		// The router sees paths with any reverse-proxy prefix already stripped.
 		if !strings.HasPrefix(r.URL.Path, "/static/") {
 			h.Set("Cache-Control", "no-store")
@@ -300,6 +310,7 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, page, title stri
 		"ReportEnabled": s.reportEnabled(),
 		"SignupsOpen":   !s.Cfg.DisableSignups,
 		"RequestID":     requestIDFrom(r.Context()),
+		"TurnstileKey":  s.Cfg.TurnstileSiteKey,
 	}
 	for k, v := range extra {
 		data[k] = v

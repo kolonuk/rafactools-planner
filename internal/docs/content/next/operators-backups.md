@@ -3,6 +3,9 @@ title: Backups
 order: 120
 summary: Where the data lives and how to protect it.
 since: 1.0
+audience: dev
+changed:
+  - next: Owners can remove members and delete a squadron from squadron settings, so removing data no longer means editing the database.
 ---
 # Backups
 
@@ -37,6 +40,11 @@ before you need one.
 
 ## Removing someone's data
 
-There is no screen for deleting a squadron or a person. It can only be done
-by editing the database directly, which should be done on a backup copy first.
-See [security and privacy](security-and-privacy).
+Owners can do this themselves in [squadron settings](squadron-settings): **Remove**
+a member, or **Delete this squadron** to remove every member, programme, tracker entry,
+instructor and log entry. That is the preferred route, because it cannot leave
+half-deleted data behind.
+
+A deletion does not reach existing backups. Anything deleted in the planner is still in
+older copies of the database file, so delete or age out old backups too if you have promised
+that someone's data is gone. See [security and privacy](security-and-privacy).

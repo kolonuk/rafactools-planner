@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="docs">
   <aside class="docs-side">
-    <p class="docs-back"><a href="{{url "/"}}">&larr; Back to the planner</a></p>
+    <p class="docs-back">{{if .User}}<a href="{{url "/"}}">&larr; Back to the planner</a>{{else}}<a href="{{url "/login"}}">&larr; Sign in to the planner</a>{{end}}</p>
     <form method="get" action="{{.GoURL}}" class="docs-version">
       <input type="hidden" name="page" value="{{.Page.Slug}}">
       <label>Version
@@ -16,9 +16,19 @@
       <a href="{{.CompareURL}}">What changed overall</a></p>
     {{end}}
     <nav class="docs-nav" aria-label="Documentation pages">
-      <ul>
-        {{range .Nav}}<li>{{if .Current}}<a href="{{.URL}}" aria-current="page" class="current">{{.Title}}</a>{{else}}<a href="{{.URL}}">{{.Title}}</a>{{end}}</li>{{end}}
-      </ul>
+      <p class="docs-nav-home"><a href="{{.HomeURL}}"{{if .HomeCurrent}} aria-current="page" class="current"{{end}}>Help home</a></p>
+      {{range .Nav}}
+      <details class="docs-group"{{if .Open}} open{{end}}>
+        <summary>{{.Title}}</summary>
+        <ul>
+          {{range .Items}}
+          <li>{{if .Current}}<a href="{{.URL}}" aria-current="page" class="current">{{.Title}}</a>{{else}}<a href="{{.URL}}">{{.Title}}</a>{{end}}
+            {{if .Sections}}<ul class="docs-sections">{{range .Sections}}<li><a href="{{.URL}}">{{.Title}}</a></li>{{end}}</ul>{{end}}
+          </li>
+          {{end}}
+        </ul>
+      </details>
+      {{end}}
     </nav>
   </aside>
 

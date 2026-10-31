@@ -3,6 +3,7 @@ title: Getting started
 order: 10
 summary: Claiming a squadron and confirming your email.
 since: 1.0
+audience: user
 changed:
   - 1.10: The claim form has an optional Your name box.
 ---
@@ -37,6 +38,11 @@ taken to the login page.
 If the email does not arrive, check your spam folder, then ask whoever runs
 the site to check that email sending is set up (see
 [configuration](operators-configuration)).
+
+## What you see first
+
+After you log in you land on your dashboard. This month's programme is already there: the planner
+makes the current month for you, using the squadron's parade weekdays and classifications.
 
 ## Next steps
 
