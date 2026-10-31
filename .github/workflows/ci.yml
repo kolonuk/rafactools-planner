@@ -17,6 +17,10 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/rafactools-planner
+
 jobs:
   build-test:
     name: Build, vet, test
@@ -228,3 +232,172 @@ jobs:
           # still fails the job on its own terms; it just doesn't try to
           # push results somewhere this plan can't receive them.
           upload: false
+
+  gate:
+    if: github.event_name != 'pull_request'
+    name: Promotion order (dev, then test, then main)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read # to read the CI result of the commit
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: Check the commit came through the previous stage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: go run ./cmd/devtools promotion-gate
+
+  build:
+    needs: [gate, build-test, go-lint, frontend-lint, browser-tests, workflow-lint, govulncheck, trivy-fs, codeql]
+    if: github.event_name != 'pull_request'
+    name: Build, scan and push image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # test only: commit the release snapshot back to the branch
+      packages: write
+    outputs:
+      image_ref: ${{ steps.meta.outputs.image_ref }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # A release is a push to test. If the docs or CHANGELOG.md hold anything
+      # unreleased, freeze them as the next 1.N (go run ./cmd/devtools release),
+      # commit that to test and build with it. Pushes made with GITHUB_TOKEN do
+      # not start another run. Moving test to main later is an ordinary push and
+      # keeps the version; dev never releases.
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        if: github.ref_name == 'test'
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Cut the release (test only)
+        id: release
+        if: github.ref_name == 'test'
+        run: |
+          go run ./cmd/devtools release | tee "$RUNNER_TEMP/release.out" >> "$GITHUB_OUTPUT"
+          if grep -qx 'released=true' "$RUNNER_TEMP/release.out"; then
+            VERSION="$(sed -n 's/^version=//p' "$RUNNER_TEMP/release.out")"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A internal/docs/content CHANGELOG.md
+            # No [skip ci] here: a later push of this commit to main must still build and publish.
+            git commit -m "release ${VERSION}: freeze the docs and changelog"
+            git push origin HEAD:refs/heads/test
+            RELEASE_SHA="$(git rev-parse HEAD)"
+            # Bring the release commit back to dev, so the relabelled docs never
+            # conflict with dev's next release. Not fatal: on a conflict, say so and
+            # leave dev alone. The build below must stay on the release commit.
+            git fetch origin dev
+            git checkout -q -B dev-sync origin/dev
+            if git merge --no-edit -m "Merge release ${VERSION} from test into dev" "${RELEASE_SHA}"; then
+              git push origin HEAD:refs/heads/dev || echo "::warning::could not update dev after release ${VERSION}; merge test into dev by hand"
+            else
+              git merge --abort
+              echo "::warning::release ${VERSION} conflicts with dev; merge test into dev by hand"
+            fi
+            git checkout -q "${RELEASE_SHA}"
+          fi
+
+      - name: Compute image tags
+        id: meta
+        run: |
+          SHORT_SHA="$(echo "${{ github.sha }}" | cut -c1-12)"
+          ENV_TAG="${{ github.ref_name }}"
+          # shellcheck disable=SC2153 # IMAGE_NAME is the workflow-level env var set in the `env:` block above, not a typo for IMAGE_BASE
+          IMAGE_BASE="${REGISTRY}/${IMAGE_NAME}"
+          {
+            echo "short_sha=${SHORT_SHA}"
+            echo "image_base=${IMAGE_BASE}"
+            echo "image_ref=${IMAGE_BASE}:${ENV_TAG}-${SHORT_SHA}"
+            echo "env_tag=${ENV_TAG}"
+          } >> "$GITHUB_OUTPUT"
+          # App version shown in the web/PDF footers. A release is the newest
+          # frozen docs snapshot (cut on test just above) (internal/docs/content/1.N, made with
+          # "go run ./cmd/devtools docs-snapshot 1.N"), so the footer, the docs
+          # version list and CHANGELOG.md always agree. main shows exactly that
+          # version, as does test (which cuts it); dev adds the commit,
+          # "1.N+<sha>", because it runs work that may not be released yet. Nothing here asks the GitHub API,
+          # so there is no call that can fail and poison the linker flags.
+          RELEASE="$(find internal/docs/content -mindepth 1 -maxdepth 1 -type d -name '1.*' -printf '%f\n' | grep -E '^1\.[0-9]+$' | sort -t. -k2 -n | tail -n 1)"
+          if [ -z "$RELEASE" ]; then
+            RELEASE="1.0"
+          fi
+          if [ "${ENV_TAG}" = "main" ] || [ "${ENV_TAG}" = "test" ]; then
+            echo "app_version=${RELEASE}" >> "$GITHUB_OUTPUT"
+          else
+            echo "app_version=${RELEASE}+${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build (local, for scanning)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: Dockerfile
+          load: true
+          tags: ${{ steps.meta.outputs.image_ref }}
+          build-args: VERSION=${{ steps.meta.outputs.app_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: |
+          # ALLOW_LOG_MAIL=true: the smoke container has no SMTP configured,
+          # and the app now refuses to start without one unless this is set
+          # (see config.RequireMail) — without it every build fails here,
+          # never reaching Push.
+          docker run -d --name smoke -p 18081:8080 \
+            -e SESSION_KEY=ci-smoke-test-session-key-not-for-prod-use \
+            -e COOKIE_SECURE=false \
+            -e ALLOW_LOG_MAIL=true \
+            "${{ steps.meta.outputs.image_ref }}"
+          code=""
+          for _ in $(seq 1 10); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18081/health || true)"
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          [ "$code" = "200" ] || { echo "/health did not return 200 (got $code)"; docker logs smoke; exit 1; }
+          body="$(curl -s http://localhost:18081/health)"
+          echo "$body" | grep -q '{"status": "ok"}' || { echo "/health body unexpected: $body"; docker logs smoke; exit 1; }
+          docker rm -f smoke
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: ${{ steps.meta.outputs.image_ref }}
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_ref }}
+          build-args: VERSION=${{ steps.meta.outputs.app_version }}
+          cache-from: type=gha
+
+      - name: Summary
+        run: |
+          echo "Pushed \`${{ steps.meta.outputs.image_ref }}\` — app version \`${{ steps.meta.outputs.app_version }}\`" >> "$GITHUB_STEP_SUMMARY"

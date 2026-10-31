@@ -6,6 +6,7 @@ since: 1.0
 audience: user
 changed:
   - next: The help pages are public (no sign-in needed); this page now states that and corrects the list of what the planner does not do.
+  - next: Optional Cloudflare Turnstile human check on login, claim and delete-squadron.
   - 1.9: The security log also records sign-ins and password changes; owners can download it and are emailed when the master admin looks at their squadron.
   - 1.9: The site's email password can be saved on the website by the master admin; it is stored encrypted.
   - 1.9: Added a privacy notice page, a security log for owners, the list of places you are signed in, deleting a squadron, and two-step sign-in for the master admin.
@@ -99,6 +100,16 @@ See [configuration](operators-configuration).
 - **Pages are not cached** by the browser, so a shared computer does not keep
   old pages.
 - **Request size** is limited to 1 MB.
+
+## Human check (optional)
+
+When the operator sets `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET`, the login, claim and
+delete-squadron forms require a [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)
+check. The server sends the check result and the visitor's address to Cloudflare to verify it, and
+refuses the request if verification fails, times out (5 seconds) or cannot be reached. Only then are
+Cloudflare's scripts allowed by the page's content security policy. It reduces automated
+sign-up and password guessing; it does not replace the password, the rate limits or the email check.
+With the keys unset, none of this applies.
 
 ## What it does not do
 

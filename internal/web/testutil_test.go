@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"database/sql"
 	"io"
 	"log"
@@ -46,6 +47,8 @@ type testApp struct {
 	store    *programme.Store
 	cfg      config.Config
 	mail     *recordingMail
+	// turnstileOK decides what the fake Turnstile verifier answers.
+	turnstileOK func(token string) bool
 }
 
 func newApp(t *testing.T, tweak ...func(*config.Config)) *testApp {
@@ -79,7 +82,10 @@ func newAppWithDocs(t *testing.T, lib *docs.Library, tweak ...func(*config.Confi
 	}
 	a.env = map[string]string{}
 	a.srv = httptest.NewServer(NewRouter(&Deps{Auth: a.auth, Store: a.store, Mail: a.mail, Docs: lib, Cfg: cfg,
-		Settings: a.settings, Env: func(k string) string { return a.env[k] }}))
+		Settings: a.settings, Env: func(k string) string { return a.env[k] },
+		Turnstile: func(_ context.Context, token, _ string) (bool, error) {
+			return a.turnstileOK != nil && a.turnstileOK(token), nil
+		}}))
 	t.Cleanup(func() { a.srv.Close(); database.Close() })
 	return a
 }
@@ -150,7 +156,7 @@ func (a *testApp) login(email string) *client {
 	c := a.anon()
 	resp := c.get("/login")
 	token := scrapeCSRF(a.t, resp)
-	resp = c.postRaw("/login", url.Values{"csrf": {token}, "email": {email}, "password": {testPassword}})
+	resp = c.postRaw("/login", url.Values{"csrf": {token}, "email": {email}, "password": {testPassword}, "cf-turnstile-response": {"good"}})
 	if resp.StatusCode != http.StatusSeeOther {
 		a.t.Fatalf("login as %s: status %d, want 303", email, resp.StatusCode)
 	}

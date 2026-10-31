@@ -36,6 +36,13 @@ func (s *server) claimSubmit(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadRequest, "Claim your squadron", "Form expired, try again.")
 		return
 	}
+	if !s.turnstileOK(r) {
+		s.render(w, r, "claim", "Claim your squadron", map[string]any{
+			"ClaimDomain": s.Auth.ClaimDomain(),
+			"Error":       turnstileFailMsg,
+		})
+		return
+	}
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 	squadronName := r.FormValue("squadron_name")
@@ -108,6 +115,10 @@ func (s *server) loginForm(w http.ResponseWriter, r *http.Request) {
 func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	if !s.checkCSRF(r) {
 		s.renderError(w, r, http.StatusBadRequest, "Log in", "Form expired, try again.")
+		return
+	}
+	if !s.turnstileOK(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Log in", turnstileFailMsg)
 		return
 	}
 	user, err := s.Auth.Authenticate(r.FormValue("email"), r.FormValue("password"))

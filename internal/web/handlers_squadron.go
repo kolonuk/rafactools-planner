@@ -281,6 +281,10 @@ func (s *server) squadronDelete(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
 		return
 	}
+	if !s.turnstileOK(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Nothing was deleted: "+turnstileFailMsg)
+		return
+	}
 	u := userFrom(r.Context())
 	err := s.Auth.DeleteSquadron(u.SquadronID, u.ID, r.FormValue("password"), strings.TrimSpace(r.FormValue("confirm_number")))
 	switch {
