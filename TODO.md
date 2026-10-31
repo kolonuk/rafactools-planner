@@ -53,6 +53,11 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
 
 ## Bugs and rough edges
 
+- [ ] **[P1 security]** **Turnstile on the invite-accept page.** Accepting an invite creates an
+  account, so it is the one account-creating form without the human check that login, claim and
+  delete-squadron now have (`turnstileOK` in `internal/web/turnstile.go`). Add the
+  `{{template "turnstile" .}}` to the form, call `turnstileOK` after the CSRF check in the accept
+  handler, add it to `TestTurnstileGuardsLoginClaimAndDelete`, and update the docs.
 - [ ] **[P3 usability]** **PDF: scripts outside Western European text** (Greek, Cyrillic, Chinese)
   print as `?`. Needs an embedded Unicode font (`AddUTF8Font`); smart quotes,
   dashes and accents already work.
