@@ -4,7 +4,7 @@ order: 0
 summary: Start here.
 since: 1.0
 changed:
-  - next: The help pages are grouped by who they are for, and anyone can read them without signing in.
+  - 1.13: The help pages are grouped by who they are for, and anyone can read them without signing in.
 ---
 # RAFACTools Planner help
 
