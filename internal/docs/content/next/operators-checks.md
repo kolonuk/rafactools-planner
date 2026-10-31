@@ -5,7 +5,7 @@ summary: What runs on every change, and what to do when one fails.
 since: 1.0
 audience: dev
 changed:
-  - next: Added the browser tests and a Releases section.
+  - 1.13: Added the browser tests and a Releases section.
   - 1.9: Added staticcheck, gosec, CSS and HTML linting, workflow linting, secret and configuration scanning, fuzzing, operational tests and the documentation check.
 ---
 # Automated checks
