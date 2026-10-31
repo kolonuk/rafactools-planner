@@ -17,6 +17,10 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
+## Unreleased
+
+- **security**: optional Cloudflare Turnstile human check on login, squadron claim and delete-squadron (`TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`; off unless both are set).
+
 ## 1.12
 
 - **fix**: release commits made by the pipeline no longer ask for CI to be skipped, so promoting one to `main` builds and publishes the image.
