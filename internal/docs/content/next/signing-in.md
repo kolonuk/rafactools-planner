@@ -4,6 +4,7 @@ order: 20
 summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
 changed:
+  - next: When the operator turns on Turnstile, the login form includes a human check.
   - 1.9: A member given a temporary password must choose their own at first sign-in; an inactive account cannot sign in. Email address can be changed on Your details for non-rafac.mod.gov.uk addresses.
   - 1.9: Your details now lists where you are signed in and can sign out other places; the master admin signs in for 8 hours and can use two-step sign-in.
   - 1.9: Added Change password on the Your details page.
@@ -14,6 +15,14 @@ changed:
 
 Use the [login page](app:/login) with your email address and password. Email
 addresses are not case-sensitive.
+
+## The human check
+
+If the site's operator has turned on Cloudflare Turnstile, the login form shows a short check
+above the **Log in** button. If it fails or times out you see "The human check failed or timed out.
+Reload the page and try again." Your password is not tried until the check passes. The check is
+also on the [claim page](app:/claim) and on **Delete this squadron**. It is off unless the operator
+sets it up ([configuration](operators-configuration)).
 
 ## Staying signed in
 
