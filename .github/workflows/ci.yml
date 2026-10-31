@@ -268,9 +268,11 @@ jobs:
 
       - name: Compute image tags
         id: meta
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           SHORT_SHA="$(echo "${{ github.sha }}" | cut -c1-12)"
-          ENV_TAG="${{ github.ref_name }}"
+          ENV_TAG="${REF_NAME}"
           # shellcheck disable=SC2153 # IMAGE_NAME is the workflow-level env var set in the `env:` block above, not a typo for IMAGE_BASE
           IMAGE_BASE="${REGISTRY}/${IMAGE_NAME}"
           {
