@@ -3,6 +3,7 @@ title: Roles and invites
 order: 30
 summary: What owners, editors and viewers can do, and how to invite people.
 since: 1.0
+audience: admin
 changed:
   - 1.10: The invitation page has an optional Your name box.
   - 1.9: Editors and owners can keep an instructor list; everyone can set a displayed name.
@@ -35,11 +36,10 @@ Only an **owner** can invite.
 3. Select **Send invite**.
 
 They receive an email with a link. The link works **once** and expires after
-**7 days**. They choose a password (12 to 72 characters) and are signed in
-straight away. They can also give their name (optional). They do not need a RAFAC address and do not need to confirm
-their email separately: opening the invite link is the confirmation. The
-inviting owner is vouching for them, so only invite people you trust, and
-think before choosing **Owner**.
+**7 days**. They choose a password (12 to 72 characters), can give their name if they want to, and are
+signed in straight away. They do not need a RAFAC address, and opening the invite link
+counts as confirming their email. Because you are vouching for them, only invite people you
+trust, and think before choosing **Owner**.
 
 An address can have only one account. Inviting an address that already has an
 account fails when the invite is accepted; nothing about the existing account

@@ -3,6 +3,7 @@ title: Configuration
 order: 100
 summary: Every setting the site reads, with defaults, and what happens when one is wrong.
 since: 1.0
+audience: dev
 changed:
   - next: Added optional TURNSTILE_SITE_KEY and TURNSTILE_SECRET to put a Cloudflare Turnstile check on the login, claim and delete-squadron forms.
   - 1.9: Master admin password only seeds the account (stored one has priority), MASTER_ADMIN_RESET_PASSWORD added; SITE_DOMAIN added and ISSUE_EMAIL defaults to issues@ the site domain.

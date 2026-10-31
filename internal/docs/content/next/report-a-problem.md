@@ -3,6 +3,7 @@ title: Report a problem
 order: 85
 summary: How to report something that went wrong, what is sent, what is never sent, and how screenshots and masking work.
 since: 1.9
+audience: user
 changed:
   - 1.10: Selecting Report a problem opens the form straight away; there is no longer a screen-sharing prompt before it. Take the screenshot from the form.
   - 1.9: Reports now default to issues@ the site's domain.

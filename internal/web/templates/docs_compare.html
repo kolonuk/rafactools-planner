@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="docs docs-compare">
-  <p class="docs-back"><a href="{{url "/docs"}}">&larr; Help home</a> · <a href="{{url "/"}}">Back to the planner</a></p>
+  <p class="docs-back"><a href="{{url "/docs"}}">&larr; Help home</a> · {{if .User}}<a href="{{url "/"}}">Back to the planner</a>{{else}}<a href="{{url "/login"}}">Sign in to the planner</a>{{end}}</p>
   <h1>{{if .PageSlug}}{{.PageTitle}}{{else}}What changed{{end}}</h1>
 
   <form method="get" action="{{.CompareURL}}" class="inline-form">

@@ -16,8 +16,9 @@ open a PR while any rule below is unmet.
 
 ## What the docs are
 
-Markdown pages embedded in the binary and served at `/docs` **behind login**, in
-the app's own theme (same layout, same CSS tokens), by `internal/docs` and
+Markdown pages embedded in the binary and served at `/docs` **without login**
+(they are instructions only, never data; they must never contain real names,
+emails, secrets or anything specific to one deployment), in the app's own theme (same layout, same CSS tokens), by `internal/docs` and
 `internal/web/handlers_docs.go`. They are versioned with the app so a reader on
 version X can read the docs as they were at X and compare with any other version.
 
@@ -35,8 +36,8 @@ code on the current branch — nothing more, nothing less.
 
 Decided once; do not relitigate without a reason that beats these:
 
-- Docs must sit **behind the app's login**, in the **same theme**, linking both
-  ways with the app. A separate static site means separate hosting, separate auth
+- Docs must be served by the app itself, in the **same theme**, linking both
+  ways with the app. A separate static site means separate hosting
   and a second theme to keep in sync.
 - The image is a single static binary with embedded assets and the CSP only
   allows the site's own scripts. Off-the-shelf generators bring their own
@@ -74,12 +75,17 @@ Decided once; do not relitigate without a reason that beats these:
    order: 20
    summary: One line shown in the page list.
    since: 1.0
+   audience: user
    changed:
      - next: Invites to an address that already has an account are refused.
      - 1.42: Invites expire after 7 days.
    ---
    ```
 
+   - `audience` — who the page is for: `user` (everyone with a login), `admin` (squadron
+     owners) or `dev` (whoever runs the site, and contributors). It decides the branch of
+     the help tree the page sits under. Required on every page in `next/` except `index`;
+     frozen snapshots that predate it are placed by a fallback in `internal/docs`.
    - `since` — the version the page's subject first existed in (`next` if new
      and unreleased).
    - `changed` — one entry per behaviour change *after* `since`, newest first,

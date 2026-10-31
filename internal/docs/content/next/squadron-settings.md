@@ -3,6 +3,7 @@ title: Squadron settings
 order: 40
 summary: Name, classifications, parade nights, members and invites (owners only).
 since: 1.0
+audience: admin
 changed:
   - next: Delete this squadron includes a human check when the operator has turned on Turnstile.
   - 1.9: Owners can mark members inactive or email them a temporary password.

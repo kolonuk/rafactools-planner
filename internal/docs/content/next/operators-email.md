@@ -3,6 +3,7 @@ title: Set up email
 order: 105
 summary: How to make the site send email (Cloudflare, Gmail, Google Workspace, Amazon SES or any SMTP server), the master admin's Email settings page and test button, and the DNS records that make receivers trust your mail.
 since: 1.9
+audience: dev
 ---
 # Set up email
 
@@ -48,8 +49,8 @@ The site never sends a password over an unencrypted connection.
 
 ## Cloudflare
 
-Cloudflare's Email Service (sending, which was in public beta when this was written; check Cloudflare's
-documentation for the current plan requirements) accepts SMTP on port 465.
+Cloudflare's Email Service (the sending side) accepts SMTP on port 465. Check Cloudflare's
+documentation for the plan it currently requires.
 
 1. In the Cloudflare dashboard, enable **Email Sending** and **onboard your domain**. If the domain's DNS
    is on Cloudflare it adds the SPF and DKIM records for you.
