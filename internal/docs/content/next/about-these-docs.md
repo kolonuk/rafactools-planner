@@ -55,7 +55,7 @@ permissions are.
 
 ## Licence and copyright
 
-RAFACTools Planner is copyright (C) 2026 kolonuk and released under the **GNU General Public
+RAFACTools Planner is copyright (C) 2026 and released under the **GNU General Public
 License, version 2** (GPL-2.0-only). You may use, study, change and share it under that licence; if
 you share a changed copy, you must share its source under the same licence and keep the copyright
 notices. There is no warranty. The full text is the `LICENSE` file in the
