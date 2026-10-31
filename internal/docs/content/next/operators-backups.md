@@ -5,7 +5,7 @@ summary: Where the data lives and how to protect it.
 since: 1.0
 audience: dev
 changed:
-  - next: Owners can remove members and delete a squadron from squadron settings, so removing data no longer means editing the database.
+  - 1.13: Owners can remove members and delete a squadron from squadron settings, so removing data no longer means editing the database.
 ---
 # Backups
 
