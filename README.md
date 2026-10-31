@@ -25,7 +25,7 @@ a spreadsheet one person maintains.
 
 ## Licence
 
-Copyright (C) 2026 kolonuk. Released under the GNU General Public License,
+Copyright (C) 2026. Released under the GNU General Public License,
 version 2 only: see [LICENSE](LICENSE).
 
 ## Running it yourself
