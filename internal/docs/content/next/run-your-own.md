@@ -5,7 +5,7 @@ summary: Why and how to run the planner yourself, what you need, which GitHub se
 since: 1.9
 audience: dev
 changed:
-  - next: The source code is public, so you no longer need to ask for access.
+  - 1.13: The source code is public, so you no longer need to ask for access.
 ---
 # Run your own copy
 
