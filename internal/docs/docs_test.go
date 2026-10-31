@@ -47,6 +47,20 @@ func TestEmbeddedDocsAreValid(t *testing.T) {
 			t.Errorf("page %q is not linked from index.md", p.Slug)
 		}
 	}
+	// Pages in next/ must say who they are for: the fallback exists only for
+	// frozen snapshots that predate the key.
+	for _, p := range next.Pages {
+		if p.Slug == "index" {
+			continue
+		}
+		raw, err := embedded.ReadFile("content/next/" + p.Slug + ".md")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(raw), "\naudience: ") {
+			t.Errorf("next/%s.md has no audience: line", p.Slug)
+		}
+	}
 	// Rendering with real-looking URLs must not fail either.
 	for _, v := range lib.versions {
 		for _, p := range v.Pages {
@@ -270,5 +284,56 @@ func TestDiff(t *testing.T) {
 	big := strings.Repeat("line\n", 50000)
 	if n := len(Diff(big, big+"x")); n > 2*maxDiffLines+1 {
 		t.Errorf("unbounded diff: %d lines", n)
+	}
+}
+
+func TestAudienceFrontMatter(t *testing.T) {
+	p, err := parsePage("x", "---\ntitle: T\norder: 1\nsummary: S\nsince: 1.0\naudience: admin\n---\nbody")
+	if err != nil || p.Audience != AudienceAdmin {
+		t.Fatalf("audience = %q, err %v", p.Audience, err)
+	}
+	if _, err := parsePage("x", "---\ntitle: T\norder: 1\nsummary: S\nsince: 1.0\naudience: boss\n---\nbody"); err == nil {
+		t.Error("unknown audience accepted")
+	}
+}
+
+func TestGroupsFollowAudienceAndFallBackForOldSnapshots(t *testing.T) {
+	lib := mustLib(t, fstest.MapFS{
+		"1.1/index.md":             page("", "x"),
+		"1.1/roles-and-invites.md": page("", "x"), // old snapshot, no audience key
+		"1.1/operators-email.md":   page("", "x"),
+		"1.1/programmes.md":        page("", "x"),
+		"next/index.md":            page("", "x"),
+		"next/a.md":                page("audience: dev\n", "x"),
+		"next/b.md":                page("audience: user\n", "x"),
+	})
+	names := func(label string) string {
+		v, _ := lib.Version(label)
+		var out []string
+		for _, g := range v.Groups() {
+			var s []string
+			for _, p := range g.Pages {
+				s = append(s, p.Slug)
+			}
+			out = append(out, string(g.Audience)+":"+strings.Join(s, "+"))
+		}
+		return strings.Join(out, " ")
+	}
+	if got, want := names("1.1"), "user:programmes admin:roles-and-invites dev:operators-email"; got != want {
+		t.Errorf("1.1 groups = %q, want %q", got, want)
+	}
+	if got, want := names("next"), "user:b dev:a"; got != want {
+		t.Errorf("next groups = %q, want %q", got, want)
+	}
+}
+
+func TestOutline(t *testing.T) {
+	p := &Page{Source: "# T\n\n## First part\n\ntext\n\n### Deeper\n\n## The `code` part\n"}
+	var got []string
+	for _, h := range p.Outline() {
+		got = append(got, h.ID+"="+h.Text)
+	}
+	if want := "first-part=First part,the-code-part=The code part"; strings.Join(got, ",") != want {
+		t.Errorf("outline = %v, want %s", got, want)
 	}
 }

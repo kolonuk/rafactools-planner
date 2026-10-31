@@ -17,6 +17,7 @@
   <label>Password
     <input type="password" name="password" required minlength="12">
   </label>
+  {{template "turnstile" .}}
   <button type="submit">Claim squadron</button>
 </form>
 {{end}}

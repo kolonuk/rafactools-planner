@@ -42,9 +42,13 @@
     v{{.Version}} ·
     <a href="https://github.com/kolonuk/rafactools-planner/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Version history</a>
     · <a href="{{url "/privacy"}}">Privacy</a>
+    · <a href="https://github.com/kolonuk/rafactools-planner/blob/main/LICENSE" target="_blank" rel="noopener">GPL-2.0 licence</a>
     {{if .ReportEnabled}}· <a href="{{url "/report"}}" data-report-link>Report a problem</a>{{end}}
   </footer>
   {{if .ReportEnabled}}<script type="module" src="{{url "/static/js/gen/report-capture.js"}}"></script>{{end}}
 </body>
 </html>
 {{end}}
+
+{{define "turnstile"}}{{if .TurnstileKey}}<div class="cf-turnstile" data-sitekey="{{.TurnstileKey}}"></div>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}{{end}}

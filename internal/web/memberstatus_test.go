@@ -145,7 +145,7 @@ func TestTemporaryPasswordIsEmailedNeverShownAndForcesAChange(t *testing.T) {
 	if good.StatusCode != http.StatusSeeOther {
 		t.Fatalf("temp login = %d", good.StatusCode)
 	}
-	for _, path := range []string{"/", "/instructors", "/account", "/docs", "/programmes/1"} {
+	for _, path := range []string{"/", "/instructors", "/account", "/programmes/1"} {
 		if r := c.get(path); r.StatusCode != http.StatusSeeOther || !strings.HasSuffix(r.Header.Get("Location"), "/account/new-password") {
 			t.Errorf("GET %s while on a temporary password = %d to %q", path, r.StatusCode, r.Header.Get("Location"))
 		}

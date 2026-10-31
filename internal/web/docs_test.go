@@ -11,11 +11,37 @@ import (
 	"rafactools-planner/internal/docs"
 )
 
-func TestDocsRequireLogin(t *testing.T) {
+// The docs are public: people read them before they have an account.
+func TestDocsNeedNoLogin(t *testing.T) {
 	app := newApp(t)
 	c := app.anon()
-	for _, p := range []string{"/docs", "/docs/", "/docs/next/", "/docs/next/roles", "/docs/1.1/roles", "/docs/compare", "/docs/go?version=next"} {
-		wantRedirect(t, c.get(p), "/login")
+	wantRedirect(t, c.get("/docs"), "/docs/next/")
+	for _, p := range []string{"/docs/next/", "/docs/next/roles", "/docs/1.1/roles", "/docs/compare"} {
+		resp := c.get(p)
+		wantStatus(t, resp, 200)
+		resp.Body.Close()
+	}
+	page := body(c.get("/docs/next/roles"))
+	if !strings.Contains(page, `href="/login">&larr; Sign in to the planner`) {
+		t.Error("signed-out reader is not offered a way to sign in")
+	}
+	if strings.Contains(page, "Back to the planner") || strings.Contains(page, "Log out") {
+		t.Error("signed-out reader sees signed-in links")
+	}
+}
+
+func TestDocsTreeGroupsPagesByAudience(t *testing.T) {
+	app := newApp(t)
+	page := body(app.anon().get("/docs/next/roles"))
+	for _, want := range []string{
+		`<summary>Using the planner</summary>`, `<summary>Squadron admins</summary>`, `<summary>Running the site`,
+		`<details class="docs-group" open>`, // the branch holding the current page is open
+		`class="docs-sections"`,             // the current page lists its own sections
+		`href="/docs/next/roles#owners"`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("tree missing %q:\n%.3000s", want, page)
+		}
 	}
 }
 
@@ -193,7 +219,7 @@ func TestDocsWithASingleVersionHasNoCompare(t *testing.T) {
 func TestDocsHonourTheBasePath(t *testing.T) {
 	app := newApp(t, func(c *config.Config) { c.BasePath = "/planner" })
 	c := app.anon()
-	wantRedirect(t, c.get("/docs"), "/planner/login")
+	wantRedirect(t, c.get("/docs"), "/planner/docs/next/")
 	// Logged-in checks use the prefix on every generated link.
 	own := app.owner("1109")
 	cl := app.anon()

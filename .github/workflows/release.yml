@@ -1,0 +1,52 @@
+name: Release
+
+# Manual. Freezes the unreleased docs and CHANGELOG.md as the next 1.N and
+# opens a pull request into test. It never pushes to test or dev directly:
+# those branches are protected and every change reaches them through a PR.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Cut release and open PR into test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Freeze the docs and changelog
+        id: release
+        run: |
+          go run ./cmd/devtools release | tee "$RUNNER_TEMP/release.out" >> "$GITHUB_OUTPUT"
+
+      - name: Open the pull request
+        if: steps.release.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          BRANCH="release/${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+          git add -A internal/docs/content CHANGELOG.md
+          git commit -m "release ${VERSION}: freeze the docs and changelog"
+          git push origin "${BRANCH}"
+          gh pr create --base test --head "${BRANCH}" \
+            --title "release ${VERSION}: freeze the docs and changelog" \
+            --body "Cut by the Release workflow. Merging this into test publishes test-<sha>; promote to main afterwards in the usual order."
+
+      - name: Nothing to release
+        if: steps.release.outputs.released != 'true'
+        run: echo "Nothing unreleased in the docs or CHANGELOG.md."
