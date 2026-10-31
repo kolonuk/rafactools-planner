@@ -3,6 +3,7 @@ title: Signing in
 order: 20
 summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
+audience: user
 changed:
   - next: When the operator turns on Turnstile, the login form includes a human check.
   - 1.9: A member given a temporary password must choose their own at first sign-in; an inactive account cannot sign in. Email address can be changed on Your details for non-rafac.mod.gov.uk addresses.

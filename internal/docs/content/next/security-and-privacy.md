@@ -3,7 +3,9 @@ title: Security and privacy
 order: 70
 summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
+audience: user
 changed:
+  - next: The help pages are public (no sign-in needed); this page now states that and corrects the list of what the planner does not do.
   - next: Optional Cloudflare Turnstile human check on login, claim and delete-squadron.
   - 1.9: The security log also records sign-ins and password changes; owners can download it and are emailed when the master admin looks at their squadron.
   - 1.9: The site's email password can be saved on the website by the master admin; it is stored encrypted.
@@ -12,7 +14,7 @@ changed:
   - 1.9: Documented the optional master admin, who can view any squadron read-only.
   - 1.9: Added the optional displayed name and the instructor list (name and rank only).
   - 1.9: The rate limit now uses the address the proxy saw, so it cannot be dodged by sending a fake forwarding header.
-  - 1.9: Added password reset (see above); reset links are stored only as hashes.
+  - 1.9: Added password reset; reset links are stored only as hashes.
   - 1.9: Unknown email addresses now take as long to reject as real ones, so response time does not reveal which addresses have accounts.
   - 1.9: Sign-in sessions and form tokens are unchanged, but the site refuses to start with a weak signing key.
   - 1.9: The browser is now allowed to run the site's own scripts (previously it was told to refuse all scripts); inline, third-party and eval scripts are still refused.
@@ -34,9 +36,9 @@ changed:
 | Requirements tracker | **Cadets' names** and notes. |
 | Squadron | Name, subtitle, protective marking, classifications, parade nights. |
 
-Nothing is sent to any other service. The site makes no requests to third
-parties: no analytics, no external fonts, no tracking. The only email it sends
-is the confirmation, invitation and password reset emails, and the problem reports you choose to send, described in
+The site makes no requests to third parties: no analytics, no external fonts, no
+tracking. The only things it sends out are emails, through the mail server the site
+is set up with: confirmation, invitation and password reset emails, temporary passwords, the notice to your old address when you change your email address, the notice to owners when the site's administrator looks at their squadron, and the problem reports you choose to send. See
 [getting started](getting-started), [roles and invites](roles-and-invites) and
 [signing in](signing-in).
 
@@ -48,7 +50,12 @@ The same facts are on the public [privacy notice](app:/privacy) page.
 
 ## Who can see it
 
-Only signed-in members of the same squadron. Every page and every change is
+**The help pages** (what you are reading) are public: anyone can read them without
+signing in. They describe how the planner works and contain no squadron data.
+The source code is public too, so the planner's security rests on its design and on your
+secrets (such as the signing key and passwords), never on how it works being hidden.
+
+**Your squadron's data** is visible only to signed-in members of the same squadron. Every page and every change is
 checked against the signed-in person's squadron, so another squadron cannot
 open or alter your programmes, even by guessing addresses. People running the
 site can read the database.
@@ -106,13 +113,15 @@ With the keys unset, none of this applies.
 
 ## What it does not do
 
-- No two-factor sign-in for ordinary accounts yet (only the master admin can turn it on).
-- No audit trail of who changed what.
-- No way to delete a squadron or a person from inside the planner.
-- No automatic deletion of old programmes.
+- No two-step sign-in for ordinary accounts (only the master admin can turn it on).
+- No full audit trail. The security log records sign-ins, wrong passwords, password
+  changes and membership and settings changes, and each programme's **History** records
+  who saved each version, but there is no record of every individual edit.
+- No automatic deletion of old programmes. Owners can delete a whole squadron, or remove a
+  person, from [squadron settings](squadron-settings); nothing else removes data by itself.
 
-Ask the person who runs the site if you need data removed (see
-[backups](operators-backups) for where it lives). Also read
+For anything the screens cannot do, ask the person who runs the site (see
+[backups](operators-backups) for where the data lives). Also read
 [known limits](known-limits).
 
 ## Reporting a problem

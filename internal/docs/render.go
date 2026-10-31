@@ -119,3 +119,41 @@ func (v *Version) validateLinks() error {
 	}
 	return nil
 }
+
+// Heading is one section heading of a page, for the tree's sub-items.
+type Heading struct {
+	ID, Text string
+}
+
+// Outline lists a page's level-2 headings with the ids the rendered page uses,
+// so the tree can link straight to a section.
+func (p *Page) Outline() []Heading {
+	src := []byte(p.Source)
+	doc := goldmark.New(goldmark.WithParserOptions(parser.WithAutoHeadingID())).Parser().Parse(text.NewReader(src))
+	var out []Heading
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		h, ok := n.(*ast.Heading)
+		if !entering || !ok || h.Level != 2 {
+			return ast.WalkContinue, nil
+		}
+		id, _ := h.AttributeString("id")
+		idb, _ := id.([]byte)
+		var sb strings.Builder
+		for c := h.FirstChild(); c != nil; c = c.NextSibling() {
+			if t, ok := c.(*ast.Text); ok {
+				sb.Write(t.Segment.Value(src))
+			} else if cs, ok := c.(*ast.CodeSpan); ok {
+				for cc := cs.FirstChild(); cc != nil; cc = cc.NextSibling() {
+					if t, ok := cc.(*ast.Text); ok {
+						sb.Write(t.Segment.Value(src))
+					}
+				}
+			}
+		}
+		if len(idb) > 0 && sb.Len() > 0 {
+			out = append(out, Heading{ID: string(idb), Text: sb.String()})
+		}
+		return ast.WalkSkipChildren, nil
+	})
+	return out
+}

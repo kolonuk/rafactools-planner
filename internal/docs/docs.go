@@ -33,6 +33,55 @@ var (
 	slugRe    = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 )
 
+// Audience says who a page is written for. The help is shown as a tree with
+// one branch per audience.
+type Audience string
+
+const (
+	// AudienceUser is for everyone who uses the planner day to day.
+	AudienceUser Audience = "user"
+	// AudienceAdmin is for squadron owners, who manage members and settings.
+	AudienceAdmin Audience = "admin"
+	// AudienceDev is for whoever runs the site, and for contributors.
+	AudienceDev Audience = "dev"
+)
+
+// audienceOrder is the order of the branches in the tree.
+var audienceOrder = []Audience{AudienceUser, AudienceAdmin, AudienceDev}
+
+// AudienceTitle is the heading of an audience's branch.
+func AudienceTitle(a Audience) string {
+	switch a {
+	case AudienceAdmin:
+		return "Squadron admins"
+	case AudienceDev:
+		return "Running the site (dev and power users)"
+	}
+	return "Using the planner"
+}
+
+// legacyAudience places pages whose front matter has no audience key. Frozen
+// snapshots (which are never edited) predate the key; every page in next/
+// must set it (a test enforces that).
+var legacyAudience = map[string]Audience{
+	"roles-and-invites": AudienceAdmin,
+	"squadron-settings": AudienceAdmin,
+	"run-your-own":      AudienceDev,
+}
+
+func audienceFor(slug string, declared Audience) Audience {
+	if declared != "" {
+		return declared
+	}
+	if a, ok := legacyAudience[slug]; ok {
+		return a
+	}
+	if strings.HasPrefix(slug, "operators-") {
+		return AudienceDev
+	}
+	return AudienceUser
+}
+
 // Change is one behaviour change recorded on a page, keyed by the version it
 // arrived in.
 type Change struct {
@@ -47,8 +96,11 @@ type Page struct {
 	Summary string
 	Order   int
 	Since   string
-	Changed []Change // newest first
-	Source  string   // Markdown body, front matter removed
+	// Audience is who the page is for; empty for the index, which belongs to
+	// no branch of the tree.
+	Audience Audience
+	Changed  []Change // newest first
+	Source   string   // Markdown body, front matter removed
 }
 
 // Version is the full set of pages for one release (or "next").
@@ -145,6 +197,9 @@ func loadVersion(fsys fs.FS, label string) (*Version, error) {
 				return nil, fmt.Errorf("docs: %s/%s: change %s is newer than the version it is in", label, name, c.Version)
 			}
 		}
+		if slug != "index" {
+			p.Audience = audienceFor(slug, p.Audience)
+		}
 		v.Pages = append(v.Pages, p)
 		v.index[slug] = p
 	}
@@ -158,6 +213,31 @@ func loadVersion(fsys fs.FS, label string) (*Version, error) {
 		return v.Pages[i].Slug < v.Pages[j].Slug
 	})
 	return v, nil
+}
+
+// Group is one branch of the help tree.
+type Group struct {
+	Audience Audience
+	Title    string
+	Pages    []*Page
+}
+
+// Groups returns the pages other than the index, grouped by audience in tree
+// order. Empty groups are left out.
+func (v *Version) Groups() []Group {
+	var out []Group
+	for _, a := range audienceOrder {
+		g := Group{Audience: a, Title: AudienceTitle(a)}
+		for _, p := range v.Pages {
+			if p.Slug != "index" && p.Audience == a {
+				g.Pages = append(g.Pages, p)
+			}
+		}
+		if len(g.Pages) > 0 {
+			out = append(out, g)
+		}
+	}
+	return out
 }
 
 // Versions returns the version labels, newest first.

@@ -3,6 +3,7 @@ title: Troubleshooting
 order: 90
 summary: What the messages mean and what to do.
 since: 1.0
+audience: user
 changed:
   - 1.9: Error pages show a reference to quote.
   - 1.9: Added the email settings and test email messages.
@@ -43,5 +44,8 @@ changed:
 
 ## The page says "Not found"
 
-The address is wrong, the programme belongs to another squadron, or it no
-longer exists. Return to the [dashboard](app:/).
+The address is wrong, the programme belongs to another squadron, or it was
+removed along with a deleted squadron. Return to the [dashboard](app:/).
+
+On the help pages, "Not found" means the page or version does not exist: go back to
+the [help home](index).

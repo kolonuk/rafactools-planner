@@ -157,14 +157,15 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /{$}", s.requireAuth(s.dashboard))
 
-	// Documentation: behind login like everything else. Version labels are
-	// validated against the library, never used as file paths.
-	mux.HandleFunc("GET /docs", s.requireAuth(s.docsRoot))
-	mux.HandleFunc("GET /docs/{$}", s.requireAuth(s.docsRoot))
-	mux.HandleFunc("GET /docs/go", s.requireAuth(s.docsGo))
-	mux.HandleFunc("GET /docs/compare", s.requireAuth(s.docsCompare))
-	mux.HandleFunc("GET /docs/{version}/{$}", s.requireAuth(s.docsPage))
-	mux.HandleFunc("GET /docs/{version}/{slug}", s.requireAuth(s.docsPage))
+	// Documentation: public, so people can read it before they have an account.
+	// It holds no data of anyone's. Version labels are validated against the
+	// library, never used as file paths.
+	mux.HandleFunc("GET /docs", s.withUserOptional(s.docsRoot))
+	mux.HandleFunc("GET /docs/{$}", s.withUserOptional(s.docsRoot))
+	mux.HandleFunc("GET /docs/go", s.withUserOptional(s.docsGo))
+	mux.HandleFunc("GET /docs/compare", s.withUserOptional(s.docsCompare))
+	mux.HandleFunc("GET /docs/{version}/{$}", s.withUserOptional(s.docsPage))
+	mux.HandleFunc("GET /docs/{version}/{slug}", s.withUserOptional(s.docsPage))
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))

@@ -3,6 +3,7 @@ title: Programmes
 order: 50
 summary: Creating a month and filling in the grid, closures, weekend notes and the requirements tracker.
 since: 1.0
+audience: user
 changed:
   - 1.10: A closure locks the dates it covers in the grid.
   - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.
@@ -40,14 +41,23 @@ The new programme has one row per calendar day. Nights that match your
 **Activity** row and an **Instructor** row with one box for each
 classification.
 
+## This month is made for you
+
+You never need to create the current month. When anyone in the squadron signs in, or opens the
+dashboard after a month change, the current month is made if it is missing, using the squadron's
+[parade weekdays and classifications](squadron-settings). Months in the past cannot be created.
+The master admin's sign-in makes nothing, because the master admin has no squadron of their own.
+
 ## The grid
 
 Open **Edit** on a month. For each day you can set:
 
 - **Day** – the weekday (for example `M` or `Tu`), worked out from the date. It
   cannot be edited, so it can never disagree with the calendar.
-- **Parade** – tick for a parade night. A night ticked after the month was
-  created gets its Activity and Instructor rows when you save.
+- **Parade** – tick for a parade night. Its Activity and Instructor rows appear straight
+  away so you can type into them; nothing is stored until you select **Save programme**. A
+  night ticked after the month was created gets its rows when you save. Unticking a night
+  that has text keeps the text stored but hides it.
 - The uniform for the night (the dropdown beside Parade).
 - **Activity** and **Instructor** text for each classification. If neighbouring
   classifications have exactly the same text, the PDF shows them as one wide cell.
@@ -61,8 +71,8 @@ suggestions: you can type any name.
 
 On a narrow screen the grid scrolls sideways rather than squeezing its columns.
 
-**Show parade evenings only** hides the days that are not parade nights, to make
-the grid shorter.
+**Show parade evenings only** is a switch above the grid, on by default. It hides the days
+that are not parade nights to make the grid shorter; turn it off to see every day.
 
 ### Adding and removing a second half
 
@@ -148,21 +158,7 @@ You are asked to confirm first, and **Cancel** changes nothing.
 
 ## Who can do what
 
-Viewers can open a programme and its PDF but do not see the editing forms. See
-[roles and invites](roles-and-invites).
-
-## This month, made for you
-
-You never need to create the current month. When anyone in the squadron signs in (or opens the
-dashboard after a month change), the current month is made if it is missing, using the squadron's
-parade weekdays and classifications. Months in the past cannot be created. The master admin's sign-in
-makes nothing, because the master admin has no squadron of their own.
-
-## Ticking a night
-
-Tick **Parade** on a night and its Activity and Instructor rows appear straight away so you can type
-into them. Nothing is stored until you select **Save**. **Show parade evenings only** is a switch
-above the grid and is on by default; turn it off to see every day.
+Viewers can open a programme, its History and its PDF, but do not see the editing forms. Editors and owners can change everything on this page. See [roles and invites](roles-and-invites).
 
 ## History and restoring
 

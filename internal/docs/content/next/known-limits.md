@@ -3,7 +3,9 @@ title: Known limits
 order: 80
 summary: Things the planner cannot do yet, so you do not waste time looking for them.
 since: 1.0
+audience: user
 changed:
+  - next: Removed two entries that were wrong: the help is public, and a squadron can be deleted from squadron settings.
   - 1.9: Two-step sign-in exists for the master admin only.
   - 1.9: A month can be reset to blank; months are deliberately never deleted.
   - 1.9: Curly quotes, dashes and accents now print on the PDF; only non-Western-European characters do not.
@@ -43,5 +45,6 @@ These are not mistakes in how you are using the planner.
 **Site**
 - Problem reports are emailed, not kept in the planner: there is no list of past reports and no status to follow.
 - Taking a screenshot automatically needs a desktop browser that supports it; elsewhere attach a screenshot file.
-- No in-app deletion of a squadron's data.
-- Documentation is only available while signed in.
+- Deleting a squadron removes everything in it at once and cannot be undone; there is no
+  way to delete only part of a squadron's data (for example one person's cadet entries) other than
+  removing the entries by hand.

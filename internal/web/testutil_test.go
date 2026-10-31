@@ -265,11 +265,12 @@ func testDocs(t *testing.T) *docs.Library {
 		return &fstest.MapFile{Data: []byte(fm)}
 	}
 	lib, err := docs.New(fstest.MapFS{
-		"1.1/index.md":  page("Home", "1.0", "", "Welcome one.\n\nSee [roles](roles).\n"),
-		"1.1/roles.md":  page("Roles", "1.0", "", "Owners edit.\nViewers read.\n"),
-		"next/index.md": page("Home", "1.0", "changed:\n  - next: Reworded.\n", "Welcome two.\n\nSee [roles](roles) and [settings](app:/squadron).\n\nRaw <script>alert(1)</script> html.\n"),
-		"next/roles.md": page("Roles", "1.0", "changed:\n  - next: Viewers can export PDFs.\n", "Owners edit.\nEditors edit.\nViewers read and export.\n"),
-		"next/extra.md": page("Extra", "next", "", "A new page.\n"),
+		"1.1/index.md":   page("Home", "1.0", "", "Welcome one.\n\nSee [roles](roles).\n"),
+		"1.1/roles.md":   page("Roles", "1.0", "", "Owners edit.\nViewers read.\n"),
+		"next/index.md":  page("Home", "1.0", "changed:\n  - next: Reworded.\n", "Welcome two.\n\nSee [roles](roles) and [settings](app:/squadron).\n\nRaw <script>alert(1)</script> html.\n"),
+		"next/roles.md":  page("Roles", "1.0", "audience: admin\nchanged:\n  - next: Viewers can export PDFs.\n", "Owners edit.\nEditors edit.\nViewers read and export.\n\n## Owners\n\nAn owner can do everything.\n"),
+		"next/extra.md":  page("Extra", "next", "audience: dev\n", "A new page.\n"),
+		"next/basics.md": page("Basics", "1.0", "audience: user\n", "The basics.\n"),
 	})
 	if err != nil {
 		t.Fatal(err)
