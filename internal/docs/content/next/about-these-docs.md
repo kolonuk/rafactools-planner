@@ -5,8 +5,8 @@ summary: How versions work, how to compare them, and how the docs are kept accur
 since: 1.9
 audience: user
 changed:
-  - next: Added the licence and copyright notice.
-  - next: Anyone can read the help without signing in, and the pages are grouped by audience in a tree.
+  - 1.13: Added the licence and copyright notice.
+  - 1.13: Anyone can read the help without signing in, and the pages are grouped by audience in a tree.
 ---
 # About these docs
 

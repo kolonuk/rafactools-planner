@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.13
 
 - **chore**: the project is released under the GNU General Public License version 2 (`LICENSE`), with a copyright notice in the README, the help and the page footer.
 - **feat**: the help pages at `/docs` can be read without signing in.

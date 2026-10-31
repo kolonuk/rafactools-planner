@@ -5,7 +5,7 @@ summary: Starting, stopping, checking health, and running behind a proxy.
 since: 1.0
 audience: dev
 changed:
-  - next: The help pages under /docs are public; the page lists which pages need no sign-in.
+  - 1.13: The help pages under /docs are public; the page lists which pages need no sign-in.
   - 1.9: The health check now fails (503) when the database does not answer.
   - 1.9: Every response carries an X-Request-ID, and connections to the mail server have timeouts.
 ---
