@@ -26,6 +26,27 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   and the `.claude/skills` notes for wording that assumes a private project or a particular
   host, and make them neutral. Edit the `next` docs; released snapshots stay as published.
 
+- [ ] **[P2 helpful feature]** **Planner redesign and public sharing: the plan, in order.** Decided: no Bootstrap;
+  keep the hand-written Material-style CSS. One phase per pull request through dev, test and main.
+  1. *Foundations (done in part):* theme toggle with the system setting first, breadcrumb, and the
+     Actions menu with the parade switch as a tick or cross. Still to do: phone layout of the top bar.
+  2. *The grid:* replace the table with a flowing list where each day is its own row/card (date and day
+     badge, uniform chip, then the activity and instructor per class), laid out with CSS grid and
+     container queries so one layout serves desktop and phone. Drag the day by its handle. Fix the
+     "Day" column after a move. Inline edit (tick/cross) arrives with the same component.
+  3. *Sharing settings:* DONE. Parade start and end time in squadron settings (default 19:00 to 21:30,
+     Europe/London), a Published setting on each month (Actions menu) and a per-squadron public link
+     that expires after 1 month and can be renewed.
+  4. *Public files:* DONE. The PDF (no requirement tracker) and a PNG of each published month at the
+     same link and expiry. The PNG is drawn separately in Go (`internal/pngrender`), because the
+     image is distroless and cannot run a PDF-to-image tool; it needs to be kept in step with the PDF
+     by eye. Still to do: line the PNG layout up with the PDF more closely.
+  5. *Calendar feed (`.ics`):* DONE (one event per parade night from today, uniform and grouped
+     activities, link to the month's PDF, weekend notes as all-day entries, closures left out,
+     expired link answers 410). Still to do: a setting to include instructor names, and a feed
+     entry marked cancelled for a night that was cancelled after being published.
+  6. *QR code* for the feed at the foot of the PDF and the PNG, with its expiry date: DONE. Still to
+     do: the same on a public web page (there is none yet).
 - [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
   the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
   copies it into the month being viewed.

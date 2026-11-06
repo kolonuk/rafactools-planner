@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"rafactools-planner/internal/auth"
-	"rafactools-planner/internal/pdfgen"
 	"rafactools-planner/internal/programme"
 )
 
@@ -276,6 +275,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 
 	s.render(w, r, "programme_edit", monthNames[fp.Month]+" "+strconv.Itoa(fp.Year), map[string]any{
 		"ProgrammeID":         fp.ID,
+		"Published":           fp.Published,
 		"MonthName":           monthNames[fp.Month],
 		"Year":                fp.Year,
 		"CanEdit":             canEdit,
@@ -459,21 +459,24 @@ func stringSlicesEqual(a, b []string) bool {
 	return true
 }
 
-func (s *server) programmePDF(w http.ResponseWriter, r *http.Request) {
+func (s *server) programmePDF(w http.ResponseWriter, r *http.Request) { s.programmeFile(w, r, "pdf") }
+
+func (s *server) programmePNG(w http.ResponseWriter, r *http.Request) { s.programmeFile(w, r, "png") }
+
+// programmeFile serves a month's PDF or PNG to a signed-in member. The PDF
+// includes the requirements tracker; the PNG never does.
+func (s *server) programmeFile(w http.ResponseWriter, r *http.Request, kind string) {
 	sq, fp, ok := s.loadProgrammeAndSquadron(w, r)
 	if !ok {
 		return
 	}
-	data, err := pdfgen.Render(sq, fp)
+	data, key, err := s.monthFileData(kind, sq, fp, kind == "png")
 	if err != nil {
-		log.Printf("render pdf failed for programme %d: %v", fp.ID, err)
-		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not render the PDF — try again, and if it keeps happening ask an admin to check the server logs.")
+		log.Printf("render %s failed for programme %d: %v", kind, fp.ID, err)
+		s.renderError(w, r, http.StatusInternalServerError, "Error", "Could not make the file — try again, and if it keeps happening ask an admin to check the server logs.")
 		return
 	}
-	filename := monthNames[fp.Month] + "_" + strconv.Itoa(fp.Year) + "_Programme.pdf"
-	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", `inline; filename="`+filename+`"`)
-	w.Write(data)
+	serveMonthFile(w, r, kind, data, key, fp.Year, fp.Month, "private, no-cache")
 }
 
 // --- Closures / weekend notes / requirements -------------------------------

@@ -5,6 +5,7 @@ summary: What the exported programme looks like.
 since: 1.0
 audience: user
 changed:
+  - next: The PDF ends with a QR code for the squadron's calendar when the squadron has a public link, and there is an Export PNG as well. Files are kept until the month changes.
   - 1.9: Only ticked parade nights are printed, and a closed day is one merged block across the classification columns.
   - 1.9: Curly quotes, dashes and accented letters now print correctly; only characters outside Western European text print as a question mark.
   - 1.9: The squadron website, if set, is printed under the subtitle as a clickable link.
@@ -41,3 +42,10 @@ the editor before exporting.
 - The built-in font covers Western European characters, including curly quotes,
   dashes and accented letters copied from a word processor. Characters outside
   that (for example Greek, Cyrillic or Chinese) and emoji print as a question mark. They are saved and shown correctly on screen.
+
+## QR code for the calendar, and the PNG
+
+If the squadron has a [public link](public-sharing), the PDF ends with a QR code that adds the
+squadron's calendar to a phone, with the date the link stops. **Actions › Export PNG** gives the month as
+a picture instead of a PDF. It shows the same information except the requirements tracker, and is laid
+out as one tall image for sending in a message.

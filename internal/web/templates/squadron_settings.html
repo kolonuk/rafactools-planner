@@ -28,7 +28,34 @@
         {{end}}
       </span>
     </fieldset>
+    <fieldset class="field">
+      <legend>Parade night times (UK time)</legend>
+      <span class="checkbox-row">
+        <label>Start <input type="time" name="parade_start" value="{{.Squadron.ParadeStart}}" required></label>
+        <label>End <input type="time" name="parade_end" value="{{.Squadron.ParadeEnd}}" required></label>
+      </span>
+      <span class="muted">Used for the calendar feed below.</span>
+    </fieldset>
     <button type="submit">Save</button>
+  </form>
+</section>
+
+<section class="card" id="sharing">
+  <h2>Public link and calendar</h2>
+  <p>Publish a month from its <strong>Actions</strong> menu and anyone with this squadron's link can
+  see it, without signing in: a calendar they can subscribe to, and the month's PDF. Only dates,
+  uniform and activity titles are shared. The link works for one month and then stops, so make a
+  new one when you need it. Making a new link stops the old one straight away.</p>
+  {{if .Share.Has}}
+    {{if .Share.Expired}}<p class="error">The link expired on {{.Share.Expires}}. Make a new one.</p>
+    {{else}}<p>Calendar address (subscribe to this in your calendar app):</p>
+    <p><input type="text" readonly value="{{.Share.CalendarURL}}" class="wide" aria-label="Calendar address"></p>
+    <p class="muted">Works until {{.Share.Expires}}.</p>{{end}}
+  {{else}}<p class="muted">There is no public link yet.</p>{{end}}
+  <p>Published months: {{if .Share.PublishedMonths}}{{range $i, $m := .Share.PublishedMonths}}{{if $i}}, {{end}}{{$m}}{{end}}{{else}}none{{end}}.</p>
+  <form method="post" action="{{url "/squadron/share"}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <button type="submit">{{if .Share.Has}}Make a new link{{else}}Make a public link{{end}}</button>
   </form>
 </section>
 

@@ -5,6 +5,7 @@ summary: Name, classifications, parade nights, members and invites (owners only)
 since: 1.0
 audience: admin
 changed:
+  - next: Parade night start and end times, and the Public link and calendar section.
   - 1.13: Delete this squadron includes a human check when the operator has turned on Turnstile.
   - 1.9: Owners can mark members inactive or email them a temporary password.
   - 1.9: The security log also records sign-ins, wrong passwords, password changes and resets, signing out other sessions and settings changes; owners can download it and are emailed when the site's administrator looks at the squadron.
@@ -27,6 +28,8 @@ Only owners can open [Squadron settings](app:/squadron).
 | **Classifications** | One per line, in progression order. These are the columns of the programme grid. Blank lines are ignored. If you clear the box the existing list is kept, because a programme needs at least one column. |
 | **Squadron website** | An optional address, starting with `http://` or `https://`, shown as a link on the dashboard and printed under the squadron name on the PDF (where it can be clicked). Leave blank for none. Anything else, such as `javascript:` or an address without `http`, is refused. |
 | **Parade weekdays** | The nights your squadron parades. |
+| **Parade night times** | When parade nights start and end, in UK time (19:00 and 21:30 to begin with). Used for the calendar feed. The end must be after the start. |
+| **Public link and calendar** | Makes or renews the squadron's public link: see [public link and calendar](public-sharing). |
 
 Select **Save** to apply.
 

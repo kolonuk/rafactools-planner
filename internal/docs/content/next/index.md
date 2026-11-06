@@ -40,6 +40,7 @@ For squadron owners, who manage people and settings.
 | Topic | What it covers |
 | --- | --- |
 | [Roles and invites](roles-and-invites) | Owner, editor and viewer; inviting, changing and removing people |
+| [Public link and calendar](public-sharing) | Publishing a month, the one-month public link, the calendar feed and what is shared |
 | [Squadron settings](squadron-settings) | Name, classifications, parade nights, members, the security log, deleting a squadron |
 
 ## Running the site (dev and power users)
