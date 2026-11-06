@@ -5,7 +5,7 @@ summary: Keeping a list of instructors for the programme grid's suggestions, and
 since: 1.9
 audience: user
 changed:
-  - next: A person in your list can be edited in place (click the name, then the tick or the cross); the top bar no longer has an Instructors link: it is in the month's menu bar and on the Squadron page.
+  - 1.14: A person in your list can be edited in place (click the name, then the tick or the cross); the top bar no longer has an Instructors link: it is in the month's menu bar and on the Squadron page.
   - 1.10: People with a login are listed on the page as fixed entries.
   - 1.9: An entry can now be edited (name and rank) instead of removed and added again.
 ---

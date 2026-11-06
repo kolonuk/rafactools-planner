@@ -5,7 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
-  - next: The month page has a breadcrumb and a menu bar (Export, History, Publish or Unpublish, Instructors, More) and a Parade nights | All nights switch. The grid is a lighter timetable with one line per night (the activity over the instructor in each class's box), a colour dot for the uniform and cards on a phone. Closures, weekend notes and tracker entries can be edited in place with a tick or a cross. Months can be published to the public link.
+  - 1.14: The month page has a breadcrumb and a menu bar (Export, History, Publish or Unpublish, Instructors, More) and a Parade nights | All nights switch. The grid is a lighter timetable with one line per night (the activity over the instructor in each class's box), a colour dot for the uniform and cards on a phone. Closures, weekend notes and tracker entries can be edited in place with a tick or a cross. Months can be published to the public link.
   - 1.10: A closure locks the dates it covers in the grid.
   - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.
   - 1.9: Every save, reset and restore is kept as a version; the History page lists them (who, when, what) and any can be restored. The draft status is gone: every month is live.

@@ -5,7 +5,7 @@ summary: Claiming a squadron and confirming your email.
 since: 1.0
 audience: user
 changed:
-  - next: A button at the right of the top bar switches between light and dark.
+  - 1.14: A button at the right of the top bar switches between light and dark.
   - 1.10: The claim form has an optional Your name box.
 ---
 # Getting started
