@@ -29,10 +29,12 @@ func (s *server) renderInstructors(w http.ResponseWriter, r *http.Request, statu
 	type row struct {
 		ID      int64
 		Display string
+		Name    string
+		Rank    string
 	}
 	var rows []row
 	for _, i := range list {
-		rows = append(rows, row{i.ID, i.Display()})
+		rows = append(rows, row{i.ID, i.Display(), i.Name, i.Rank})
 	}
 	// Members with a login are fixed entries: they come from the squadron's
 	// members, so they cannot be edited or removed here.

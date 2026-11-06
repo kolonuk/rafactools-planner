@@ -55,11 +55,11 @@ async function settle(): Promise<void> {
   await showAllNights();
 }
 
-/** "Show parade evenings only" is on by default: turn it off to see every date. */
+/** "Parade nights" is on by default: choose "All nights" to see every date. */
 async function showAllNights(): Promise<void> {
-  const toggle = page.locator("#parade-only-toggle");
-  if (await toggle.isChecked()) await page.locator("label.parade-toggle-label").click();
-  await expect(toggle).not.toBeChecked();
+  const all = page.locator("#nights-all");
+  if (!(await all.isChecked())) await page.locator("label.seg-all").click();
+  await expect(all).toBeChecked();
 }
 
 /** The ids of the nights on screen: parade nights first, then others. */
@@ -163,40 +163,128 @@ test("a closure locks the dates it covers in the grid", async () => {
   await expect(page.locator(`select[name="target_day"] option[value="${day}"]`)).toHaveCount(0);
 });
 
-test("the Actions menu shows the parade-evenings switch as a tick or a cross", async () => {
+test("the menu bar has Export and More menus, and the nights switch changes what the grid shows", async () => {
   await openProgramme();
-  await page.click('summary:has-text("Actions")');
-  const mark = () => page.locator(".menu-toggle").evaluate((el) => getComputedStyle(el, "::before").content);
-  const toggle = page.locator("#parade-only-toggle");
-  const was = await toggle.isChecked();
-  const before = await mark();
-  await page.locator(".menu-toggle").click();
-  expect(await toggle.isChecked()).toBe(!was);
-  expect(await mark()).not.toBe(before);
-  await page.locator(".menu-toggle").click(); // put it back
-  await expect(page.locator("nav.breadcrumb")).toContainText("Dashboard");
+  await expect(page.locator("nav.breadcrumb")).toContainText("Planner");
+  const menu = page.locator("nav.menubar");
+  await menu.locator("summary", { hasText: "Export" }).click();
+  await expect(menu.locator('a:has-text("PDF document")')).toBeVisible();
+  await expect(menu.locator('a:has-text("PNG picture")')).toBeVisible();
+  await page.locator("h1").click(); // a click elsewhere closes the menu
+  await expect(menu.locator('a:has-text("PDF document")')).toBeHidden();
+
+  const parade = page.locator("#nights-parade");
+  const rowsShown = () => page.locator("table.grid tbody tr.non-parade-row:visible").count();
+  await page.locator("label.seg-parade").click();
+  await expect(parade).toBeChecked();
+  expect(await rowsShown()).toBe(0);
+  await page.locator("label.seg-all").click();
+  await expect(page.locator("#nights-all")).toBeChecked();
+  expect(await rowsShown()).toBeGreaterThan(0);
+  // The two halves of the switch look the same size whichever is chosen.
+  const width = () => page.locator(".mb-nights").evaluate((el) => el.getBoundingClientRect().width);
+  const w1 = await width();
+  await page.locator("label.seg-parade").click();
+  expect(Math.abs((await width()) - w1)).toBeLessThan(2);
 });
 
-test("the theme button switches between system, light and dark and remembers the choice", async () => {
+test("the theme button switches between light and dark on every click and remembers the choice", async () => {
   await openProgramme();
   const root = page.locator("html");
   const button = page.locator("#theme-toggle");
+  const shownDark = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor === "rgb(17, 19, 24)");
   await expect(button).toBeVisible();
-  await expect(root).not.toHaveAttribute("data-theme", /.+/); // starts on the system setting
-  await button.click();
-  await expect(root).toHaveAttribute("data-theme", "light");
-  await button.click();
-  await expect(root).toHaveAttribute("data-theme", "dark");
+  const first = await shownDark();
+  for (let i = 0; i < 3; i++) {
+    const before = await shownDark();
+    await button.click();
+    expect(await shownDark(), `click ${i + 1} should change the look`).toBe(!before);
+  }
+  const chosen = await shownDark();
+  expect(chosen).toBe(!first);
   await page.reload();
-  await expect(root).toHaveAttribute("data-theme", "dark");
-  await button.click(); // back to the system setting
-  await expect(root).not.toHaveAttribute("data-theme", /.+/);
+  await expect(root).toHaveAttribute("data-theme", chosen ? "dark" : "light");
+  expect(await shownDark()).toBe(chosen);
+  // It is on the right of the top bar, after the account links.
+  const box = await button.boundingBox();
+  const out = await page.locator(".topbar nav").boundingBox();
+  expect(box!.x).toBeGreaterThan(out!.x + out!.width - 1);
+});
+
+test("publishing a month shows its public link, a QR code and working public files", async () => {
+  await openProgramme();
+  const menu = page.locator("nav.menubar");
+  await expect(menu.locator(".chip")).toHaveText("Not published");
+  await menu.locator('button:has-text("Publish")').click();
+  await expect(page.locator("nav.menubar .chip")).toHaveText("Published");
+  const panel = page.locator("section.share-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.locator("img.qr")).toBeVisible();
+  const pdfUrl = await panel.locator('input[value$=".pdf"]').inputValue();
+  const pngUrl = await panel.locator('input[value$=".png"]').inputValue();
+  const ics = await panel.locator('input[value$="calendar.ics"]').inputValue();
+  const open = async (url: string) => page.request.get(url.replace(/^https?:\/\/[^/]+/, ""));
+  const pdf = await open(pdfUrl);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+  const png = await open(pngUrl);
+  expect(png.status()).toBe(200);
+  expect(png.headers()["content-type"]).toBe("image/png");
+  const cal = await open(ics);
+  expect(cal.status()).toBe(200);
+  expect(await cal.text()).toContain("BEGIN:VCALENDAR");
+  // The dashboard lists it as published, with a button to take it down.
+  await page.goto("/");
+  await expect(page.locator("table.list .chip-on").first()).toHaveText("Published");
+  await page.locator('button:has-text("Unpublish")').first().click();
+  await expect(page.locator("table.list .chip-on")).toHaveCount(0);
+  expect((await open(pdfUrl)).status()).toBe(404);
+});
+
+test("closures and weekend notes can be edited in place with a tick or a cross", async () => {
+  await openProgramme();
+  const note = page.locator('table.list tr.ie-row:has-text("Camp")');
+  await page.fill('input[name="date"]', "2030-01-05");
+  await page.fill('form[action$="/weekend-notes"] input[name="text"]', "Camp");
+  await page.click('form[action$="/weekend-notes"] button[type=submit]');
+  await expect(note).toBeVisible();
+  // Click the text: it becomes a box with a tick and a cross.
+  await note.locator("label.ie-click", { hasText: "Camp" }).click();
+  const box = note.locator('input[name="text"]');
+  await expect(box).toBeVisible();
+  await box.fill("Camp (changed)");
+  await note.locator('button[aria-label="Save the note"]').click();
+  await expect(page.locator('table.list tr.ie-row:has-text("Camp (changed)")')).toBeVisible();
+  // The cross puts it back without saving.
+  const again = page.locator('table.list tr.ie-row:has-text("Camp (changed)")');
+  await again.locator("label.ie-click", { hasText: "Camp (changed)" }).click();
+  await again.locator('input[name="text"]').fill("Never saved");
+  await again.locator('label[aria-label="Cancel"]').click();
+  await expect(page.locator('table.list tr.ie-row:has-text("Camp (changed)")')).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("Never saved");
+});
+
+test("you can get from the Squadron page back to the planner", async () => {
+  await page.goto("/squadron");
+  await expect(page.locator("nav.breadcrumb")).toContainText("Planner");
+  await expect(page.locator(".topbar nav")).not.toContainText("Instructors");
+  await page.locator("nav.breadcrumb a", { hasText: "Planner" }).click();
+  await expect(page.locator("h2", { hasText: "Training programmes" })).toBeVisible();
+  await page.goto("/squadron");
+  await page.locator('.topbar nav a:has-text("Planner")').click();
+  await expect(page.locator("h2", { hasText: "Training programmes" })).toBeVisible();
+});
+
+test("the Closure colour is not offered as a uniform", async () => {
+  await openProgramme();
+  const labels = await page.locator('select[name$="_uniform"]').first().locator("option").allTextContents();
+  expect(labels.join("|")).not.toMatch(/closure/i);
+  expect(labels.length).toBeGreaterThan(1);
 });
 
 test("every save is kept in the history, and an earlier version can be restored", async () => {
   await openProgramme();
-  await page.click('summary:has-text("Actions")');
-  await page.click('a:has-text("History")');
+  await page.click('nav.menubar a:has-text("History")');
   await expect(page.locator("h1")).toContainText(/history/i);
   const rows = page.locator("table.list tbody tr");
   const before = await rows.count();

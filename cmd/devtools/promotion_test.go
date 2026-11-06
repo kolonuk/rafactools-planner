@@ -22,13 +22,17 @@ func (f fakeEnv) CIResult(sha string) (string, error)       { return f.ci[sha], 
 func TestPromotionOrderIsDevThenTestThenMain(t *testing.T) {
 	env := fakeEnv{
 		on:      map[string]bool{"dev:mrg": true, "dev:aaa": true, "test:aaa": true, "dev:rel": true, "test:rel": true},
-		subject: map[string]string{"mrg": "Merge release 1.10 from test into dev [skip ci]", "rel": "release 1.10: freeze the docs and changelog [skip ci]"},
-		parent:  map[string]string{"rel": "aaa", "mrg": "aaa"},
+		subject: map[string]string{"rel2": "release 1.14: freeze the docs and changelog", "rel3": "release 1.15: freeze the docs and changelog", "mrg": "Merge release 1.10 from test into dev [skip ci]", "rel": "release 1.10: freeze the docs and changelog [skip ci]"},
+		parent:  map[string]string{"rel": "aaa", "mrg": "aaa", "rel2": "aaa", "rel3": "unknown"},
 		ci:      map[string]string{"aaa": "success", "bbb": "failure", "ccc": "running"},
 		// pm1 is GitHub's merge commit for a pull request promoting aaa; pm2
 		// carries a commit that is not on the previous branch; pm3 carries bbb,
 		// whose CI failed; pm4 carries a commit with no CI run.
-		carries: map[string]string{"pm1": "aaa", "pm2": "xxx", "pm3": "bbb", "pm4": "ddd"},
+		// pm5 is the merge of a release pull request: it carries "rel2", the
+		// pipeline's release commit, which is on a release branch rather than on
+		// dev, but whose parent "aaa" is on dev; pm6 carries a release commit whose
+		// parent is not.
+		carries: map[string]string{"pm1": "aaa", "pm2": "xxx", "pm3": "bbb", "pm4": "ddd", "pm5": "rel2", "pm6": "rel3"},
 	}
 	cases := []struct {
 		name, branch, sha, wantErr string
@@ -47,6 +51,8 @@ func TestPromotionOrderIsDevThenTestThenMain(t *testing.T) {
 		{"a merge commit carrying something not on the previous branch is refused", "main", "pm2", "not on test yet"},
 		{"a merge commit carrying a commit with failing CI is refused", "test", "pm3", "CI did not pass"},
 		{"a merge commit carrying a commit with no CI run is refused", "test", "pm4", "no CI run"},
+		{"the merge of a release PR is judged by the release commit's parent", "test", "pm5", ""},
+		{"a release commit whose parent is not on the previous branch is refused", "test", "pm6", "not on dev yet"},
 		{"other branches are not gated", "feature", "zzz", ""},
 	}
 	env.on["dev:bbb"], env.on["dev:ccc"], env.on["dev:ddd"] = true, true, true

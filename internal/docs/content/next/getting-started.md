@@ -5,7 +5,7 @@ summary: Claiming a squadron and confirming your email.
 since: 1.0
 audience: user
 changed:
-  - next: A theme button in the top bar switches between the system setting, light and dark.
+  - 1.14: A button at the right of the top bar switches between light and dark.
   - 1.10: The claim form has an optional Your name box.
 ---
 # Getting started
@@ -48,8 +48,8 @@ makes the current month for you, using the squadron's parade weekdays and classi
 ## Light and dark appearance
 
 The planner starts in whichever appearance your device or browser prefers. The round
-button in the top bar changes it: each press moves through **system** (follow your device),
-**light** and **dark**. The choice is remembered in that browser only, and it needs
+button at the right of the top bar changes it: each press switches to the other
+appearance (light or dark). The choice is remembered in that browser only, and it needs
 scripts to be allowed; without them the page simply follows your device.
 
 ## Next steps

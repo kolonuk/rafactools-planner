@@ -1,6 +1,12 @@
 {{define "content"}}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Planner</a></li>
+    <li><a href="{{url "/programmes/" .ProgrammeID}}">{{.MonthName}} {{.Year}}</a></li>
+    <li aria-current="page">History</li>
+  </ol>
+</nav>
 <h1>{{.MonthName}} {{.Year}}: history</h1>
-<p><a href="{{url "/programmes/" .ProgrammeID}}">&larr; Back to the programme</a></p>
 <p class="muted">A copy of the programme is kept every time it is saved, reset or restored: which version, when (UTC), who and what they did.
   {{if .CanEdit}}Choose <strong>Restore</strong> to put the programme back to that version; what is there now is kept first, so you can undo it.{{end}}
   The newest 200 versions are kept.</p>

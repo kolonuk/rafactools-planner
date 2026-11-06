@@ -17,6 +17,21 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
+## 1.14
+
+- **feat**: a public link and calendar. An owner makes a one-month public link under Squadron (or it is made when a month is first published); an editor publishes a month from the month's menu bar or from the list of months. At the link, with no sign-in: a calendar feed (one entry per parade night from today, with the uniform and the activities grouped by class, a link to the month's PDF, and weekend notes as all-day entries), and the PDF and a PNG of each published month without the requirement tracker. A published month shows its addresses and a QR code on the page.
+- **feat**: parade start and end times in Squadron (default 19:00 to 21:30 UK time), used for the calendar feed.
+- **feat**: the PDF, and a new PNG export, end with a QR code for the calendar and the date the link stops. Both files are kept until the month changes and are served with an ETag.
+- **feat**: a light/dark button at the right of the top bar. Each press switches to the other appearance, it is remembered in that browser, and the first appearance follows the device.
+- **feat**: the month page has a breadcrumb and a menu bar (Export, History, Publish/Unpublish, Instructors, More) and a "Parade nights | All nights" switch in place of the list of links and the switch above the grid. Every page has a way back to the planner: a Planner link in the top bar and breadcrumbs.
+- **feat**: the programme grid is a lighter timetable: one line per night (two for a night with two parts) with the activity and instructor stacked in each class's box, a colour dot for the uniform, quiet boxes that show their outline when you point at them, and cards instead of sideways scrolling on a phone.
+- **feat**: closures, weekend notes, the requirement tracker's categories and entries, and the instructor list can be edited in place: click the text, change it, and press the tick to save or the cross to cancel (Enter and Escape also work).
+- **fix**: a crowded month (two parts a night, long titles, several notes) no longer runs off the bottom of the PDF page: it is drawn smaller, up to 56% of normal size, so the grid, key, notes and footer all fit on the one page. A month that already fits is unchanged.
+- **fix**: the grey "Closure" colour is no longer offered as a night's uniform.
+- **chore**: the top bar's Instructors shortcut is gone (it is in the month's menu bar and on the Squadron page) and "Squadron settings" is just "Squadron".
+- **chore**: the promotion check also accepts the merge of a release pull request (whose release commit sits on a release branch, with its parent on `dev`).
+- **chore**: README rewritten for a general reader, technical notes moved to CONTRIBUTING.md; a `promote` skill documents how a change reaches main; the promotion check accepts GitHub's merge commits.
+
 ## 1.13
 
 - **chore**: the project is released under the GNU General Public License version 2 (`LICENSE`), with a copyright notice in the README, the help and the page footer.
