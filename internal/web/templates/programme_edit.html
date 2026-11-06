@@ -58,15 +58,15 @@
       {{$day := .}}
       {{if .Closed}}
         <tr class="closed-row" data-day="{{.ID}}" data-date="{{.Date}}" data-label="{{.FullLabel}}">
-          <td>{{.DateLabel}}</td>
-          <td>{{.DayLabel}}</td>
+          <td class="date-cell" data-label="Date">{{.DateLabel}}</td>
+          <td data-label="Day">{{.DayLabel}}</td>
           <td colspan="{{$.ClosedColspan}}"><strong>Closed</strong>{{if .ClosedMessage}} — {{.ClosedMessage}}{{end}} <span class="muted">(locked by a closure; delete the closure below to edit this date)</span></td>
         </tr>
       {{else if .SubRows}}
         {{range $idx, $sub := .SubRows}}
         <tr{{if eq $idx 0}} class="day-start"{{end}} data-day="{{$day.ID}}" data-date="{{$day.Date}}" data-label="{{$day.FullLabel}}">
           {{if eq $idx 0}}
-            <td>{{$day.DateLabel}}<input type="hidden" name="day_{{$day.ID}}_present" value="1">
+            <td class="date-cell" data-label="Date"><span class="date-text">{{$day.DateLabel}}</span>{{if $day.UniformHex}}<svg class="swatch" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.5" fill="$day.UniformHex" stroke="currentColor" stroke-opacity="0.35"/></svg>{{end}}<input type="hidden" name="day_{{$day.ID}}_present" value="1">
               <button type="button" class="drag-handle" draggable="true" data-day="{{$day.ID}}" aria-label="Drag to move the activities from {{$day.FullLabel}} to another date">&#8942;&#8942;</button>
               <details class="move">
                 <summary>Move</summary>
@@ -78,25 +78,25 @@
                 <button type="submit" form="move-{{$day.ID}}">Move activities</button>
               </details>
             </td>
-            <td>{{$day.DayLabel}}</td>
-            <td><input type="checkbox" name="day_{{$day.ID}}_parade" value="1" checked></td>
-            <td>
+            <td data-label="Day">{{$day.DayLabel}}</td>
+            <td data-label="Parade"><input type="checkbox" name="day_{{$day.ID}}_parade" value="1" checked></td>
+            <td data-label="Uniform">
               <select name="day_{{$day.ID}}_uniform">
                 <option value="">—</option>
-                {{range $.UniformOptions}}<option value="{{.Key}}" {{if eq .Key $day.UniformKey}}selected{{end}}>{{.Label}}</option>{{end}}
+                {{range $.UniformOptions}}<option value="{{.Key}}" data-hex="{{.Hex}}" {{if eq .Key $day.UniformKey}}selected{{end}}>{{.Label}}</option>{{end}}
               </select>
             </td>
           {{else}}
             <td></td><td></td><td></td><td></td>
           {{end}}
-          <td class="row-label">{{$sub.RowType}}</td>
+          <td class="row-label" data-label="Row">{{$sub.RowType}}</td>
           {{if eq $sub.RowType "Instructor"}}
-            {{range $i, $t := $sub.Texts}}<td><input type="text" list="instructor-options" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}"></td>{{end}}
+            {{range $i, $t := $sub.Texts}}<td class="class-cell" data-label="{{index $.Classifications $i}}"><input type="text" list="instructor-options" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}" aria-label="{{$sub.RowType}}, {{index $.Classifications $i}}, {{$day.FullLabel}}"></td>{{end}}
           {{else}}
-            {{range $i, $t := $sub.Texts}}<td><input type="text" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}"></td>{{end}}
+            {{range $i, $t := $sub.Texts}}<td class="class-cell" data-label="{{index $.Classifications $i}}"><input type="text" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}" aria-label="{{$sub.RowType}}, {{index $.Classifications $i}}, {{$day.FullLabel}}"></td>{{end}}
           {{end}}
           {{if eq $idx 0}}
-            <td{{if gt (len $day.SubRows) 1}} rowspan="{{len $day.SubRows}}"{{end}}><textarea name="day_{{$day.ID}}_notes" rows="2">{{$day.Notes}}</textarea></td>
+            <td data-label="Notes"{{if gt (len $day.SubRows) 1}} rowspan="{{len $day.SubRows}}"{{end}}><textarea name="day_{{$day.ID}}_notes" rows="2">{{$day.Notes}}</textarea></td>
           {{end}}
         </tr>
         {{end}}
@@ -118,13 +118,13 @@
         {{end}}
       {{else}}
         <tr class="non-parade-row" data-day="{{.ID}}" data-date="{{.Date}}" data-label="{{.FullLabel}}">
-          <td>{{.DateLabel}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
-          <td>{{.DayLabel}}</td>
-          <td><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}}></td>
-          <td>
+          <td class="date-cell" data-label="Date"><span class="date-text">{{.DateLabel}}</span>{{if .UniformHex}}<svg class="swatch" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.5" fill=".UniformHex" stroke="currentColor" stroke-opacity="0.35"/></svg>{{end}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
+          <td data-label="Day">{{.DayLabel}}</td>
+          <td data-label="Parade"><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}}></td>
+          <td data-label="Uniform">
             <select name="day_{{.ID}}_uniform">
               <option value="">—</option>
-              {{range $.UniformOptions}}<option value="{{.Key}}" {{if eq .Key $day.UniformKey}}selected{{end}}>{{.Label}}</option>{{end}}
+              {{range $.UniformOptions}}<option value="{{.Key}}" data-hex="{{.Hex}}" {{if eq .Key $day.UniformKey}}selected{{end}}>{{.Label}}</option>{{end}}
             </select>
           </td>
           <td class="row-label"><span class="pending-none muted">—</span><span class="pending-label" hidden>Activity</span></td>
@@ -133,7 +133,7 @@
           {{else}}
             {{range $.Classifications}}<td></td>{{end}}
           {{end}}
-          <td class="pending-notes"><textarea name="day_{{.ID}}_notes" rows="2">{{.Notes}}</textarea></td>
+          <td class="pending-notes" data-label="Notes"><textarea name="day_{{.ID}}_notes" rows="2">{{.Notes}}</textarea></td>
         </tr>
         {{if .PendingInstructor}}
         <tr class="pending-row" data-day="{{.ID}}" data-label="{{.FullLabel}}" hidden>
@@ -166,6 +166,7 @@
 <p id="grid-status" class="muted" role="status" aria-live="polite"></p>
 <script type="module" src="{{url "/static/js/gen/programme-grid.js"}}"></script>
 <script type="module" src="{{url "/static/js/gen/programme-parade.js"}}"></script>
+<script type="module" src="{{url "/static/js/gen/programme-uniform.js"}}"></script>
 {{end}}
 
 <section class="card">

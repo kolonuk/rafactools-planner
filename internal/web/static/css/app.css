@@ -201,23 +201,67 @@ button:active { filter: brightness(0.95); }
 }
 .link-button:hover { box-shadow: none; filter: none; opacity: 0.8; }
 
-/* The programme grid is wide (date/day/half/label + N classification
-   columns + notes + weekends) — on a narrow phone it needs to scroll
-   horizontally, not squeeze every column illegibly thin. */
+/* The programme grid: a flowing list of nights rather than a boxed grid. Each
+   night is a band with a soft divider; the boxes stay quiet until you hover or
+   focus them. On a phone every row becomes its own card (see the media query
+   below), using each cell's data-label. The markup is still a real table, so
+   screen readers and the forms keep working. */
 .grid-form { overflow-x: auto; }
 table.grid { min-width: 760px; }
 
-table.list, table.grid { border-collapse: collapse; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 8px; overflow: hidden; }
-table.list th, table.list td, table.grid th, table.grid td {
+table.list { border-collapse: collapse; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 8px; overflow: hidden; }
+table.list th, table.list td {
   border: 1px solid var(--md-outline-variant);
   padding: 7px 9px;
   font-size: 0.85em;
   text-align: left;
   vertical-align: top;
 }
-table.list th, table.grid th { background: var(--md-surface-container-high); font-weight: 500; }
-table.grid input[type=text], table.grid select { max-width: none; font-size: 0.85em; padding: 4px 6px; }
-table.grid textarea { max-width: none; font-size: 0.85em; width: 160px; }
+table.list th { background: var(--md-surface-container-high); font-weight: 500; }
+
+table.grid { border-collapse: separate; border-spacing: 0; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 12px; overflow: hidden; box-shadow: var(--md-elevation-1); }
+table.grid th, table.grid td { padding: 6px 10px; font-size: 0.85em; text-align: left; vertical-align: top; border: 0; }
+table.grid thead th { background: var(--md-surface-container-high); font-weight: 600; color: var(--md-on-surface-variant); position: sticky; top: 0; }
+table.grid tbody td { border-top: 1px solid transparent; }
+table.grid tbody tr.day-start td, table.grid tbody tr.non-parade-row td, table.grid tbody tr.closed-row td { border-top-color: var(--md-outline-variant); }
+table.grid tbody tr:first-child td { border-top-color: transparent; }
+table.grid tbody tr:hover td { background: var(--md-surface-container); }
+table.grid .date-cell { white-space: nowrap; font-weight: 600; font-size: 1em; }
+table.grid .date-cell .swatch { margin-left: 6px; vertical-align: -1px; }
+table.grid tr.closed-row td { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+table.grid tr.non-parade-row td { color: var(--md-on-surface-variant); }
+table.grid input[type=text], table.grid select, table.grid textarea { max-width: none; font-size: 0.85em; padding: 4px 6px; background: transparent; border: 1px solid transparent; border-radius: 6px; }
+table.grid input[type=text] { width: 100%; }
+table.grid select { width: auto; }
+table.grid textarea { width: 100%; min-width: 140px; resize: vertical; }
+/* The border and a fill appear when you point at a box or move into it. */
+table.grid input[type=text]:hover, table.grid select:hover, table.grid textarea:hover { border-color: var(--md-outline-variant); }
+table.grid input[type=text]:focus, table.grid select:focus, table.grid textarea:focus { background: var(--md-surface); border-color: var(--md-primary); outline: none; box-shadow: 0 0 0 2px var(--md-primary-container); }
+/* Every box keeps a faint underline so you can see where to type. */
+table.grid input[type=text] { border-bottom-color: var(--md-outline-variant); }
+
+/* On a phone: no sideways scrolling; each row is a small card. */
+@media (max-width: 700px) {
+  table.grid { min-width: 0; box-shadow: none; background: transparent; border-radius: 0; }
+  table.grid thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  table.grid, table.grid tbody, table.grid td { display: block; }
+  table.grid tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--md-surface); border-radius: 12px; box-shadow: var(--md-elevation-1); margin: 0 0 10px; padding: 6px 4px; }
+  table.grid tr > td { grid-column: 1 / -1; }
+  table.grid tr > td.class-cell { grid-column: auto; }
+  /* The second line of a night (and its "add a half" row) joins the card above. */
+  table.grid tr:not(.day-start):not(.non-parade-row):not(.closed-row) { margin-top: -12px; border-radius: 0 0 12px 12px; box-shadow: none; border-top: 1px dashed var(--md-outline-variant); }
+  table.grid td { padding: 4px 10px; }
+  table.grid td[data-label]::before { content: attr(data-label); display: block; font-size: 0.75em; color: var(--md-on-surface-variant); margin-bottom: 2px; }
+  table.grid td.date-cell::before, table.grid td.row-label::before { display: none; }
+  table.grid td.row-label { padding-bottom: 0; }
+  table.grid tr[hidden] { display: none; }
+  table.grid td:empty { display: none; }
+  table.grid td[colspan] { padding-top: 6px; }
+  table.grid td.date-cell { font-size: 1.15em; }
+  table.grid input[type=text], table.grid select, table.grid textarea { border-color: var(--md-outline-variant); }
+  table.grid tbody tr:hover td { background: transparent; }
+  table.grid td[rowspan] { display: block; }
+}
 
 .row-label { font-weight: 600; white-space: nowrap; color: var(--md-on-surface-variant); }
 .checkbox-row { display: flex; gap: 14px; flex-wrap: wrap; }
