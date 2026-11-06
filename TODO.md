@@ -44,6 +44,13 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   "Edited instructor on 10 Nov (First Class)". Work out the changes by comparing the saved
   version with the one before it, and use the same wording on the compare view when that exists
   (see "Compare two programme versions").
+- [ ] **[P3 usability]** **Menu and breadcrumbs on the monthly planner page.** Replace the row of action links at the
+  top with a proper menu (for example a dropdown or toolbar menu with the actions grouped:
+  Copy, Export PDF, History, and so on). Include the slider (the parade-nights-only toggle) as a
+  menu option shown with a tick or a cross. Add a breadcrumb trail above it (for example
+  Squadron > Programmes > November 2026) so it is clear where you are and easy to go back.
+  The menu must work with the keyboard and on a phone, and still reach every action when
+  scripts are off if that is reasonable. Do this together with "Modernise the planner grid".
 - [ ] **[P3 usability]** **PDF: the colour key overlaps the planner.** Fix the layout in
   `internal/pdfgen` so the key never sits on top of the grid; compare against `examples/pdfs/`
   (see the `pdf-fidelity` skill).
