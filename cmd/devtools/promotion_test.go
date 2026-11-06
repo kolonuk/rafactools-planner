@@ -10,11 +10,13 @@ type fakeEnv struct {
 	subject map[string]string
 	parent  map[string]string
 	ci      map[string]string
+	carries map[string]string // promotion merge commit -> the commit it carries across
 }
 
 func (f fakeEnv) OnBranch(sha, branch string) (bool, error) { return f.on[branch+":"+sha], nil }
 func (f fakeEnv) Subject(sha string) (string, error)        { return f.subject[sha], nil }
 func (f fakeEnv) Parent(sha string) (string, error)         { return f.parent[sha], nil }
+func (f fakeEnv) PromotedFrom(sha string) (string, error)   { return f.carries[sha], nil }
 func (f fakeEnv) CIResult(sha string) (string, error)       { return f.ci[sha], nil }
 
 func TestPromotionOrderIsDevThenTestThenMain(t *testing.T) {
@@ -23,6 +25,10 @@ func TestPromotionOrderIsDevThenTestThenMain(t *testing.T) {
 		subject: map[string]string{"mrg": "Merge release 1.10 from test into dev [skip ci]", "rel": "release 1.10: freeze the docs and changelog [skip ci]"},
 		parent:  map[string]string{"rel": "aaa", "mrg": "aaa"},
 		ci:      map[string]string{"aaa": "success", "bbb": "failure", "ccc": "running"},
+		// pm1 is GitHub's merge commit for a pull request promoting aaa; pm2
+		// carries a commit that is not on the previous branch; pm3 carries bbb,
+		// whose CI failed; pm4 carries a commit with no CI run.
+		carries: map[string]string{"pm1": "aaa", "pm2": "xxx", "pm3": "bbb", "pm4": "ddd"},
 	}
 	cases := []struct {
 		name, branch, sha, wantErr string
@@ -37,9 +43,15 @@ func TestPromotionOrderIsDevThenTestThenMain(t *testing.T) {
 		{"failing CI blocks promotion", "test", "bbb", "CI did not pass"},
 		{"CI still running blocks promotion", "test", "ccc", "still running"},
 		{"no CI run blocks promotion", "test", "ddd", "no CI run"},
+		{"a promotion merge commit is judged by the commit it carries", "main", "pm1", ""},
+		{"a merge commit carrying something not on the previous branch is refused", "main", "pm2", "not on test yet"},
+		{"a merge commit carrying a commit with failing CI is refused", "test", "pm3", "CI did not pass"},
+		{"a merge commit carrying a commit with no CI run is refused", "test", "pm4", "no CI run"},
 		{"other branches are not gated", "feature", "zzz", ""},
 	}
 	env.on["dev:bbb"], env.on["dev:ccc"], env.on["dev:ddd"] = true, true, true
+	env.on["test:aaa"] = true
+	env.on["dev:aaa"] = true
 	for _, tc := range cases {
 		err := checkPromotion(env, tc.branch, tc.sha)
 		switch {

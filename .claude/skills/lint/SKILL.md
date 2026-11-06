@@ -5,6 +5,8 @@ description: Run this repo's full local lint/build/test suite (actionlint for Gi
 
 # Local preflight checks
 
+After these pass, see the `promote` skill for how a change gets to `main` (dev, then test, then main, by PR).
+
 Run these, in order, and fix any failure before committing or pushing.
 
 ## 1. Workflow file lint (actionlint) — whenever `.github/workflows/*.yml` changed

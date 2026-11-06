@@ -51,18 +51,20 @@ Browser tests are in `e2e/`.
 
 ## Branches and releases
 
-There are three branches, `dev`, `test` and `main`, promoted in that order by
-pull request. Every push or pull request runs `.github/workflows/ci.yml`: build,
-vet, tests, formatting, `govulncheck`, a Trivy scan and CodeQL.
+There are three branches, `dev`, `test` and `main`. A change goes to `dev` first, then reaches
+`test` and then `main` by pull request, in that order. Do not push straight to `test` or `main`,
+and do not force-push. The step-by-step process, and what to do when the promotion check fails, is
+in `.claude/skills/promote/SKILL.md`.
 
-After the checks pass, a push also runs a promotion-order gate and builds the
-container image. The image is smoke-tested against `/health`, scanned with
-Trivy and pushed to GHCR with an immutable `<branch>-<short-sha>` tag (there is
-no `latest` tag).
+Every push or pull request runs `.github/workflows/ci.yml`: build, vet, tests, formatting,
+`govulncheck`, a Trivy scan and CodeQL. After the checks pass, a push also runs a promotion-order
+gate (a commit must already be on the previous branch and have passed CI there) and builds the
+container image. The image is smoke-tested against `/health`, scanned with Trivy and pushed to GHCR
+with an immutable `<branch>-<short-sha>` tag (there is no `latest` tag).
 
-This repository stops at the image. Running it (the host, TLS, secrets such as
-`SESSION_KEY`, redeploying) is up to whoever hosts it. The "Run your own copy"
-help page lists what the image needs.
+This repository stops at the image. Running it (the host, TLS, secrets such as `SESSION_KEY`,
+redeploying) is up to whoever hosts it. The "Run your own copy" help page lists what the image
+needs.
 
 ## Repository layout
 
@@ -81,7 +83,7 @@ internal/
   web/               routes, handlers, templates, static files
 examples/pdfs/       example programmes (made-up data)
 e2e/                 browser tests
-.claude/skills/      working notes for lint, docs and PDF checks
+.claude/skills/      working notes: lint, docs, PDF checks, and how to promote a change
 ```
 
 ## Data you must never commit
