@@ -1,7 +1,8 @@
 # TODO
 
-Sections are in rough priority order. Anything done is deleted, not ticked —
-`CHANGELOG.md` and git history are the record.
+What is planned for the RAFACTools Planner. Ideas and pull requests are welcome:
+open an issue on GitHub first if you want to talk an item through. Anything done
+is deleted, not ticked; `CHANGELOG.md` and git history are the record.
 
 ## Priorities
 
@@ -15,22 +16,72 @@ Every item carries a priority tag. Work top-down through the tags, not the secti
 Find them with `grep -n "P1 security" TODO.md` (and so on). Items marked "needs a
 human" or "later" are blocked on someone else or on a decision, whatever their tag.
 
-## Left over from the move-activities work
+## Next up (to be triaged)
 
-Built, tested and documented: moving a night's activities to another date
-(store, endpoint, no-script "Move" control, TypeScript drag-and-drop; checked in
-Chromium), plus the "Add a second half" fix. Still to do:
+- [ ] **[P1 security]** **Turn on CodeQL result uploads.** The repository
+  is public now, so GitHub's code scanning is available. Let the CodeQL job upload its results
+  (see the comment in `.github/workflows/ci.yml`, which still describes the old private-repo
+  limit), and update that comment.
+- [ ] **[P4 nicety]** **Public-repo tidy-up.** Re-read the in-app help pages (`run-your-own`, `about-these-docs`)
+  and the `.claude/skills` notes for wording that assumes a private project or a particular
+  host, and make them neutral. Edit the `next` docs; released snapshots stay as published.
 
-
-## Before anyone relies on it
-
-- [ ] **[P1 security]** **Branch protection.** Require the `CI` jobs to pass before merging to
-  `test` and `main`. Blocked: the API refuses it (403) because it needs GitHub
-  Pro or a public repo, the same limit that stops CodeQL results uploading.
-  The repo must stay private (see the PDF anonymisation history), so this needs
-  a plan upgrade. Until then the pipeline's promotion gate (deploy.yml, `devtools promotion-gate`)
-  stops a push to `test` or `main` that skipped the previous stage from being built or published,
-  but cannot stop the push itself.
+- [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
+  the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
+  copies it into the month being viewed.
+  - Copy only the uniform, the activities and the instructors. Leave everything else (notes,
+    weekend events, closures, the requirement tracker) alone.
+  - Line the months up by parade night: the first parade night of the source goes on the first
+    parade night of this month, the second on the second, and so on, so every date and weekday
+    comes out right for the current month.
+  - If the source has more parade nights than this month, drop the extra ones from the end.
+  - Ask for confirmation first if this month already has entries, and say what will be replaced.
+  - Test: a 5-night source into a 4-night month, a 4-night source into a 5-night month, and
+    different weekday patterns.
+- [ ] **[P3 usability]** **More detail in the programme history.** The history page should say what
+  actually changed, not just that a version was saved. For example: "Moved 3 Nov activities to
+  10 Nov", "Added closure 22-26 Dec", "Changed uniform for 17 Nov from Blue to Working dress",
+  "Edited instructor on 10 Nov (First Class)". Work out the changes by comparing the saved
+  version with the one before it, and use the same wording on the compare view when that exists
+  (see "Compare two programme versions").
+- [ ] **[P3 usability]** **Menu and breadcrumbs on the monthly planner page.** Replace the row of action links at the
+  top with a proper menu (for example a dropdown or toolbar menu with the actions grouped:
+  Copy, Export PDF, History, and so on). Include the slider (the parade-nights-only toggle) as a
+  menu option shown with a tick or a cross. Add a breadcrumb trail above it (for example
+  Squadron > Programmes > November 2026) so it is clear where you are and easy to go back.
+  The menu must work with the keyboard and on a phone, and still reach every action when
+  scripts are off if that is reasonable. Do this together with "Modernise the planner grid".
+- [ ] **[P3 usability]** **PDF: the colour key overlaps the planner.** Fix the layout in
+  `internal/pdfgen` so the key never sits on top of the grid; compare against `examples/pdfs/`
+  (see the `pdf-fidelity` skill).
+- [ ] **[P3 usability]** **Bug: moving a day in the grid does not update the "Day" column.** After a
+  drag or the Move control, the weekday label keeps the old value until reload.
+- [ ] **[P3 usability]** **Modernise the planner grid.** It feels dated. Idea: each day is its own
+  "line" (row/card) and its contents are what is dragged to rearrange. Look at a more modern
+  table pattern generally (sortable, keyboard-accessible, works on a phone, which also helps
+  the "Phone layout" item). Decide the design before building.
+- [ ] **[P3 usability]** **Lift the JavaScript restriction and review reactive features.** The
+  README still says "no JS framework" and "pages should still work without script where
+  reasonable". Remove that restriction (keep the CSP `script-src 'self'`, no inline script, no
+  third-party or `eval`), update the README, `docs` skill and lint skill wording, then review
+  which screens would be better with TypeScript (live validation, inline edit, drag and drop,
+  partial refresh) and add the worthwhile ones as items.
+- [ ] **[P3 usability]** **Light/dark mode toggle.** Add a toggle (stored per user in the browser,
+  e.g. `localStorage` or a cookie), but the first appearance must stay the system/browser
+  preference. Offer system / light / dark, with "system" the default. The theme is
+  `internal/web/static/css/app.css`; a script is allowed for this.
+- [ ] **[P2 helpful feature]** **Activity list (default plus per-squadron).**
+  - Ship a JSON file of default activities, embedded in the binary. Starting set:
+    First Class - Flying Operation; First Class - Map Reading; First Class - Initial Expedition
+    Training; First Class - Radios; Leading - Pilot Navigation; Leading - Principles of Flight;
+    First Class - History of the RAF; First Class - History of ATC; Annual Briefings;
+    Climatic Injuries; DofE Prep; Laser Quest; Bowling; Section Visit; Guest Speaker - RAF Police.
+  - Custom activities a squadron creates are stored in the database, unique to that squadron.
+  - Clean-up: if a squadron's custom activity matches a default (compare case-insensitively,
+    ignoring surrounding whitespace), delete the database entry, for all squadrons. Run it
+    at start-up or as a migration, and log what was removed.
+  - Pick from the list when filling the grid. This replaces the earlier "Activities and training
+    classes library" idea under Feature ideas; merge the two.
 
 ## The app and its image
 

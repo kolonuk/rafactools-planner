@@ -1,7 +1,7 @@
 ---
 title: Run your own copy
 order: 98
-summary: Why and how to run the planner yourself, what you need, which GitHub settings it uses, and the free public site as an alternative.
+summary: Why and how to run the planner yourself, what you need, and which settings it uses.
 since: 1.9
 audience: dev
 changed:
@@ -10,27 +10,20 @@ changed:
 # Run your own copy
 
 Your programmes hold your squadron's plans and, in the requirements tracker, cadets'
-names. You can decide who can see that data in one of two ways.
+names. Running the planner yourself means you decide who can see that data.
 
-## Which should I choose?
+A public copy of the planner is also available at <https://rafac.tools>. If you would
+rather not run anything, you can use that instead; this page is for running your own.
 
-**Run it yourself (recommended if you can).** For security and trust this is the
-better choice. When the planner runs on a computer you control:
+## Why run your own copy
+
+When the planner runs on a computer you control:
 
 - your data stays on that computer, in one database file that you back up;
 - nobody else can read it: there is no site-wide administrator, unless **you** set
   one up (see [below](#the-master-admin-on-your-own-copy));
 - you decide the address, the email provider, the backups and how long data is
   kept, and you can remove everything when you wish.
-
-**Use the public site (free of charge).** The maintainer also runs a public copy that
-squadrons can use at no cost, so you do not have to run anything. Ask the maintainer
-for its address and its current terms; availability is not guaranteed. The trade-off
-is trust: your data is stored on the maintainer's server, the maintainer can read the
-database, and the site has a **master admin** who can look at any squadron
-(read-only) to investigate problems. That is explained in
-[security and privacy](security-and-privacy). If that is not acceptable for your
-squadron's data, run your own copy, or keep personal details out of the planner.
 
 ## What you need
 
