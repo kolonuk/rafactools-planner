@@ -65,7 +65,30 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 		inviteRows = append(inviteRows, inviteRow{inv.Token, inv.Email, inv.Role, inv.ExpiresAt.Format("2006-01-02")})
 	}
 
+	share, err := s.Store.GetShare(u.SquadronID)
+	if err != nil {
+		log.Printf("get share link for squadron %d: %v", u.SquadronID, err)
+	}
+	shareData := map[string]any{"Has": share.Token != ""}
+	if share.Token != "" {
+		shareData["CalendarURL"] = s.shareURL(share.Token, "calendar.ics")
+		shareData["Expires"] = share.ExpiresAt.In(programme.Local).Format("2 January 2006")
+		shareData["Expired"] = share.Expired(programme.Now())
+	}
+	published, err := s.Store.ListProgrammes(u.SquadronID)
+	if err != nil {
+		log.Printf("list programmes for squadron %d: %v", u.SquadronID, err)
+	}
+	var publishedMonths []string
+	for _, p := range published {
+		if p.Published {
+			publishedMonths = append(publishedMonths, monthNames[p.Month]+" "+strconv.Itoa(p.Year))
+		}
+	}
+	shareData["PublishedMonths"] = publishedMonths
+
 	s.render(w, r, "squadron_settings", "Squadron settings", map[string]any{
+		"Share":               shareData,
 		"Squadron":            sq,
 		"Members":             members,
 		"Invites":             inviteRows,
@@ -124,6 +147,13 @@ func (s *server) squadronSave(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sq.ParadeWeekdays = weekdays
+	// A blank time keeps the current one; a filled-in time must be HH:MM (checked on save).
+	if v := strings.TrimSpace(r.FormValue("parade_start")); v != "" {
+		sq.ParadeStart = v
+	}
+	if v := strings.TrimSpace(r.FormValue("parade_end")); v != "" {
+		sq.ParadeEnd = v
+	}
 
 	if err := s.Store.UpdateSquadronSettings(sq); err != nil {
 		if errors.Is(err, programme.ErrInvalidInput) {

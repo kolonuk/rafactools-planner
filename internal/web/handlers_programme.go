@@ -276,6 +276,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 
 	s.render(w, r, "programme_edit", monthNames[fp.Month]+" "+strconv.Itoa(fp.Year), map[string]any{
 		"ProgrammeID":         fp.ID,
+		"Published":           fp.Published,
 		"MonthName":           monthNames[fp.Month],
 		"Year":                fp.Year,
 		"CanEdit":             canEdit,

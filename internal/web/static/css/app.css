@@ -467,3 +467,7 @@ table.list th, table.list td { overflow-wrap: anywhere; }
 /* The tick or cross follows the "parade evenings only" switch on the grid. */
 .menu-toggle::before { content: "\2717\00a0\00a0"; color: var(--md-outline); }
 body:has(#parade-only-toggle:checked) .menu-toggle::before { content: "\2713\00a0\00a0"; color: var(--md-primary); font-weight: 700; }
+.menu-form { margin: 0; }
+.menu-button { display: block; width: 100%; padding: 10px 16px; margin: 0; background: transparent; color: var(--md-on-surface); border: 0; border-radius: 0; text-align: left; font: inherit; cursor: pointer; box-shadow: none; }
+.menu-button:hover { background: var(--md-surface-container-high); box-shadow: none; filter: none; }
+input.wide { width: 100%; max-width: 40rem; }

@@ -15,6 +15,13 @@
       {{if .CanEdit}}
       <li><a href="{{url "/instructors"}}">Manage instructors</a></li>
       <li><label for="parade-only-toggle" class="menu-toggle">Parade evenings only</label></li>
+      <li>
+        <form method="post" action="{{url "/programmes/" .ProgrammeID "/publish"}}" class="menu-form">
+          <input type="hidden" name="csrf" value="{{.CSRF}}">
+          <input type="hidden" name="published" value="{{if .Published}}0{{else}}1{{end}}">
+          <button type="submit" class="menu-button">{{if .Published}}Published: unpublish{{else}}Publish this month{{end}}</button>
+        </form>
+      </li>
       <li class="menu-danger"><a href="{{url "/programmes/" .ProgrammeID "/reset"}}">Reset this month</a></li>
       {{end}}
     </ul>

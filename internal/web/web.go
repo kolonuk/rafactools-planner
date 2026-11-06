@@ -126,6 +126,7 @@ func NewRouter(d *Deps) http.Handler {
 	// Reports carry an upload and send an email, and can be filed without
 	// signing in, so they get a tighter limit of their own.
 	reportLimiter := newIPLimiter(5, 10*time.Minute)
+	shareLimiter := newIPLimiter(120, 5*time.Minute)
 
 	mux := http.NewServeMux()
 
@@ -166,6 +167,11 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /docs/compare", s.withUserOptional(s.docsCompare))
 	mux.HandleFunc("GET /docs/{version}/{$}", s.withUserOptional(s.docsPage))
 	mux.HandleFunc("GET /docs/{version}/{slug}", s.withUserOptional(s.docsPage))
+
+	// Public sharing: no sign-in, a secret link instead (see share.go).
+	mux.HandleFunc("GET /share/{token}/{file}", shareLimiter.rateLimited(s.shareFile))
+	mux.HandleFunc("POST /squadron/share", s.requireOwner(s.shareRenew))
+	mux.HandleFunc("POST /programmes/{id}/publish", s.requireEditor(s.programmePublish))
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))

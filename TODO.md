@@ -34,19 +34,18 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
      badge, uniform chip, then the activity and instructor per class), laid out with CSS grid and
      container queries so one layout serves desktop and phone. Drag the day by its handle. Fix the
      "Day" column after a move. Inline edit (tick/cross) arrives with the same component.
-  3. *Sharing settings:* squadron settings gain parade start and end time (default 19:00 to 21:30, shown
-     in the squadron's time zone, Europe/London) beside the parade days; each month gets a Published
-     setting (off by default; the old `status` column is unused); a per-squadron public link token that
-     expires after 1 month and can be regenerated.
-  4. *Public files:* the PDF and a PNG of each published month at the public link (same token, same
-     1-month expiry, nothing for unpublished months). The PDF is cached, see the next item. The PNG
-     is drawn from the PDF.
-  5. *Calendar feed (`.ics`):* one event per parade day, from the start to the end time, from today
-     onwards, published months only. The description gives the uniform and the activities grouped
-     per class (no instructor names unless a setting allows them), plus the link to the month's
-     public PDF. Stable event ids and a sequence number so calendar apps update, not duplicate; a
-     cancelled night is marked cancelled. An expired link says so instead of returning nothing.
-  6. *QR code* for the feed at the foot of the PDF (and the web page) with its expiry date printed.
+  3. *Sharing settings:* DONE. Parade start and end time in squadron settings (default 19:00 to 21:30,
+     Europe/London), a Published setting on each month (Actions menu) and a per-squadron public link
+     that expires after 1 month and can be renewed.
+  4. *Public files:* the public PDF is DONE (no requirement tracker). Still to do: the PNG of each
+     published month at the same link and expiry, drawn from the PDF (needs `pdftoppm` from
+     poppler-utils in the image, or a Go renderer).
+  5. *Calendar feed (`.ics`):* DONE (one event per parade night from today, uniform and grouped
+     activities, link to the month's PDF, weekend notes as all-day entries, closures left out,
+     expired link answers 410). Still to do: a setting to include instructor names, and a feed
+     entry marked cancelled for a night that was cancelled after being published.
+  6. *QR code* for the feed at the foot of the PDF (and the web page) with its expiry date printed:
+     still to do.
 - [ ] **[P2 helpful feature]** **Cache the PDF (and PNG) until the month changes.** Keep the generated file per
   month with a content version; any save, move, restore or reset invalidates it. Regenerate lazily
   on the next request, and for a published month regenerate straight after the save so the public
