@@ -63,6 +63,21 @@ func checkPromotion(env promotionEnv, branch, sha string) error {
 				return err
 			}
 			target = from
+			// The pipeline's own "release 1.N" commit is made on a release branch
+			// from the tip of the previous branch, so it is not on it itself: accept
+			// it when its parent is, and judge that parent's CI.
+			if !on {
+				if subject, err := env.Subject(from); err == nil && strings.HasPrefix(subject, "release ") {
+					if parent, err := env.Parent(from); err == nil && parent != "" {
+						if on, err = env.OnBranch(parent, prev); err != nil {
+							return err
+						}
+						if on {
+							target = parent
+						}
+					}
+				}
+			}
 		}
 	}
 	if !on {

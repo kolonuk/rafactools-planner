@@ -29,6 +29,7 @@ baseline instead of per-entry.
 - **fix**: a crowded month (two parts a night, long titles, several notes) no longer runs off the bottom of the PDF page: it is drawn smaller, up to 56% of normal size, so the grid, key, notes and footer all fit on the one page. A month that already fits is unchanged.
 - **fix**: the grey "Closure" colour is no longer offered as a night's uniform.
 - **chore**: the top bar's Instructors shortcut is gone (it is in the month's menu bar and on the Squadron page) and "Squadron settings" is just "Squadron".
+- **chore**: the promotion check also accepts the merge of a release pull request (whose release commit sits on a release branch, with its parent on `dev`).
 - **chore**: README rewritten for a general reader, technical notes moved to CONTRIBUTING.md; a `promote` skill documents how a change reaches main; the promotion check accepts GitHub's merge commits.
 
 ## 1.13
