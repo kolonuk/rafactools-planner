@@ -23,12 +23,20 @@ func TestInstructorsRequireEditorOrOwner(t *testing.T) {
 	if n := count(t, app.db, `SELECT COUNT(*) FROM instructors`); n != 0 {
 		t.Fatalf("a viewer created %d instructors", n)
 	}
-	// the nav link is only shown to people who can use it
-	if strings.Contains(body(viewer.get("/")), `href="/instructors"`) {
+	// The link is in the month's menu bar and only shown to people who can use it.
+	p, err := app.store.CreateProgramme(app.squadronID(ownerEmail), 2030, 4, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	month := "/programmes/" + strconv.FormatInt(p.ID, 10)
+	if strings.Contains(body(viewer.get(month)), `href="/instructors"`) {
 		t.Error("viewer sees an Instructors link they cannot use")
 	}
-	if !strings.Contains(body(app.login("ed@example.org").get("/")), `href="/instructors"`) {
+	if !strings.Contains(body(app.login("ed@example.org").get(month)), `href="/instructors"`) {
 		t.Error("editor has no Instructors link")
+	}
+	if strings.Contains(body(app.login("ed@example.org").get("/")), `class="topbar"`) && strings.Contains(body(app.login("ed@example.org").get("/")), `<a href="/instructors">Instructors</a>`) {
+		t.Error("the top bar should no longer carry an Instructors shortcut")
 	}
 	wantStatus(t, app.login("ed@example.org").get("/instructors"), 200)
 }

@@ -5,7 +5,8 @@ summary: Publishing a month, the public link, the calendar feed you can subscrib
 since: next
 audience: admin
 changed:
-  - next: New page. Publish a month, share a one-month public link with a calendar feed, a PDF and a PNG of each published month, and a QR code on the PDF.
+  - next: New page. Publishing a month makes the public link if there is none, and the month page and the list of months show the addresses, a QR code and Publish or Unpublish buttons.
+  - next: (earlier) New page. Publish a month, share a one-month public link with a calendar feed, a PDF and a PNG of each published month, and a QR code on the PDF.
 ---
 # Public link and calendar
 
@@ -14,8 +15,8 @@ parents. Nothing is shared until an owner makes a public link **and** an editor 
 
 ## Make the public link (owners)
 
-1. Open [Squadron settings](squadron-settings) and find **Public link and calendar**.
-2. Select **Make a public link**. The page shows the calendar address.
+1. Publishing a month (below) makes the link for you if there is none or it has expired. Owners can also make or renew it any time: open [Squadron](squadron-settings), find **Public link and calendar** and select **Make a public link** or **Make a new link**.
+2. The page shows the calendar address.
 3. The link works for **one month**. Select **Make a new link** whenever you need one. A new
    link replaces the old one straight away, so anyone with the old address must be given the new one.
 
@@ -24,8 +25,7 @@ It is not listed anywhere and search engines are asked to ignore it.
 
 ## Publish a month (editors and owners)
 
-Open the month and choose **Actions › Publish this month**. Choose **Actions › Published:
-unpublish** to take it down again. A month that is not published is never shared, even if the
+Open the month and choose **Publish** in its menu bar (or **Publish** beside the month in the list of months). Choose **Unpublish** to take it down again. Once a month is published its page shows a **Public link** panel with the calendar, PDF and PNG addresses and a QR code. A month that is not published is never shared, even if the
 link is known. Changes you save to a published month appear at the link straight away.
 
 ## What people see

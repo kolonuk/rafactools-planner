@@ -18,20 +18,22 @@
 <body>
   <header class="topbar">
     <a class="brand" href="{{url "/"}}">RAFACTools Planner</a>
-    <button type="button" id="theme-toggle" class="theme-toggle" hidden></button>
-    {{if .ReportEnabled}}<a class="report-button" href="{{url "/report"}}" data-report-link>Report a problem</a>{{end}}
-    {{if .User}}
-      <nav aria-label="Account and help">
-        <a href="{{url "/account"}}" class="muted" data-private>{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Email}}{{end}} ({{.User.Role}})</a>
-        {{if ne .User.Role "viewer"}}<a href="{{url "/instructors"}}">Instructors</a>{{end}}
-        {{if eq .User.Role "owner"}}<a href="{{url "/squadron"}}">Squadron settings</a>{{end}}
-        <a href="{{url "/docs"}}">Help</a>
-        <form method="post" action="{{url "/logout"}}" class="inline">
-          <input type="hidden" name="csrf" value="{{.CSRF}}">
-          <button type="submit" class="link-button">Log out</button>
-        </form>
-      </nav>
-    {{end}}
+    <div class="topbar-end">
+      {{if .ReportEnabled}}<a class="report-button" href="{{url "/report"}}" data-report-link>Report a problem</a>{{end}}
+      {{if .User}}
+        <nav aria-label="Account and help">
+          <a href="{{url "/"}}">Planner</a>
+          {{if eq .User.Role "owner"}}<a href="{{url "/squadron"}}">Squadron</a>{{end}}
+          <a href="{{url "/docs"}}">Help</a>
+          <a href="{{url "/account"}}" class="muted" data-private>{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Email}}{{end}} ({{.User.Role}})</a>
+          <form method="post" action="{{url "/logout"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{.CSRF}}">
+            <button type="submit" class="link-button">Log out</button>
+          </form>
+        </nav>
+      {{end}}
+      <button type="button" id="theme-toggle" class="theme-toggle" hidden></button>
+    </div>
   </header>
   {{if and .User .User.ViewingOther}}
   <p class="docs-banner" role="status">Master admin: you are viewing <strong>{{.User.ViewedSquadronName}}</strong> read-only. <a href="{{url "/account"}}">Switch squadron or go back</a></p>

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/skip2/go-qrcode"
+
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/ical"
 	"rafactools-planner/internal/pdfgen"
@@ -315,8 +317,22 @@ func (s *server) programmePublish(w http.ResponseWriter, r *http.Request) {
 	detail := "unpublished"
 	if on {
 		detail = "published"
+		// Publishing needs a public link to be of any use: make one if there is
+		// none or it has run out (anyone who can publish may do this; changing or
+		// renewing it later stays with the owners).
+		if sh, err := s.Store.GetShare(u.SquadronID); err == nil && (sh.Token == "" || sh.Expired(programme.Now())) {
+			if _, err := s.Store.NewShare(u.SquadronID); err != nil {
+				log.Printf("make public link on publish: %v", err)
+			} else {
+				s.audit(r, u.SquadronID, auth.AuditShareRenew, "made when a month was published")
+			}
+		}
 	}
 	s.audit(r, u.SquadronID, auth.AuditPublish, detail)
+	if r.FormValue("return") == "dashboard" { // the buttons on the list of months
+		http.Redirect(w, r, s.url("/"), http.StatusSeeOther)
+		return
+	}
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
@@ -336,4 +352,53 @@ func (s *server) pdfOptions(squadronID int64) pdfgen.Options {
 		}
 	}
 	return pdfgen.Options{CalendarURL: link, CalendarExpires: sh.ExpiresAt}
+}
+
+// sharePanel is what the month page shows once a month is published: the
+// public addresses, when they stop working and a QR code for the calendar.
+func (s *server) sharePanel(squadronID int64, fp *programme.FullProgramme) map[string]any {
+	out := map[string]any{"Has": false}
+	if !fp.Published {
+		return out
+	}
+	sh, err := s.Store.GetShare(squadronID)
+	if err != nil || sh.Token == "" {
+		return out
+	}
+	out["Has"] = true
+	out["Expired"] = sh.Expired(programme.Now())
+	out["Expires"] = sh.ExpiresAt.In(programme.Local).Format("2 January 2006")
+	out["CalendarURL"] = s.shareURL(sh.Token, "calendar.ics")
+	out["PDFURL"] = s.shareURL(sh.Token, monthFile(fp.Year, fp.Month, "pdf"))
+	out["PNGURL"] = s.shareURL(sh.Token, monthFile(fp.Year, fp.Month, "png"))
+	out["HasQR"] = s.pdfOptions(squadronID).CalendarURL != ""
+	return out
+}
+
+// programmeQR serves the calendar's QR code as a picture to a signed-in member,
+// for the public-link panel on a published month.
+func (s *server) programmeQR(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	id, ok := parseID(r, "id")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := s.Store.GetFullProgramme(u.SquadronID, id); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	opts := s.pdfOptions(u.SquadronID)
+	if opts.CalendarURL == "" {
+		http.NotFound(w, r)
+		return
+	}
+	png, err := qrcode.Encode(opts.CalendarURL, qrcode.Medium, 280)
+	if err != nil {
+		http.Error(w, "Could not make the code.", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "private, no-store")
+	_, _ = w.Write(png)
 }

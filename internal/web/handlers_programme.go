@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"rafactools-planner/internal/auth"
@@ -64,10 +65,11 @@ func (s *server) renderDashboard(w http.ResponseWriter, r *http.Request, errMsg 
 		ID        int64
 		MonthName string
 		Year      int
+		Published bool
 	}
 	var views []progView
 	for _, p := range progs {
-		views = append(views, progView{p.ID, monthNames[p.Month], p.Year})
+		views = append(views, progView{p.ID, monthNames[p.Month], p.Year, p.Published})
 	}
 
 	now := time.Now()
@@ -117,17 +119,25 @@ func (s *server) programmeCreate(w http.ResponseWriter, r *http.Request) {
 
 // --- Programme edit --------------------------------------------------------
 
-type subRowView struct {
-	RowType string
-	RowID   int64
-	Texts   []string
+// cellView is one class's boxes for one half of a night: the activity and, under
+// it, the instructor. The names are the form fields the save handler reads.
+type cellView struct {
+	ActName, ActValue string
+	InsName, InsValue string
+}
+
+// halfView is one half of a parade night: a single line of the grid.
+type halfView struct {
+	Number int // 1 or 2
+	Cells  []cellView
 }
 
 type dayView struct {
 	ID             int64
 	Date           string // ISO yyyy-mm-dd
 	FullLabel      string // e.g. "Mon 7", for the move picker and drag confirmation
-	DateLabel      string
+	DateLabel      string // the day of the month, e.g. "7"
+	Weekday        string // e.g. "Mon"
 	DayLabel       string
 	Closed         bool   // inside a closure: shown locked, nothing to edit
 	ClosedMessage  string // the closure's message
@@ -135,7 +145,7 @@ type dayView struct {
 	UniformKey     string
 	UniformHex     string // the colour of UniformKey, for the swatch beside the date ("" for none)
 	Notes          string
-	SubRows        []subRowView
+	Halves         []halfView
 	ShowAddHalf    bool
 	ShowRemoveHalf bool
 
@@ -143,8 +153,7 @@ type dayView struct {
 	// its Parade tickbox is ticked, so the row looks as it will after saving.
 	// They are named for rows the night already has (kept from an earlier
 	// time it was a parade night) or, if it has none, as new ones.
-	PendingActivity   []pendingCell
-	PendingInstructor []pendingCell
+	Pending []cellView
 }
 
 type pendingCell struct{ Name, Value string }
@@ -154,7 +163,7 @@ func buildDayViews(days []programme.Day, canEdit bool, classes int, closures []p
 	for _, d := range days {
 		t, _ := time.Parse("2006-01-02", d.Date)
 		dv := dayView{
-			ID: d.ID, Date: d.Date, FullLabel: t.Format("Mon 2"), DateLabel: strconv.Itoa(t.Day()), DayLabel: d.DayLabel,
+			ID: d.ID, Date: d.Date, FullLabel: t.Format("Mon 2"), DateLabel: strconv.Itoa(t.Day()), Weekday: t.Format("Mon"), DayLabel: d.DayLabel,
 			IsParade: d.IsParade, UniformKey: d.UniformKey, Notes: d.Notes,
 		}
 		if c, closed := programme.ClosureOn(d.Date, closures); closed {
@@ -164,16 +173,32 @@ func buildDayViews(days []programme.Day, canEdit bool, classes int, closures []p
 		}
 		if d.IsParade {
 			for half := 1; half <= d.Halves; half++ {
-				for _, rt := range []struct{ key, label string }{{"activity", "Activity"}, {"instructor", "Instructor"}} {
-					row, _ := d.RowByHalfType(half, rt.key)
-					dv.SubRows = append(dv.SubRows, subRowView{RowType: rt.label, RowID: row.ID, Texts: row.Texts})
+				act, _ := d.RowByHalfType(half, "activity")
+				ins, _ := d.RowByHalfType(half, "instructor")
+				hv := halfView{Number: half}
+				for i := 0; i < classes; i++ {
+					c := cellView{
+						ActName: "row_" + strconv.FormatInt(act.ID, 10) + "_text_" + strconv.Itoa(i),
+						InsName: "row_" + strconv.FormatInt(ins.ID, 10) + "_text_" + strconv.Itoa(i),
+					}
+					if i < len(act.Texts) {
+						c.ActValue = act.Texts[i]
+					}
+					if i < len(ins.Texts) {
+						c.InsValue = ins.Texts[i]
+					}
+					hv.Cells = append(hv.Cells, c)
 				}
+				dv.Halves = append(dv.Halves, hv)
 			}
 			dv.ShowAddHalf = canEdit && d.Halves == 1
 			dv.ShowRemoveHalf = canEdit && d.Halves == 2
 		} else if canEdit {
-			dv.PendingActivity = pendingCells(d, "activity", classes)
-			dv.PendingInstructor = pendingCells(d, "instructor", classes)
+			act := pendingCells(d, "activity", classes)
+			ins := pendingCells(d, "instructor", classes)
+			for i := range act {
+				dv.Pending = append(dv.Pending, cellView{ActName: act[i].Name, ActValue: act[i].Value, InsName: ins[i].Name, InsValue: ins[i].Value})
+			}
 		}
 		out = append(out, dv)
 	}
@@ -271,6 +296,9 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 
 	var uniformOptions []map[string]any
 	for _, uc := range sq.UniformColours {
+		if isClosureColour(uc) {
+			continue // the grey "Closure" entry is for the PDF's key, not a uniform a night can wear
+		}
 		uniformOptions = append(uniformOptions, map[string]any{"Key": uc.Key, "Label": uc.Label, "Hex": uc.Hex})
 	}
 	days := buildDayViews(fp.Days, canEdit, len(sq.Classifications), fp.Closures)
@@ -283,21 +311,22 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.render(w, r, "programme_edit", monthNames[fp.Month]+" "+strconv.Itoa(fp.Year), map[string]any{
-		"ProgrammeID":         fp.ID,
-		"Published":           fp.Published,
-		"MonthName":           monthNames[fp.Month],
-		"Year":                fp.Year,
-		"CanEdit":             canEdit,
-		"Classifications":     sq.Classifications,
-		"LabelClassColsCount": 1 + len(sq.Classifications),
-		"UniformOptions":      uniformOptions,
-		"Days":                days,
-		"ClosedColspan":       4 + len(sq.Classifications),
-		"DayOptions":          dayOptions(fp.Days, fp.Closures),
-		"Closures":            fp.Closures,
-		"WeekendNotes":        fp.WeekendNotes,
-		"Requirements":        fp.Requirements,
-		"InstructorOptions":   s.instructorOptions(u.SquadronID),
+		"ProgrammeID":       fp.ID,
+		"Published":         fp.Published,
+		"Share":             s.sharePanel(sq.ID, fp),
+		"MonthName":         monthNames[fp.Month],
+		"Year":              fp.Year,
+		"CanEdit":           canEdit,
+		"Classifications":   sq.Classifications,
+		"AddHalfColspan":    2 + len(sq.Classifications),
+		"UniformOptions":    uniformOptions,
+		"Days":              days,
+		"ClosedColspan":     4 + len(sq.Classifications),
+		"DayOptions":        dayOptions(fp.Days, fp.Closures),
+		"Closures":          fp.Closures,
+		"WeekendNotes":      fp.WeekendNotes,
+		"Requirements":      fp.Requirements,
+		"InstructorOptions": s.instructorOptions(u.SquadronID),
 	})
 }
 
@@ -755,4 +784,11 @@ func newRowTexts(form url.Values, prefix string, n int) []string {
 		return nil
 	}
 	return out
+}
+
+// isClosureColour reports whether a uniform colour is the "Closure" entry that
+// every squadron starts with: it colours closed days in the PDF's key and is not
+// something a night can be set to wear.
+func isClosureColour(uc programme.UniformColour) bool {
+	return uc.Key == "grey" || strings.EqualFold(strings.TrimSpace(uc.Label), "closure")
 }

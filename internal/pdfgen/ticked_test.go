@@ -178,3 +178,77 @@ func TestCalendarQRIsPrintedOnlyWhenAskedFor(t *testing.T) {
 		t.Errorf("%d pages, want 1", n)
 	}
 }
+
+// heavyMonth is a month that cannot fit on one A4 page at normal size: two
+// parts a night, long titles and a few notes.
+func heavyMonth(nights, halves int, long bool, notes int) (*programme.Squadron, *programme.FullProgramme) {
+	sq := testSquadron()
+	sq.Classifications = []string{"Junior", "1st Class", "Leading", "Senior"}
+	fp := &programme.FullProgramme{Programme: programme.Programme{ID: 1, Year: 2026, Month: 11}}
+	for d := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC); d.Month() == 11; d = d.AddDate(0, 0, 1) {
+		day := programme.Day{ID: int64(d.Day()), Date: d.Format("2006-01-02"), Halves: 1}
+		if wd := int(d.Weekday()+6) % 7; wd < nights {
+			day.IsParade, day.UniformKey, day.Halves = true, "green", halves
+			txt := "Drill"
+			if long {
+				txt = "First Class - Initial Expedition training with a long title"
+			}
+			for h := 1; h <= halves; h++ {
+				day.Rows = append(day.Rows,
+					programme.Row{Half: h, RowType: "activity", Texts: []string{txt, txt + " b", txt + " c", txt + " d"}},
+					programme.Row{Half: h, RowType: "instructor", Texts: []string{"Sgt A", "Sgt B", "Sgt C", "Sgt D"}})
+			}
+		}
+		fp.Days = append(fp.Days, day)
+	}
+	for i := 0; i < notes; i++ {
+		c := programme.ReqCategory{Name: "Category", DueLabel: "(TBC)"}
+		for j := 0; j < 8; j++ {
+			c.Entries = append(c.Entries, programme.ReqEntry{CadetName: "Example Cadet", Note: "1 x Exercise"})
+		}
+		fp.Requirements = append(fp.Requirements, c)
+	}
+	return sq, fp
+}
+
+func TestACrowdedMonthIsShrunkToFitOnePage(t *testing.T) {
+	opts := Options{CalendarURL: "webcal://example.test/share/t/calendar.ics", CalendarExpires: time.Date(2026, 12, 6, 0, 0, 0, 0, time.UTC)}
+
+	// A month that already fits is drawn at full size, exactly as before.
+	sq, fp := heavyMonth(2, 1, false, 0)
+	if _, scale, err := renderFit(sq, fp, opts); err != nil || scale != 1 {
+		t.Fatalf("a light month: scale %v, err %v (want 1)", scale, err)
+	}
+
+	for name, c := range map[string]struct {
+		nights, halves, notes int
+		long                  bool
+	}{
+		"two nights, two parts, long titles, notes": {2, 2, 5, true},
+		"three nights, two parts, long titles":      {3, 2, 0, true},
+		"four nights, one part, notes":              {4, 1, 5, true},
+	} {
+		sq, fp := heavyMonth(c.nights, c.halves, c.long, c.notes)
+		_, atFull, err := renderAt(sq, fp, opts, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if atFull+footerRoom+qrRoom <= pageHeight {
+			t.Fatalf("%s: expected to overflow at full size, ends at %.0f mm", name, atFull)
+		}
+		data, scale, err := renderFit(sq, fp, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if scale <= 1 {
+			t.Errorf("%s: not shrunk (scale %v)", name, scale)
+		}
+		_, end, _ := renderAt(sq, fp, opts, scale)
+		if need := end + (footerRoom+qrRoom)*scale; need > pageHeight*scale+0.5 && scale < maxShrink {
+			t.Errorf("%s: still runs %.1f mm past the page at scale %.2f", name, need-pageHeight*scale, scale)
+		}
+		if !bytes.Contains(data, []byte("/Count 1")) {
+			t.Errorf("%s: not a single page", name)
+		}
+	}
+}

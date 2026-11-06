@@ -5,6 +5,7 @@ summary: What the exported programme looks like.
 since: 1.0
 audience: user
 changed:
+  - next: A crowded month is drawn smaller so that everything fits on the one page, instead of running off the bottom.
   - next: The PDF ends with a QR code for the squadron's calendar when the squadron has a public link, and there is an Export PNG as well. Files are kept until the month changes.
   - 1.9: Only ticked parade nights are printed, and a closed day is one merged block across the classification columns.
   - 1.9: Curly quotes, dashes and accented letters now print correctly; only characters outside Western European text print as a question mark.
@@ -46,6 +47,13 @@ the editor before exporting.
 ## QR code for the calendar, and the PNG
 
 If the squadron has a [public link](public-sharing), the PDF ends with a QR code that adds the
-squadron's calendar to a phone, with the date the link stops. **Actions › Export PNG** gives the month as
+squadron's calendar to a phone, with the date the link stops. **Export › PNG picture** in the month's menu bar gives the month as
 a picture instead of a PDF. It shows the same information except the requirements tracker, and is laid
 out as one tall image for sending in a message.
+
+## A crowded month
+
+The PDF is always one A4 page. If a month has so much on it that it would not fit at normal size
+(for example two parts on every night with long titles and a long notes table), the whole page is drawn
+smaller, down to 56% of normal, so that nothing runs off the bottom. A month that already fits is drawn
+at normal size. If a month is more crowded than even that allows, shorten some of the text.

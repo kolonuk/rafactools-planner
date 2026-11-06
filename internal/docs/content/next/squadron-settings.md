@@ -5,6 +5,7 @@ summary: Name, classifications, parade nights, members and invites (owners only)
 since: 1.0
 audience: admin
 changed:
+  - next: The page is called Squadron in the top bar, links to the instructor list and has a breadcrumb back to the planner.
   - next: Parade night start and end times, and the Public link and calendar section.
   - 1.13: Delete this squadron includes a human check when the operator has turned on Turnstile.
   - 1.9: Owners can mark members inactive or email them a temporary password.
