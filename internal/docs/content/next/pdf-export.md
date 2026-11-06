@@ -5,8 +5,8 @@ summary: What the exported programme looks like.
 since: 1.0
 audience: user
 changed:
-  - next: A crowded month is drawn smaller so that everything fits on the one page, instead of running off the bottom.
-  - next: The PDF ends with a QR code for the squadron's calendar when the squadron has a public link, and there is an Export PNG as well. Files are kept until the month changes.
+  - 1.14: A crowded month is drawn smaller so that everything fits on the one page, instead of running off the bottom.
+  - 1.14: The PDF ends with a QR code for the squadron's calendar when the squadron has a public link, and there is an Export PNG as well. Files are kept until the month changes.
   - 1.9: Only ticked parade nights are printed, and a closed day is one merged block across the classification columns.
   - 1.9: Curly quotes, dashes and accented letters now print correctly; only characters outside Western European text print as a question mark.
   - 1.9: The squadron website, if set, is printed under the subtitle as a clickable link.

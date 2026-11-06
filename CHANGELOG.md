@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.14
 
 - **feat**: a public link and calendar. An owner makes a one-month public link under Squadron (or it is made when a month is first published); an editor publishes a month from the month's menu bar or from the list of months. At the link, with no sign-in: a calendar feed (one entry per parade night from today, with the uniform and the activities grouped by class, a link to the month's PDF, and weekend notes as all-day entries), and the PDF and a PNG of each published month without the requirement tracker. A published month shows its addresses and a QR code on the page.
 - **feat**: parade start and end times in Squadron (default 19:00 to 21:30 UK time), used for the calendar feed.
