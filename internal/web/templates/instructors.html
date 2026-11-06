@@ -1,5 +1,10 @@
 {{define "content"}}
-<p><a href="{{url "/"}}">&larr; Dashboard</a></p>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Planner</a></li>
+    <li aria-current="page">Instructors</li>
+  </ol>
+</nav>
 <h1>Instructors</h1>
 <p class="muted">People you can pick from in the programme grid's Instructor boxes, including staff who don't have a login. The Instructor boxes also suggest <em>All Staff</em> and your members. It is only a list of suggestions: you can always type any name.</p>
 
@@ -18,14 +23,26 @@
     <thead><tr><th scope="col">Name</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     {{range .Instructors}}
-      <tr>
-        <td data-private>{{.Display}}</td>
-        <td>
-          <a href="{{url "/instructors/" .ID "/edit"}}" aria-label="Edit {{.Display}}">Edit</a>
-          <form method="post" action="{{url "/instructors/" .ID "/delete"}}" class="inline">
-            <input type="hidden" name="csrf" value="{{$.CSRF}}">
-            <button type="submit" class="link-button" aria-label="Remove {{.Display}} from the list">Remove</button>
-          </form>
+      <tr class="ie-row">
+        <td data-private>
+          <input type="checkbox" id="ce-instr-{{.ID}}" class="ie-toggle" aria-label="Edit {{.Display}}">
+          <label for="ce-instr-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Display}}</label>
+          <span class="ie-edit">
+            <input type="text" name="rank" form="instr-form-{{.ID}}" value="{{.Rank}}" maxlength="40" placeholder="Rank" aria-label="Rank">
+            <input type="text" name="name" form="instr-form-{{.ID}}" value="{{.Name}}" maxlength="80" required placeholder="Name" aria-label="Name">
+          </span>
+        </td>
+        <td class="ie-actions">
+          <span class="ie-view">
+            <label for="ce-instr-{{.ID}}" class="link-button">Edit</label>
+            <button type="submit" form="instr-delete-{{.ID}}" class="link-button" aria-label="Remove {{.Display}} from the list">Remove</button>
+          </span>
+          <span class="ie-edit">
+            <button type="submit" form="instr-form-{{.ID}}" class="ie-ok" aria-label="Save" title="Save">&#10003;</button>
+            <label for="ce-instr-{{.ID}}" class="ie-cancel" role="button" aria-label="Cancel" title="Cancel">&#10007;</label>
+          </span>
+          <form id="instr-form-{{.ID}}" method="post" action="{{url "/instructors/" .ID "/edit"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+          <form id="instr-delete-{{.ID}}" method="post" action="{{url "/instructors/" .ID "/delete"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
         </td>
       </tr>
     {{end}}
@@ -41,4 +58,5 @@
     <button type="submit">Add</button>
   </form>
 </section>
+<script type="module" src="{{url "/static/js/gen/edit.js"}}"></script>
 {{end}}

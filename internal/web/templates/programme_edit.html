@@ -1,46 +1,82 @@
 {{define "content"}}
 <nav class="breadcrumb" aria-label="Breadcrumb">
   <ol>
-    <li><a href="{{url "/"}}">Dashboard</a></li>
+    <li><a href="{{url "/"}}">Planner</a></li>
     <li aria-current="page">{{.MonthName}} {{.Year}}</li>
   </ol>
 </nav>
-<div class="page-head">
-  <h1>{{.MonthName}} {{.Year}}</h1>
-  <details class="menu">
-    <summary>Actions</summary>
-    <ul class="menu-list">
-      <li><a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a></li>
-      <li><a href="{{url "/programmes/" .ProgrammeID "/png"}}">Export PNG</a></li>
-      <li><a href="{{url "/programmes/" .ProgrammeID "/history"}}">History</a></li>
-      {{if .CanEdit}}
-      <li><a href="{{url "/instructors"}}">Manage instructors</a></li>
-      <li><label for="parade-only-toggle" class="menu-toggle">Parade evenings only</label></li>
-      <li>
-        <form method="post" action="{{url "/programmes/" .ProgrammeID "/publish"}}" class="menu-form">
-          <input type="hidden" name="csrf" value="{{.CSRF}}">
-          <input type="hidden" name="published" value="{{if .Published}}0{{else}}1{{end}}">
-          <button type="submit" class="menu-button">{{if .Published}}Published: unpublish{{else}}Publish this month{{end}}</button>
-        </form>
-      </li>
-      <li class="menu-danger"><a href="{{url "/programmes/" .ProgrammeID "/reset"}}">Reset this month</a></li>
-      {{end}}
-    </ul>
-  </details>
-</div>
+<h1>{{.MonthName}} {{.Year}}</h1>
+
+<nav class="menubar" aria-label="Month menu">
+  <ul class="menubar-list">
+    <li class="mb-dropdown">
+      <details>
+        <summary class="mb-item">Export</summary>
+        <ul class="mb-panel">
+          <li><a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">PDF document</a></li>
+          <li><a href="{{url "/programmes/" .ProgrammeID "/png"}}">PNG picture</a></li>
+        </ul>
+      </details>
+    </li>
+    <li><a class="mb-item" href="{{url "/programmes/" .ProgrammeID "/history"}}">History</a></li>
+    {{if .CanEdit}}
+    <li>
+      <form method="post" action="{{url "/programmes/" .ProgrammeID "/publish"}}" class="mb-form">
+        <input type="hidden" name="csrf" value="{{.CSRF}}">
+        <input type="hidden" name="published" value="{{if .Published}}0{{else}}1{{end}}">
+        <button type="submit" class="mb-item">{{if .Published}}Unpublish{{else}}Publish{{end}}</button>
+      </form>
+    </li>
+    <li><a class="mb-item" href="{{url "/instructors"}}">Instructors</a></li>
+    {{end}}
+    <li class="mb-status"><span class="chip {{if .Published}}chip-on{{end}}">{{if .Published}}Published{{else}}Not published{{end}}</span></li>
+    {{if .CanEdit}}
+    <li class="mb-dropdown">
+      <details>
+        <summary class="mb-item">More</summary>
+        <ul class="mb-panel">
+          <li><a href="{{url "/programmes/" .ProgrammeID "/reset"}}" class="danger">Reset this month</a></li>
+        </ul>
+      </details>
+    </li>
+    {{end}}
+    {{if .CanEdit}}
+    <li class="mb-spacer"></li>
+    <li class="mb-nights" role="group" aria-label="Which nights to show">
+      <label for="nights-parade" class="seg seg-parade">Parade nights</label><label for="nights-all" class="seg seg-all">All nights</label>
+    </li>
+    {{end}}
+  </ul>
+</nav>
+
+{{if and .Published .Share.Has}}
+<section class="card share-panel" aria-label="Public link">
+  <h2>Public link</h2>
+  {{if .Share.Expired}}
+  <p class="error">This squadron's public link has expired, so nothing is shared. An owner can make a new one under <a href="{{url "/squadron#sharing"}}">Squadron</a>.</p>
+  {{else}}
+  <div class="share-grid">
+    {{if .Share.HasQR}}<img class="qr" src="{{url "/programmes/" .ProgrammeID "/qr.png"}}" width="140" height="140" alt="QR code that adds the squadron's calendar to a phone">{{end}}
+    <div>
+      <p>This month is public. Anyone with these addresses can see it, without signing in. They stop working on {{.Share.Expires}}.</p>
+      <p><label>Calendar (subscribe in a calendar app) <input type="text" readonly class="wide" value="{{.Share.CalendarURL}}"></label></p>
+      <p><label>PDF <input type="text" readonly class="wide" value="{{.Share.PDFURL}}"></label></p>
+      <p><label>PNG picture <input type="text" readonly class="wide" value="{{.Share.PNGURL}}"></label></p>
+    </div>
+  </div>
+  {{end}}
+</section>
+{{end}}
 
 {{if .CanEdit}}
 <form method="post" action="{{url "/programmes/" .ProgrammeID}}" class="grid-form">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
-  <!-- Plain checkbox + CSS sibling selector, not JS (none is allowed under
-       this app's CSP — see internal/web/web.go securityHeaders). input and
-       table must stay direct siblings for app.css's
-       "#parade-only-toggle:checked ~ table.grid" rule to reach the table at
-       all — don't nest the input inside the label. -->
-  <input type="checkbox" id="parade-only-toggle" class="parade-toggle-input" role="switch" checked>
-  <label for="parade-only-toggle" class="parade-toggle-label">Show parade evenings only</label>
-  <!-- The same switch appears in the Actions menu with a tick or a cross. -->
-  <!-- Native browser autocomplete, no JS: Instructor cells get list=
+  <!-- Which nights to show: two radio buttons that must stay direct siblings of
+       the table, so app.css's "#nights-parade:checked ~ table.grid" rule can reach
+       it without script. Their labels are in the menu bar above. -->
+  <input type="radio" name="nights" id="nights-parade" class="nights-input" checked>
+  <input type="radio" name="nights" id="nights-all" class="nights-input">
+  <!-- Native browser autocomplete, no JS: Instructor boxes get list=
        "instructor-options" below; the input stays free text either way. -->
   <datalist id="instructor-options">
     {{range .InstructorOptions}}<option value="{{.}}"></option>{{end}}
@@ -48,7 +84,7 @@
   <table class="grid">
     <thead>
       <tr>
-        <th scope="col">Date</th><th scope="col">Day</th><th scope="col">Parade</th><th scope="col">Uniform</th><th scope="col"><span class="visually-hidden">Row</span></th>
+        <th scope="col">Date</th><th scope="col">Parade</th><th scope="col">Uniform</th><th scope="col"><span class="visually-hidden">Half</span></th>
         {{range .Classifications}}<th scope="col">{{.}}</th>{{end}}
         <th scope="col">Notes</th>
       </tr>
@@ -58,15 +94,16 @@
       {{$day := .}}
       {{if .Closed}}
         <tr class="closed-row" data-day="{{.ID}}" data-date="{{.Date}}" data-label="{{.FullLabel}}">
-          <td class="date-cell" data-label="Date">{{.DateLabel}}</td>
-          <td data-label="Day">{{.DayLabel}}</td>
+          <td class="date-cell" data-label="Date"><span class="date-num">{{.DateLabel}}</span> <span class="date-dow">{{.Weekday}}</span></td>
           <td colspan="{{$.ClosedColspan}}"><strong>Closed</strong>{{if .ClosedMessage}} — {{.ClosedMessage}}{{end}} <span class="muted">(locked by a closure; delete the closure below to edit this date)</span></td>
         </tr>
-      {{else if .SubRows}}
-        {{range $idx, $sub := .SubRows}}
+      {{else if .Halves}}
+        {{range $idx, $half := .Halves}}
         <tr{{if eq $idx 0}} class="day-start"{{end}} data-day="{{$day.ID}}" data-date="{{$day.Date}}" data-label="{{$day.FullLabel}}">
           {{if eq $idx 0}}
-            <td class="date-cell" data-label="Date"><span class="date-text">{{$day.DateLabel}}</span>{{if $day.UniformHex}}<svg class="swatch" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.5" fill="$day.UniformHex" stroke="currentColor" stroke-opacity="0.35"/></svg>{{end}}<input type="hidden" name="day_{{$day.ID}}_present" value="1">
+            <td class="date-cell" data-label="Date"{{if gt (len $day.Halves) 1}} rowspan="{{len $day.Halves}}"{{end}}>
+              <span class="date-num">{{$day.DateLabel}}</span> <span class="date-dow">{{$day.Weekday}}</span>{{if $day.UniformHex}}<svg class="swatch" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.5" fill="{{$day.UniformHex}}" stroke="currentColor" stroke-opacity="0.35"/></svg>{{end}}
+              <input type="hidden" name="day_{{$day.ID}}_present" value="1">
               <button type="button" class="drag-handle" draggable="true" data-day="{{$day.ID}}" aria-label="Drag to move the activities from {{$day.FullLabel}} to another date">&#8942;&#8942;</button>
               <details class="move">
                 <summary>Move</summary>
@@ -78,77 +115,72 @@
                 <button type="submit" form="move-{{$day.ID}}">Move activities</button>
               </details>
             </td>
-            <td data-label="Day">{{$day.DayLabel}}</td>
-            <td data-label="Parade"><input type="checkbox" name="day_{{$day.ID}}_parade" value="1" checked></td>
-            <td data-label="Uniform">
-              <select name="day_{{$day.ID}}_uniform">
+            <td class="parade-cell" data-label="Parade"{{if gt (len $day.Halves) 1}} rowspan="{{len $day.Halves}}"{{end}}><input type="checkbox" name="day_{{$day.ID}}_parade" value="1" checked aria-label="Parade night, {{$day.FullLabel}}"></td>
+            <td class="uniform-cell" data-label="Uniform"{{if gt (len $day.Halves) 1}} rowspan="{{len $day.Halves}}"{{end}}>
+              <select name="day_{{$day.ID}}_uniform" aria-label="Uniform, {{$day.FullLabel}}">
                 <option value="">—</option>
                 {{range $.UniformOptions}}<option value="{{.Key}}" data-hex="{{.Hex}}" {{if eq .Key $day.UniformKey}}selected{{end}}>{{.Label}}</option>{{end}}
               </select>
             </td>
-          {{else}}
-            <td></td><td></td><td></td><td></td>
           {{end}}
-          <td class="row-label" data-label="Row">{{$sub.RowType}}</td>
-          {{if eq $sub.RowType "Instructor"}}
-            {{range $i, $t := $sub.Texts}}<td class="class-cell" data-label="{{index $.Classifications $i}}"><input type="text" list="instructor-options" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}" aria-label="{{$sub.RowType}}, {{index $.Classifications $i}}, {{$day.FullLabel}}"></td>{{end}}
-          {{else}}
-            {{range $i, $t := $sub.Texts}}<td class="class-cell" data-label="{{index $.Classifications $i}}"><input type="text" name="row_{{$sub.RowID}}_text_{{$i}}" value="{{$t}}" aria-label="{{$sub.RowType}}, {{index $.Classifications $i}}, {{$day.FullLabel}}"></td>{{end}}
+          <td class="half-cell" data-label="Part">{{if gt (len $day.Halves) 1}}{{$half.Number}}{{end}}</td>
+          {{range $i, $c := $half.Cells}}
+          <td class="class-cell" data-label="{{index $.Classifications $i}}">
+            <input type="text" class="act" name="{{$c.ActName}}" value="{{$c.ActValue}}" placeholder="Activity" aria-label="Activity, {{index $.Classifications $i}}, {{$day.FullLabel}}">
+            <input type="text" class="ins" list="instructor-options" name="{{$c.InsName}}" value="{{$c.InsValue}}" placeholder="Instructor" aria-label="Instructor, {{index $.Classifications $i}}, {{$day.FullLabel}}">
+          </td>
           {{end}}
           {{if eq $idx 0}}
-            <td data-label="Notes"{{if gt (len $day.SubRows) 1}} rowspan="{{len $day.SubRows}}"{{end}}><textarea name="day_{{$day.ID}}_notes" rows="2">{{$day.Notes}}</textarea></td>
+            <td class="notes-cell" data-label="Notes"{{if gt (len $day.Halves) 1}} rowspan="{{len $day.Halves}}"{{end}}><textarea name="day_{{$day.ID}}_notes" rows="2" aria-label="Notes, {{$day.FullLabel}}">{{$day.Notes}}</textarea></td>
           {{end}}
         </tr>
         {{end}}
         {{if .ShowAddHalf}}
-        <tr data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
-          <td></td><td></td><td></td><td></td>
-          <td colspan="{{$.LabelClassColsCount}}">
+        <tr class="half-row" data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
+          <td colspan="3"></td>
+          <td colspan="{{$.AddHalfColspan}}">
             <button type="submit" form="addhalf-{{.ID}}" class="link-button">+ Add a second half to this night</button>
           </td>
         </tr>
         {{end}}
         {{if .ShowRemoveHalf}}
-        <tr data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
-          <td></td><td></td><td></td><td></td>
-          <td colspan="{{$.LabelClassColsCount}}">
+        <tr class="half-row" data-day="{{$day.ID}}" data-label="{{$day.FullLabel}}">
+          <td colspan="3"></td>
+          <td colspan="{{$.AddHalfColspan}}">
             <button type="submit" form="removehalf-{{.ID}}" class="link-button">&minus; Remove second half</button>
           </td>
         </tr>
         {{end}}
       {{else}}
         <tr class="non-parade-row" data-day="{{.ID}}" data-date="{{.Date}}" data-label="{{.FullLabel}}">
-          <td class="date-cell" data-label="Date"><span class="date-text">{{.DateLabel}}</span>{{if .UniformHex}}<svg class="swatch" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.5" fill=".UniformHex" stroke="currentColor" stroke-opacity="0.35"/></svg>{{end}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
-          <td data-label="Day">{{.DayLabel}}</td>
-          <td data-label="Parade"><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}}></td>
-          <td data-label="Uniform">
-            <select name="day_{{.ID}}_uniform">
+          <td class="date-cell" data-label="Date"><span class="date-num">{{.DateLabel}}</span> <span class="date-dow">{{.Weekday}}</span>{{if .UniformHex}}<svg class="swatch" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.5" fill="{{.UniformHex}}" stroke="currentColor" stroke-opacity="0.35"/></svg>{{end}}<input type="hidden" name="day_{{.ID}}_present" value="1"></td>
+          <td class="parade-cell" data-label="Parade"><input type="checkbox" name="day_{{.ID}}_parade" value="1" {{if .IsParade}}checked{{end}} aria-label="Parade night, {{.FullLabel}}"></td>
+          <td class="uniform-cell" data-label="Uniform">
+            <select name="day_{{.ID}}_uniform" aria-label="Uniform, {{.FullLabel}}">
               <option value="">—</option>
               {{range $.UniformOptions}}<option value="{{.Key}}" data-hex="{{.Hex}}" {{if eq .Key $day.UniformKey}}selected{{end}}>{{.Label}}</option>{{end}}
             </select>
           </td>
-          <td class="row-label"><span class="pending-none muted">—</span><span class="pending-label" hidden>Activity</span></td>
-          {{if .PendingActivity}}
-            {{range .PendingActivity}}<td><input type="text" class="pending-input" name="{{.Name}}" value="{{.Value}}" disabled hidden></td>{{end}}
+          <td class="half-cell"></td>
+          {{if .Pending}}
+            {{range $i, $c := .Pending}}
+            <td class="class-cell" data-label="{{index $.Classifications $i}}">
+              <input type="text" class="act pending-input" name="{{$c.ActName}}" value="{{$c.ActValue}}" placeholder="Activity" aria-label="Activity, {{index $.Classifications $i}}, {{$day.FullLabel}}" disabled hidden>
+              <input type="text" class="ins pending-input" list="instructor-options" name="{{$c.InsName}}" value="{{$c.InsValue}}" placeholder="Instructor" aria-label="Instructor, {{index $.Classifications $i}}, {{$day.FullLabel}}" disabled hidden>
+            </td>
+            {{end}}
           {{else}}
-            {{range $.Classifications}}<td></td>{{end}}
+            {{range $.Classifications}}<td class="class-cell"></td>{{end}}
           {{end}}
-          <td class="pending-notes" data-label="Notes"><textarea name="day_{{.ID}}_notes" rows="2">{{.Notes}}</textarea></td>
+          <td class="notes-cell pending-notes" data-label="Notes"><textarea name="day_{{.ID}}_notes" rows="2" aria-label="Notes, {{.FullLabel}}">{{.Notes}}</textarea></td>
         </tr>
-        {{if .PendingInstructor}}
-        <tr class="pending-row" data-day="{{.ID}}" data-label="{{.FullLabel}}" hidden>
-          <td></td><td></td><td></td><td></td>
-          <td class="row-label">Instructor</td>
-          {{range .PendingInstructor}}<td><input type="text" class="pending-input" list="instructor-options" name="{{.Name}}" value="{{.Value}}" disabled hidden></td>{{end}}
-        </tr>
-        {{end}}
       {{end}}
     {{end}}
     </tbody>
   </table>
   <button type="submit">Save programme</button>
 </form>
-{{range .Days}}{{if .SubRows}}
+{{range .Days}}{{if .Halves}}
 <form id="move-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/days/" .ID "/move"}}" class="hidden-form">
   <input type="hidden" name="csrf" value="{{$.CSRF}}">
 </form>
@@ -175,20 +207,40 @@
     <thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col">Message</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .Closures}}
-      <tr>
-        <td>{{.StartDate}}</td><td>{{.EndDate}}</td><td>{{.Message}}</td>
+      <tr class="ie-row">
         <td>
+          {{if $.CanEdit}}<input type="checkbox" id="ce-closure-{{.ID}}" class="ie-toggle" aria-label="Edit closure from {{.StartDate}} to {{.EndDate}}">
+          <label for="ce-closure-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.StartDate}}</label>
+          <input type="date" class="ie-edit" name="start_date" form="closure-form-{{.ID}}" value="{{.StartDate}}" required aria-label="From">{{else}}{{.StartDate}}{{end}}
+        </td>
+        <td>
+          {{if $.CanEdit}}<label for="ce-closure-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.EndDate}}</label>
+          <input type="date" class="ie-edit" name="end_date" form="closure-form-{{.ID}}" value="{{.EndDate}}" required aria-label="To">{{else}}{{.EndDate}}{{end}}
+        </td>
+        <td>
+          {{if $.CanEdit}}<label for="ce-closure-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Message}}</label>
+          <input type="text" class="ie-edit" name="message" form="closure-form-{{.ID}}" value="{{.Message}}" required aria-label="Message">{{else}}{{.Message}}{{end}}
+        </td>
+        <td class="ie-actions">
           {{if $.CanEdit}}
-          <form method="post" action="{{url "/programmes/" $.ProgrammeID "/closures/" .ID "/delete"}}" class="inline">
-            <input type="hidden" name="csrf" value="{{$.CSRF}}">
-            <button type="submit" class="link-button" aria-label="Delete closure from {{.StartDate}} to {{.EndDate}}">Delete</button>
-          </form>
+          <span class="ie-view">
+            <label for="ce-closure-{{.ID}}" class="link-button">Edit</label>
+            <button type="submit" form="closure-delete-{{.ID}}" class="link-button" aria-label="Delete closure from {{.StartDate}} to {{.EndDate}}">Delete</button>
+          </span>
+          <span class="ie-edit">
+            <button type="submit" form="closure-form-{{.ID}}" class="ie-ok" aria-label="Save the closure" title="Save">&#10003;</button>
+            <label for="ce-closure-{{.ID}}" class="ie-cancel" role="button" aria-label="Cancel" title="Cancel">&#10007;</label>
+          </span>
           {{end}}
         </td>
       </tr>
     {{end}}
     </tbody>
   </table>
+  {{range .Closures}}{{if $.CanEdit}}
+  <form id="closure-form-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/closures/" .ID "/edit"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+  <form id="closure-delete-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/closures/" .ID "/delete"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+  {{end}}{{end}}
   {{if .CanEdit}}
   <form method="post" action="{{url "/programmes/" .ProgrammeID "/closures"}}" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
@@ -206,20 +258,36 @@
     <thead><tr><th scope="col">Date</th><th scope="col">Text</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .WeekendNotes}}
-      <tr>
-        <td>{{.Date}}</td><td>{{.Text}}</td>
+      <tr class="ie-row">
         <td>
+          {{if $.CanEdit}}<input type="checkbox" id="ce-note-{{.ID}}" class="ie-toggle" aria-label="Edit weekend note for {{.Date}}">
+          <label for="ce-note-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Date}}</label>
+          <input type="date" class="ie-edit" name="date" form="note-form-{{.ID}}" value="{{.Date}}" required aria-label="Date">{{else}}{{.Date}}{{end}}
+        </td>
+        <td>
+          {{if $.CanEdit}}<label for="ce-note-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Text}}</label>
+          <input type="text" class="ie-edit" name="text" form="note-form-{{.ID}}" value="{{.Text}}" required aria-label="Text">{{else}}{{.Text}}{{end}}
+        </td>
+        <td class="ie-actions">
           {{if $.CanEdit}}
-          <form method="post" action="{{url "/programmes/" $.ProgrammeID "/weekend-notes/" .ID "/delete"}}" class="inline">
-            <input type="hidden" name="csrf" value="{{$.CSRF}}">
-            <button type="submit" class="link-button" aria-label="Delete weekend note for {{.Date}}">Delete</button>
-          </form>
+          <span class="ie-view">
+            <label for="ce-note-{{.ID}}" class="link-button">Edit</label>
+            <button type="submit" form="note-delete-{{.ID}}" class="link-button" aria-label="Delete weekend note for {{.Date}}">Delete</button>
+          </span>
+          <span class="ie-edit">
+            <button type="submit" form="note-form-{{.ID}}" class="ie-ok" aria-label="Save the note" title="Save">&#10003;</button>
+            <label for="ce-note-{{.ID}}" class="ie-cancel" role="button" aria-label="Cancel" title="Cancel">&#10007;</label>
+          </span>
           {{end}}
         </td>
       </tr>
     {{end}}
     </tbody>
   </table>
+  {{range .WeekendNotes}}{{if $.CanEdit}}
+  <form id="note-form-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/weekend-notes/" .ID "/edit"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+  <form id="note-delete-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/weekend-notes/" .ID "/delete"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+  {{end}}{{end}}
   {{if .CanEdit}}
   <form method="post" action="{{url "/programmes/" .ProgrammeID "/weekend-notes"}}" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
@@ -233,23 +301,39 @@
 <section class="card">
   <h2>Notes / requirement tracker (footer table)</h2>
   {{range $cat := .Requirements}}
-    <h3>{{.Name}} <span class="muted">{{.DueLabel}}</span>
-      {{if $.CanEdit}}
-      <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/delete"}}" class="inline">
-        <input type="hidden" name="csrf" value="{{$.CSRF}}">
-        <button type="submit" class="link-button" aria-label="Delete category {{$cat.Name}}">Delete category</button>
-      </form>
-      {{end}}
+    <h3 class="ie-row">
+      {{if $.CanEdit}}<input type="checkbox" id="ce-cat-{{$cat.ID}}" class="ie-toggle" aria-label="Edit category {{$cat.Name}}">
+      <label for="ce-cat-{{$cat.ID}}" class="ie-view ie-click" title="Click to edit">{{.Name}} <span class="muted">{{.DueLabel}}</span></label>
+      <span class="ie-edit">
+        <input type="text" name="name" form="cat-form-{{$cat.ID}}" value="{{.Name}}" required aria-label="Category name">
+        <input type="text" name="due_label" form="cat-form-{{$cat.ID}}" value="{{.DueLabel}}" aria-label="Due label">
+        <button type="submit" form="cat-form-{{$cat.ID}}" class="ie-ok" aria-label="Save the category" title="Save">&#10003;</button>
+        <label for="ce-cat-{{$cat.ID}}" class="ie-cancel" role="button" aria-label="Cancel" title="Cancel">&#10007;</label>
+      </span>
+      <span class="ie-view">
+        <button type="submit" form="cat-delete-{{$cat.ID}}" class="link-button" aria-label="Delete category {{$cat.Name}}">Delete category</button>
+      </span>
+      <form id="cat-form-{{$cat.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/edit"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+      <form id="cat-delete-{{$cat.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/delete"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+      {{else}}{{.Name}} <span class="muted">{{.DueLabel}}</span>{{end}}
     </h3>
-    <ul>
+    <ul class="plain-list">
       {{range .Entries}}
-      <li data-private>{{.CadetName}} {{.Note}}
-        {{if $.CanEdit}}
-        <form method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/entries/" .ID "/delete"}}" class="inline">
-          <input type="hidden" name="csrf" value="{{$.CSRF}}">
-          <button type="submit" class="link-button" aria-label="Remove this entry from {{$cat.Name}}">&times;</button>
-        </form>
-        {{end}}
+      <li data-private class="ie-row">
+        {{if $.CanEdit}}<input type="checkbox" id="ce-entry-{{.ID}}" class="ie-toggle" aria-label="Edit entry {{.CadetName}}">
+        <label for="ce-entry-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.CadetName}} {{.Note}}</label>
+        <span class="ie-edit">
+          <input type="text" name="cadet_name" form="entry-form-{{.ID}}" value="{{.CadetName}}" required aria-label="Cadet">
+          <input type="text" name="note" form="entry-form-{{.ID}}" value="{{.Note}}" aria-label="Note">
+          <button type="submit" form="entry-form-{{.ID}}" class="ie-ok" aria-label="Save the entry" title="Save">&#10003;</button>
+          <label for="ce-entry-{{.ID}}" class="ie-cancel" role="button" aria-label="Cancel" title="Cancel">&#10007;</label>
+        </span>
+        <span class="ie-view">
+          <button type="submit" form="entry-delete-{{.ID}}" class="link-button" aria-label="Remove this entry from {{$cat.Name}}">&times;</button>
+        </span>
+        <form id="entry-form-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/entries/" .ID "/edit"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+        <form id="entry-delete-{{.ID}}" method="post" action="{{url "/programmes/" $.ProgrammeID "/requirements/" $cat.ID "/entries/" .ID "/delete"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+        {{else}}{{.CadetName}} {{.Note}}{{end}}
       </li>
       {{end}}
     </ul>
@@ -271,4 +355,6 @@
   </form>
   {{end}}
 </section>
+<script type="module" src="{{url "/static/js/gen/menu.js"}}"></script>
+<script type="module" src="{{url "/static/js/gen/edit.js"}}"></script>
 {{end}}

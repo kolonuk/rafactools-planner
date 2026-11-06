@@ -89,11 +89,67 @@ type Options struct {
 
 // RenderWith is Render with the optional extras.
 func RenderWith(sq *programme.Squadron, fp *programme.FullProgramme, opts Options) ([]byte, error) {
+	data, _, err := renderFit(sq, fp, opts)
+	return data, err
+}
+
+// maxShrink is the most a month is shrunk to fit (1.8 means everything is drawn
+// at 56% of its normal size).
+const maxShrink = 1.8
+
+// renderFit draws the month and, if it would run off the bottom of the page,
+// draws it again smaller until it fits: the page is laid out as if it were r
+// times bigger (so there is more room for the same text) and then scaled back
+// down onto the A4 page. A month that already fits is drawn at scale 1, exactly
+// as before. It returns the scale used.
+func renderFit(sq *programme.Squadron, fp *programme.FullProgramme, opts Options) ([]byte, float64, error) {
+	r := 1.0
+	var (
+		data []byte
+		err  error
+	)
+	for i := 0; i < 8; i++ {
+		var endY float64
+		data, endY, err = renderAt(sq, fp, opts, r)
+		if err != nil {
+			return nil, r, err
+		}
+		need := endY + footerRoom*r
+		if opts.CalendarURL != "" {
+			need += qrRoom * r
+		}
+		limit := pageHeight * r
+		if need <= limit+0.01 || r >= maxShrink {
+			break
+		}
+		next := math.Min(r*need/limit*1.01, maxShrink)
+		if next <= r {
+			break
+		}
+		r = next
+	}
+	return data, r, nil
+}
+
+const (
+	pageHeight = 297.0 // A4, mm
+	footerRoom = 9.0   // kept free at the foot for the protective marking and version line
+	qrRoom     = 20.0  // the calendar QR code and the gap above it
+)
+
+// renderAt draws the month at one scale (see renderFit) and returns the PDF and
+// where the grid, key and notes end on the page.
+func renderAt(sq *programme.Squadron, fp *programme.FullProgramme, opts Options, r float64) ([]byte, float64, error) {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetCompression(compressOutput)
-	pdf.SetMargins(8, 8, 8)
+	pdf.SetMargins(8*r, 8*r, 8*r)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
+	if r != 1 {
+		pdf.SetLineWidth(0.2 * r)
+		pdf.TransformBegin()
+		pdf.TransformScale(100/r, 100/r, 0, 0)
+	}
 
 	// Re-encode all user text for the single-byte core fonts (smart quotes,
 	// dashes and accented letters survive; anything else prints as "?").
@@ -103,7 +159,7 @@ func RenderWith(sq *programme.Squadron, fp *programme.FullProgramme, opts Option
 
 	pageW, _ := pdf.GetPageSize()
 	left, _, right, _ := pdf.GetMargins()
-	usableWidth := pageW - left - right
+	usableWidth := pageW*r - left - right
 	cols := newColumns(usableWidth, len(sq.Classifications))
 
 	colourByKey := map[string]programme.UniformColour{}
@@ -147,15 +203,19 @@ func RenderWith(sq *programme.Squadron, fp *programme.FullProgramme, opts Option
 
 	drawUniformKey(pdf, sq, usableWidth)
 	drawRequirementsFooter(pdf, fp.Requirements, usableWidth)
-	drawCalendarQR(pdf, opts)
+	endY := pdf.GetY()
+	drawCalendarQR(pdf, opts, r)
 	drawProtectiveMarking(pdf, sq, usableWidth)
 	drawVersionFooter(pdf, usableWidth)
 
+	if r != 1 {
+		pdf.TransformEnd()
+	}
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
-		return nil, fmt.Errorf("render pdf: %w", err)
+		return nil, 0, fmt.Errorf("render pdf: %w", err)
 	}
-	return buf.Bytes(), nil
+	return buf.Bytes(), endY, nil
 }
 
 func drawProtectiveMarking(pdf *fpdf.Fpdf, sq *programme.Squadron, usableWidth float64) {
@@ -789,7 +849,7 @@ func hexToRGB(hex string) (int, int, int) {
 // drawCalendarQR prints the calendar QR code and a short note under the grid,
 // as large as the space left on the page allows (up to 18 mm). It is skipped
 // if there is not room for a code that can still be scanned (10 mm).
-func drawCalendarQR(pdf *fpdf.Fpdf, opts Options) {
+func drawCalendarQR(pdf *fpdf.Fpdf, opts Options, r float64) {
 	if opts.CalendarURL == "" {
 		return
 	}
@@ -797,25 +857,24 @@ func drawCalendarQR(pdf *fpdf.Fpdf, opts Options) {
 	if err != nil {
 		return
 	}
-	_, pageH := pdf.GetPageSize()
 	left, _, _, _ := pdf.GetMargins()
-	const footer = 9.0 // room kept for the protective marking and version line
-	y := pdf.GetY() + 2
-	size := math.Min(18, pageH-footer-y)
-	if size < 10 {
+	y := pdf.GetY() + 2*r
+	// r keeps the code the same size on the paper when the page was shrunk to fit.
+	size := math.Min(18*r, pageHeight*r-footerRoom*r-y)
+	if size < 10*r {
 		return
 	}
 	pdf.RegisterImageOptionsReader("calendar-qr", fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(png))
 	pdf.ImageOptions("calendar-qr", left, y, size, size, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
-	pdf.SetFont("Helvetica", "B", 7)
-	pdf.SetXY(left+size+3, y+1)
-	pdf.CellFormat(100, 3.5, "Add this programme to your calendar", "0", 1, "L", false, 0, "")
-	pdf.SetFont("Helvetica", "", 6)
-	pdf.SetX(left + size + 3)
-	pdf.CellFormat(100, 3, "Scan the code with your phone. New parade nights appear as they are published.", "0", 1, "L", false, 0, "")
+	pdf.SetFont("Helvetica", "B", 7*r)
+	pdf.SetXY(left+size+3*r, y+r)
+	pdf.CellFormat(100*r, 3.5*r, "Add this programme to your calendar", "0", 1, "L", false, 0, "")
+	pdf.SetFont("Helvetica", "", 6*r)
+	pdf.SetX(left + size + 3*r)
+	pdf.CellFormat(100*r, 3*r, "Scan the code with your phone. New parade nights appear as they are published.", "0", 1, "L", false, 0, "")
 	if !opts.CalendarExpires.IsZero() {
-		pdf.SetX(left + size + 3)
-		pdf.CellFormat(100, 3, "This link works until "+opts.CalendarExpires.In(programme.Local).Format("2 January 2006")+".", "0", 1, "L", false, 0, "")
+		pdf.SetX(left + size + 3*r)
+		pdf.CellFormat(100*r, 3*r, "This link works until "+opts.CalendarExpires.In(programme.Local).Format("2 January 2006")+".", "0", 1, "L", false, 0, "")
 	}
 	pdf.SetXY(left, y+size)
 }

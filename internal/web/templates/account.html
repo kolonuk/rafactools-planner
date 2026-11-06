@@ -1,4 +1,10 @@
 {{define "content"}}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Planner</a></li>
+    <li aria-current="page">Your details</li>
+  </ol>
+</nav>
 <h1>Your details</h1>
 <form method="post" action="{{url "/account"}}" class="card">
   <input type="hidden" name="csrf" value="{{.CSRF}}">

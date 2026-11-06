@@ -5,6 +5,7 @@ summary: Keeping a list of instructors for the programme grid's suggestions, and
 since: 1.9
 audience: user
 changed:
+  - 1.14: A person in your list can be edited in place (click the name, then the tick or the cross); the top bar no longer has an Instructors link: it is in the month's menu bar and on the Squadron page.
   - 1.10: People with a login are listed on the page as fixed entries.
   - 1.9: An entry can now be edited (name and rank) instead of removed and added again.
 ---
@@ -34,12 +35,12 @@ login can be given their name when they claim the squadron or accept an invitati
 
 ## The instructor list
 
-Owners and editors can keep the list. Open **Instructors** in the top bar (or
-**Manage instructors** at the top of a programme).
+Owners and editors can keep the list. Open **Instructors** in the menu bar of a programme (owners
+can also use the link at the top of the **Squadron** page).
 
 - **Add someone:** enter their **Name** (required, up to 80 characters) and optionally
   their **Rank** (up to 40 characters, for example `Sgt`), then select **Add**.
-- **Edit someone:** select **Edit** beside them to change their name or rank (the same limits and
+- **Edit someone:** click their name (or select **Edit**) and use the tick to save or the cross to cancel; you can change their name or rank (the same limits and
   duplicate rule apply). Names already typed into programmes are free text and are not changed.
 - **Remove someone:** select **Remove** beside them. Names already typed into
   programmes are not changed.

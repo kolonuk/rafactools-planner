@@ -18,7 +18,14 @@ never force-push (branch protection forbids it, and the history was rewritten on
    the slow ones). Merge it with `gh pr merge <n> --merge`. Wait for the CI run on `test` to pass.
 4. Open a PR **`test` → `main`** (`--base main --head test`), wait for checks, merge the same way.
    Wait for the CI run on `main`: it builds, scans and publishes the image.
-5. After the merges, `git fetch` and fast-forward local `dev` (`git merge --ff-only origin/dev`).
+5. **Cut the release (version history).** Every user-visible change needs a `CHANGELOG.md` line under
+   `## Unreleased` and a docs `changed: - next:` note in the same commit. When a batch is on `dev` and its
+   CI is green, run the manual workflow: `gh workflow run release.yml --ref dev`. It freezes the unreleased
+   docs and changelog as the next `1.<N>` and opens a PR `release/1.<N>` into `test` (the promotion check
+   accepts it because the release commit's parent is on `dev`). Merge that PR like any other, wait for CI on
+   `test`, then promote `test` to `main` as in step 4. Do not skip this: the version shown in the footer and
+   PDF, and the "Version history" page, only move when a release is cut.
+6. After the merges, `git fetch` and fast-forward local `dev` (`git merge --ff-only origin/dev`).
    `test` and `main` each hold one merge commit that `dev` does not; that is expected.
 
 Commit messages end with the Co-Authored-By line, and PR descriptions with the "Generated with

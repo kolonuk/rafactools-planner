@@ -107,6 +107,7 @@ body {
   text-decoration: none;
   letter-spacing: 0.01em;
 }
+.topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-width: 0; margin-left: auto; }
 .topbar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; min-width: 0; }
 .topbar nav a { overflow-wrap: anywhere; }
 @media (max-width: 600px) {
@@ -201,12 +202,14 @@ button:active { filter: brightness(0.95); }
 }
 .link-button:hover { box-shadow: none; filter: none; opacity: 0.8; }
 
-/* The programme grid: a flowing list of nights rather than a boxed grid. Each
-   night is a band with a soft divider; the boxes stay quiet until you hover or
-   focus them. On a phone every row becomes its own card (see the media query
-   below), using each cell's data-label. The markup is still a real table, so
-   screen readers and the forms keep working. */
+/* The programme grid: a flowing timetable. Each night is a band; its activity
+   and instructor boxes are stacked inside one cell per class, so a night is one
+   or two lines instead of a block of rows. Boxes stay quiet until you point at
+   or move into them. On a phone every night becomes a card (see the media query
+   at the end of this block). It is still a real table underneath, so screen
+   readers and the forms work without script. */
 .grid-form { overflow-x: auto; }
+
 table.list { border-collapse: collapse; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 8px; overflow: hidden; }
 table.list th, table.list td {
   overflow-wrap: anywhere; /* long addresses and the role controls wrap on a phone */
@@ -218,27 +221,32 @@ table.list th, table.list td {
 }
 table.list th { background: var(--md-surface-container-high); font-weight: 500; }
 
-table.grid { min-width: 760px; border-collapse: separate; border-spacing: 0; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 12px; overflow: hidden; box-shadow: var(--md-elevation-1); }
-table.grid th, table.grid td { padding: 6px 10px; font-size: 0.85em; text-align: left; vertical-align: top; border: 0; }
-table.grid thead th { background: var(--md-surface-container-high); font-weight: 600; color: var(--md-on-surface-variant); position: sticky; top: 0; }
-table.grid tbody td { border-top: 1px solid transparent; }
+table.grid { min-width: 820px; border-collapse: separate; border-spacing: 0; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 12px; overflow: hidden; box-shadow: var(--md-elevation-1); }
+table.grid th, table.grid td { padding: 8px 10px; font-size: 0.85em; text-align: left; vertical-align: top; border: 0; border-top: 1px solid transparent; }
+table.grid thead th { background: var(--md-surface-container-high); font-weight: 600; color: var(--md-on-surface-variant); position: sticky; top: 0; border-top: 0; }
 table.grid tbody tr.day-start td, table.grid tbody tr.non-parade-row td, table.grid tbody tr.closed-row td { border-top-color: var(--md-outline-variant); }
 table.grid tbody tr:first-child td { border-top-color: transparent; }
 table.grid tbody tr:hover td { background: var(--md-surface-container); }
-table.grid .date-cell { white-space: nowrap; font-weight: 600; font-size: 1em; }
-table.grid .date-cell .swatch { margin-left: 6px; vertical-align: -1px; }
+table.grid .date-cell { white-space: nowrap; min-width: 6.5rem; }
+table.grid .date-num { font-size: 1.5em; font-weight: 600; line-height: 1.1; }
+table.grid .date-dow { color: var(--md-on-surface-variant); font-size: 0.95em; }
+table.grid .date-cell .swatch { margin-left: 6px; vertical-align: 1px; }
+table.grid .parade-cell, table.grid .half-cell { text-align: center; width: 1%; color: var(--md-on-surface-variant); }
+table.grid .uniform-cell { min-width: 9rem; }
 table.grid tr.closed-row td { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
 table.grid tr.non-parade-row td { color: var(--md-on-surface-variant); }
 table.grid input[type=text], table.grid select, table.grid textarea { max-width: none; font-size: 0.85em; padding: 4px 6px; background: transparent; border: 1px solid transparent; border-radius: 6px; }
-table.grid select { width: auto; }
+table.grid input[type=text] { display: block; width: 100%; border-bottom-color: var(--md-outline-variant); }
+table.grid input.act { font-weight: 600; }
+table.grid input.ins { font-size: 0.8em; color: var(--md-on-surface-variant); margin-top: 3px; }
+table.grid select { width: auto; max-width: 100%; }
 table.grid textarea { width: 100%; min-width: 140px; resize: vertical; }
 /* The border and a fill appear when you point at a box or move into it. */
 table.grid input[type=text]:hover, table.grid select:hover, table.grid textarea:hover { border-color: var(--md-outline-variant); }
 table.grid input[type=text]:focus, table.grid select:focus, table.grid textarea:focus { background: var(--md-surface); border-color: var(--md-primary); outline: none; box-shadow: 0 0 0 2px var(--md-primary-container); }
-/* Every box keeps a faint underline so you can see where to type. */
-table.grid input[type=text] { width: 100%; border-bottom-color: var(--md-outline-variant); }
+table.grid tr.half-row td { padding-top: 0; }
 
-/* On a phone: no sideways scrolling; each row is a small card. */
+/* On a phone: no sideways scrolling; each night is a small card. */
 @media (max-width: 700px) {
   table.grid { min-width: 0; box-shadow: none; background: transparent; border-radius: 0; }
   table.grid thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -246,22 +254,19 @@ table.grid input[type=text] { width: 100%; border-bottom-color: var(--md-outline
   table.grid tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--md-surface); border-radius: 12px; box-shadow: var(--md-elevation-1); margin: 0 0 10px; padding: 6px 4px; }
   table.grid tr > td { grid-column: 1 / -1; }
   table.grid tr > td.class-cell { grid-column: auto; }
-  /* The second line of a night (and its "add a half" row) joins the card above. */
+  /* The second part of a night (and its "add a half" row) joins the card above. */
   table.grid tr:not(.day-start):not(.non-parade-row):not(.closed-row) { margin-top: -12px; border-radius: 0 0 12px 12px; box-shadow: none; border-top: 1px dashed var(--md-outline-variant); }
-  table.grid td { padding: 4px 10px; }
-  table.grid td[data-label]::before { content: attr(data-label); display: block; font-size: 0.75em; color: var(--md-on-surface-variant); margin-bottom: 2px; }
-  table.grid td.date-cell::before, table.grid td.row-label::before { display: none; }
-  table.grid td.row-label { padding-bottom: 0; }
   table.grid tr[hidden] { display: none; }
   table.grid td:empty { display: none; }
+  table.grid td { padding: 4px 10px; border-top: 0; }
+  table.grid td[data-label]::before { content: attr(data-label); display: block; font-size: 0.75em; color: var(--md-on-surface-variant); margin-bottom: 2px; }
+  table.grid td.date-cell::before, table.grid td.half-cell::before { display: none; }
+  table.grid td.parade-cell, table.grid td.half-cell { text-align: left; width: auto; }
   table.grid td[colspan] { padding-top: 6px; }
-  table.grid td.date-cell { font-size: 1.15em; }
   table.grid input[type=text], table.grid select, table.grid textarea { border-color: var(--md-outline-variant); }
   table.grid tbody tr:hover td { background: transparent; }
-  table.grid td[rowspan] { display: block; }
 }
 
-.row-label { font-weight: 600; white-space: nowrap; color: var(--md-on-surface-variant); }
 .checkbox-row { display: flex; gap: 14px; flex-wrap: wrap; }
 .checkbox-row .checkbox { display: inline-flex; align-items: center; gap: 5px; font-size: 0.9em; color: var(--md-on-surface); }
 
@@ -274,39 +279,10 @@ code {
 
 a { color: var(--md-primary); }
 
-/* Parade-evenings-only toggle on the programme grid (programme_edit.html) —
-   CSS-only, no JS: the checkbox and table are kept as direct siblings so
-   this general-sibling selector can reach the table at all. */
-/* "Show parade evenings only" is a switch, on by default. It stays a plain
-   checkbox underneath (no script), so the sibling selector below keeps working. */
-.parade-toggle-input {
-  appearance: none;
-  position: relative;
-  width: 40px;
-  height: 22px;
-  margin: 10px 0 4px;
-  vertical-align: middle;
-  border-radius: 11px;
-  border: 2px solid var(--md-outline);
-  background: var(--md-surface-container-high);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.parade-toggle-input::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--md-outline);
-  transition: transform 0.15s, background 0.15s;
-}
-.parade-toggle-input:checked { background: var(--md-primary); border-color: var(--md-primary); }
-.parade-toggle-input:checked::after { transform: translateX(18px); background: var(--md-on-primary); }
-.parade-toggle-label { display: inline-block; margin: 10px 0 10px 6px; font-size: 0.9em; cursor: pointer; }
-#parade-only-toggle:checked ~ table.grid tr.non-parade-row { display: none; }
+/* Which nights the grid shows: the two radio buttons (visually hidden, but still
+   direct siblings of the table in programme_edit.html) choose it without script. */
+.nights-input { position: absolute; opacity: 0; pointer-events: none; }
+#nights-parade:checked ~ table.grid tr.non-parade-row { display: none; }
 
 .version-footer {
   text-align: center;
@@ -470,45 +446,87 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input[type="checkb
 .breadcrumb a:hover { text-decoration: underline; }
 .breadcrumb [aria-current] { color: var(--md-on-surface-variant); }
 
-/* Title row with an Actions menu on the right. */
-.page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 8px; }
-.page-head h1 { margin: 0; }
-
-/* Actions menu: a <details> element, so it opens and closes without script. */
-.menu { position: relative; }
-.menu summary {
-  list-style: none;
+/* The month's menu bar: a row of menus and buttons under the breadcrumb. */
+.menubar { margin: 6px 0 14px; border-bottom: 1px solid var(--md-outline-variant); }
+.menubar-list { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.menubar-list > li { position: relative; }
+.mb-item {
+  display: inline-block;
+  padding: 9px 14px;
+  margin: 0;
+  background: transparent;
+  color: var(--md-on-surface);
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  font: inherit;
+  font-size: 0.95rem;
+  text-decoration: none;
   cursor: pointer;
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid var(--md-outline);
-  color: var(--md-primary);
-  font-weight: 500;
-  user-select: none;
+  box-shadow: none;
+  list-style: none;
 }
-.menu summary::-webkit-details-marker { display: none; }
-.menu summary::after { content: " \25BE"; }
-.menu[open] summary { background: var(--md-primary-container); color: var(--md-on-primary-container); }
-.menu-list {
+.mb-item:hover, .mb-dropdown details[open] > summary { background: var(--md-surface-container-high); filter: none; box-shadow: none; }
+.mb-item:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.mb-dropdown summary::-webkit-details-marker { display: none; }
+.mb-dropdown summary::after { content: ""; display: inline-block; margin-left: 8px; border: 4px solid transparent; border-top-color: currentColor; border-bottom: 0; vertical-align: 2px; }
+.mb-panel {
   position: absolute;
-  right: 0;
-  z-index: 20;
-  min-width: 230px;
-  margin: 6px 0 0;
+  left: 0;
+  top: 100%;
+  z-index: 30;
+  min-width: 200px;
+  margin: 0;
   padding: 6px 0;
   list-style: none;
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-variant);
-  border-radius: 12px;
+  border-radius: 0 8px 8px 8px;
   box-shadow: var(--md-elevation-2);
 }
-.menu-list a, .menu-list .menu-toggle { display: block; padding: 10px 16px; color: var(--md-on-surface); text-decoration: none; cursor: pointer; }
-.menu-list a:hover, .menu-list .menu-toggle:hover, .menu-list a:focus-visible { background: var(--md-surface-container-high); }
-.menu-list .menu-danger a { color: var(--md-error); }
-/* The tick or cross follows the "parade evenings only" switch on the grid. */
-.menu-toggle::before { content: "\2717\00a0\00a0"; color: var(--md-outline); }
-body:has(#parade-only-toggle:checked) .menu-toggle::before { content: "\2713\00a0\00a0"; color: var(--md-primary); font-weight: 700; }
-.menu-form { margin: 0; }
-.menu-button { display: block; width: 100%; padding: 10px 16px; margin: 0; background: transparent; color: var(--md-on-surface); border: 0; border-radius: 0; text-align: left; font: inherit; cursor: pointer; box-shadow: none; }
-.menu-button:hover { background: var(--md-surface-container-high); box-shadow: none; filter: none; }
+.mb-panel a { display: block; padding: 9px 16px; color: var(--md-on-surface); text-decoration: none; }
+.mb-panel a:hover, .mb-panel a:focus-visible { background: var(--md-surface-container-high); }
+.mb-panel a.danger { color: var(--md-error); }
+.mb-form { margin: 0; }
+.mb-spacer { flex: 1 1 auto; }
+.mb-status { padding: 0 8px; }
+.chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+.chip-on { background: var(--md-success-container); color: var(--md-on-success-container); }
+
+/* "Parade nights | All nights": a two-part switch. The radios it drives are in the form. */
+.mb-nights { display: inline-flex; border: 1px solid var(--md-outline); border-radius: 18px; overflow: hidden; margin: 4px 0; }
+.seg { padding: 6px 14px; font-size: 0.9rem; cursor: pointer; color: var(--md-on-surface); user-select: none; }
+.seg:hover { background: var(--md-surface-container-high); }
+body:has(#nights-parade:checked) .seg-parade, body:has(#nights-all:checked) .seg-all { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+body:has(#nights-parade:focus-visible) .seg-parade, body:has(#nights-all:focus-visible) .seg-all { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.seg + .seg { border-left: 1px solid var(--md-outline); }
+
+/* The public-link panel on a published month. */
+.share-grid { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.share-grid > div { flex: 1 1 22rem; min-width: 0; }
+.qr { background: #fff; padding: 6px; border-radius: 8px; image-rendering: pixelated; }
+.share-panel label { display: block; font-size: 0.85rem; color: var(--md-on-surface-variant); }
 input.wide { width: 100%; max-width: 40rem; }
+[hidden] { display: none !important; }
+
+/* Click-to-edit lists (closures, weekend notes, the requirement tracker, instructors).
+   Each item has a hidden checkbox that switches it between reading and editing;
+   its text and its Edit button are labels for it, so it needs no script. The
+   tick saves, the cross cancels (and Enter / Escape do the same: see edit.js). */
+.ie-toggle { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.ie-row .ie-edit { display: none; }
+.ie-row:has(.ie-toggle:checked) .ie-view { display: none; }
+.ie-row:has(.ie-toggle:checked) .ie-edit { display: inline-block; }
+.ie-row:has(.ie-toggle:checked) td > input.ie-edit { display: block; width: 100%; }
+.ie-row:has(.ie-toggle:focus-visible) .ie-click:first-of-type { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.ie-click { cursor: text; border-radius: 4px; }
+.ie-click:hover { background: var(--md-surface-container-high); box-shadow: 0 0 0 3px var(--md-surface-container-high); }
+.ie-edit input[type=text], input.ie-edit { max-width: 18rem; }
+label.link-button { cursor: pointer; color: var(--md-primary); text-decoration: underline; }
+.ie-ok, .ie-cancel {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin-left: 4px; padding: 0; border-radius: 50%;
+  font-size: 1rem; line-height: 1; cursor: pointer; box-shadow: none; border: 1px solid transparent;
+}
+.ie-ok { background: var(--md-primary); color: var(--md-on-primary); }
+.ie-cancel { background: transparent; color: var(--md-on-surface); border-color: var(--md-outline); }
+.ie-ok:hover, .ie-cancel:hover { filter: brightness(0.92); }
