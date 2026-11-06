@@ -48,7 +48,7 @@ For whoever hosts the planner, and for contributors.
 
 | Topic | What it covers |
 | --- | --- |
-| [Run your own copy](run-your-own) | Why to run it yourself, what you need, GitHub settings, or the free public site |
+| [Run your own copy](run-your-own) | Why to run it yourself, what you need, and the settings it uses |
 | [Configuration](operators-configuration) | Every setting, its default, and start-up failures |
 | [Set up email](operators-email) | Cloudflare, Gmail, Google Workspace, Amazon SES, other SMTP, and the Email settings page |
 | [Running the site](operators-running) | Starting, stopping, health checks, reverse proxies |
