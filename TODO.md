@@ -51,6 +51,14 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   Squadron > Programmes > November 2026) so it is clear where you are and easy to go back.
   The menu must work with the keyboard and on a phone, and still reach every action when
   scripts are off if that is reasonable. Do this together with "Modernise the planner grid".
+- [ ] **[P3 usability]** **Edit in place for every text entry, not only delete.** Closures, weekend notes,
+  programme notes and the requirement tracker (categories and entries) can be deleted today but
+  not edited. Clicking the text should turn it into an editable field with a tick (save) and a
+  cross (cancel); Enter saves and Escape cancels. Do it the same way everywhere in the grids and
+  lists, as part of making the site friendlier (see "Modernise the planner grid" and the menu
+  item). Keep a plain "Edit" link or button that works without scripts and with the keyboard, and
+  record each edit in the programme history. This replaces the old "Edit a closure or weekend
+  note" idea.
 - [ ] **[P3 usability]** **PDF: the colour key overlaps the planner.** Fix the layout in
   `internal/pdfgen` so the key never sits on top of the grid; compare against `examples/pdfs/`
   (see the `pdf-fidelity` skill).
@@ -209,7 +217,6 @@ Small gaps found while building and reviewing; each is a candidate to pick up.
 - **[P3 usability]** **Edit uniform colours** (names and colours) in squadron settings; today only
   the five defaults exist.
 - **[P3 usability]** **Resend an invite** (and see when it was sent); today you revoke and re-invite.
-- **[P3 usability]** **Edit a closure or weekend note** instead of deleting and re-adding it.
 - **[P4 nicety]** **Print-friendly programme page** (the PDF covers most of this).
 - **[P3 usability]** **Search** across programmes for an activity or a cadet's name.
 - **[P4 nicety]** **Last-seen / last-edited** on the dashboard, to spot stale programmes.

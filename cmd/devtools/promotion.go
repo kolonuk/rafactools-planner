@@ -25,6 +25,11 @@ type promotionEnv interface {
 	// Subject and Parent describe a commit (the first parent of a merge).
 	Subject(sha string) (string, error)
 	Parent(sha string) (string, error)
+	// PromotedFrom returns the commit that sha merely brings across: when sha is a
+	// merge of exactly two parents whose result is identical (same tree) to the
+	// second parent, as GitHub's "Merge pull request" commit is when a branch is
+	// promoted. It returns "" for any other commit.
+	PromotedFrom(sha string) (string, error)
 	// CIResult is the conclusion of the finished CI run for sha ("success",
 	// "failure", ...), "running" when one is still going, or "" when there is none.
 	CIResult(sha string) (string, error)
@@ -32,7 +37,9 @@ type promotionEnv interface {
 
 // checkPromotion enforces dev -> test -> main. A push to dev is always fine. A
 // push to test or main must already be on the previous branch, and CI must have
-// passed on it there. A release commit made by the pipeline ("release 1.N ...",
+// passed on it there. The merge commit GitHub makes when a promotion pull request
+// is merged exists only on the target branch, so it is judged by the commit it
+// carries across (see PromotedFrom). A release commit made by the pipeline ("release 1.N ...",
 // made without its own CI run) has none, so its parent is checked.
 func checkPromotion(env promotionEnv, branch, sha string) error {
 	prev, gated := previousStage[branch]
@@ -43,12 +50,26 @@ func checkPromotion(env promotionEnv, branch, sha string) error {
 	if err != nil {
 		return err
 	}
+	target := sha
+	if !on {
+		// A promotion merge commit: accept it when what it carries is already on
+		// the previous branch, and check CI on that commit instead.
+		from, err := env.PromotedFrom(sha)
+		if err != nil {
+			return err
+		}
+		if from != "" {
+			if on, err = env.OnBranch(from, prev); err != nil {
+				return err
+			}
+			target = from
+		}
+	}
 	if !on {
 		return fmt.Errorf("%s is not on %s yet: push it to %s first, let CI pass there, then promote it to %s", short(sha), prev, prev, branch)
 	}
-	target := sha
-	if subject, err := env.Subject(sha); err == nil && strings.HasPrefix(subject, "release ") || strings.HasPrefix(subject, "Merge release ") {
-		if parent, err := env.Parent(sha); err == nil && parent != "" {
+	if subject, err := env.Subject(target); err == nil && (strings.HasPrefix(subject, "release ") || strings.HasPrefix(subject, "Merge release ")) {
+		if parent, err := env.Parent(target); err == nil && parent != "" {
 			target = parent
 		}
 	}
@@ -103,6 +124,29 @@ func (l liveEnv) OnBranch(sha, branch string) (bool, error) {
 
 func (l liveEnv) Subject(sha string) (string, error) { return git("log", "-1", "--format=%s", sha) }
 func (l liveEnv) Parent(sha string) (string, error)  { return git("rev-parse", sha+"^1") }
+
+func (l liveEnv) PromotedFrom(sha string) (string, error) {
+	out, err := git("rev-list", "--parents", "-n", "1", sha)
+	if err != nil {
+		return "", fmt.Errorf("read parents of %s: %v: %s", short(sha), err, out)
+	}
+	fields := strings.Fields(out)
+	if len(fields) != 3 { // the commit and exactly two parents
+		return "", nil
+	}
+	merged, err := git("rev-parse", sha+"^{tree}")
+	if err != nil {
+		return "", fmt.Errorf("read tree of %s: %v: %s", short(sha), err, merged)
+	}
+	carried, err := git("rev-parse", fields[2]+"^{tree}")
+	if err != nil {
+		return "", fmt.Errorf("read tree of %s: %v: %s", short(fields[2]), err, carried)
+	}
+	if merged != carried {
+		return "", nil
+	}
+	return fields[2], nil
+}
 
 func (l liveEnv) CIResult(sha string) (string, error) {
 	q := url.Values{"head_sha": {sha}, "per_page": {"20"}}
