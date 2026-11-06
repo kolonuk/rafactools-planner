@@ -213,6 +213,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.versioned("Saved the programme", s.programmeSave)))
 	mux.HandleFunc("GET /programmes/{id}/pdf", s.requireAuth(s.programmePDF))
 	mux.HandleFunc("GET /programmes/{id}/png", s.requireAuth(s.programmePNG))
+	mux.HandleFunc("GET /programmes/{id}/qr.png", s.requireAuth(s.programmeQR))
 	mux.HandleFunc("GET /programmes/{id}/history", s.requireAuth(s.historyPage))
 	mux.HandleFunc("GET /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreConfirm))
 	mux.HandleFunc("POST /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreSubmit))

@@ -301,3 +301,27 @@ func TestMonthPageLoadsItsScripts(t *testing.T) {
 		t.Error("the instructors page does not load edit.js")
 	}
 }
+
+func TestTheQRPictureIsOnlyForSignedInMembersOfTheSquadron(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1308")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
+	p, _ := app.store.CreateProgramme(sq, 2030, 4, 1)
+	path := "/programmes/" + strconv.FormatInt(p.ID, 10) + "/qr.png"
+	if resp := c.get(path); resp.StatusCode != http.StatusNotFound { // no link yet
+		t.Errorf("without a link: status %d, want 404", resp.StatusCode)
+	}
+	wantRedirect(t, c.post("/programmes/"+strconv.FormatInt(p.ID, 10)+"/publish", url.Values{"published": {"1"}}), "/programmes/"+strconv.FormatInt(p.ID, 10))
+	resp := c.get(path)
+	if resp.StatusCode != http.StatusOK || resp.Header.Get("Content-Type") != "image/png" {
+		t.Errorf("with a link: status %d type %q", resp.StatusCode, resp.Header.Get("Content-Type"))
+	}
+	resp.Body.Close()
+	wantRedirect(t, app.anon().get(path), "/login")
+	other := app.login(app.owner("1309"))
+	if resp := other.get(path); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("another squadron: status %d, want 404", resp.StatusCode)
+	}
+}

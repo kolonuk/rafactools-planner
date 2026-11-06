@@ -56,7 +56,7 @@
   <p class="error">This squadron's public link has expired, so nothing is shared. An owner can make a new one under <a href="{{url "/squadron#sharing"}}">Squadron</a>.</p>
   {{else}}
   <div class="share-grid">
-    <img class="qr" src="{{.Share.QR}}" width="140" height="140" alt="QR code that adds the squadron's calendar to a phone">
+    {{if .Share.HasQR}}<img class="qr" src="{{url "/programmes/" .ProgrammeID "/qr.png"}}" width="140" height="140" alt="QR code that adds the squadron's calendar to a phone">{{end}}
     <div>
       <p>This month is public. Anyone with these addresses can see it, without signing in. They stop working on {{.Share.Expires}}.</p>
       <p><label>Calendar (subscribe in a calendar app) <input type="text" readonly class="wide" value="{{.Share.CalendarURL}}"></label></p>

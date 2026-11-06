@@ -1,9 +1,7 @@
 package web
 
 import (
-	"encoding/base64"
 	"errors"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -373,10 +371,34 @@ func (s *server) sharePanel(squadronID int64, fp *programme.FullProgramme) map[s
 	out["CalendarURL"] = s.shareURL(sh.Token, "calendar.ics")
 	out["PDFURL"] = s.shareURL(sh.Token, monthFile(fp.Year, fp.Month, "pdf"))
 	out["PNGURL"] = s.shareURL(sh.Token, monthFile(fp.Year, fp.Month, "png"))
-	if opts := s.pdfOptions(squadronID); opts.CalendarURL != "" {
-		if png, err := qrcode.Encode(opts.CalendarURL, qrcode.Medium, 280); err == nil {
-			out["QR"] = template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(png))
-		}
-	}
+	out["HasQR"] = s.pdfOptions(squadronID).CalendarURL != ""
 	return out
+}
+
+// programmeQR serves the calendar's QR code as a picture to a signed-in member,
+// for the public-link panel on a published month.
+func (s *server) programmeQR(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	id, ok := parseID(r, "id")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := s.Store.GetFullProgramme(u.SquadronID, id); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	opts := s.pdfOptions(u.SquadronID)
+	if opts.CalendarURL == "" {
+		http.NotFound(w, r)
+		return
+	}
+	png, err := qrcode.Encode(opts.CalendarURL, qrcode.Medium, 280)
+	if err != nil {
+		http.Error(w, "Could not make the code.", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "private, no-store")
+	_, _ = w.Write(png)
 }
