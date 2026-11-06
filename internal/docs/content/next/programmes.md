@@ -5,6 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
+  - next: The month page has a breadcrumb and an Actions menu (Export PDF, History, Manage instructors, the parade-evenings switch with a tick or a cross, Reset this month) in place of the row of links.
   - 1.10: A closure locks the dates it covers in the grid.
   - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.
   - 1.9: Every save, reset and restore is kept as a version; the History page lists them (who, when, what) and any can be restored. The draft status is gone: every month is live.
@@ -72,7 +73,13 @@ suggestions: you can type any name.
 On a narrow screen the grid scrolls sideways rather than squeezing its columns.
 
 **Show parade evenings only** is a switch above the grid, on by default. It hides the days
-that are not parade nights to make the grid shorter; turn it off to see every day.
+that are not parade nights to make the grid shorter; turn it off to see every day. The same
+switch is in the **Actions** menu at the top right of the page, shown with a tick when it is
+on and a cross when it is off.
+
+The **Actions** menu also holds **Export PDF**, **History** and, for owners and editors,
+**Manage instructors** and **Reset this month**. The trail above the month's name
+(**Dashboard › November 2026**) shows where you are; select **Dashboard** to go back.
 
 ### Adding and removing a second half
 

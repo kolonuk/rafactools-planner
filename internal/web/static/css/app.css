@@ -1,4 +1,4 @@
-/* Material Design 3 tokens — light (default) and dark (via prefers-color-scheme).
+/* Material Design 3 tokens — light (default), and dark (system preference or the theme toggle).
    Hand-rolled CSS rather than a component library: this app is plain
    server-rendered forms (see internal/web), so there's no JS framework to
    hang Material Web Components off without adding one just for styling. */
@@ -24,8 +24,12 @@
   --md-elevation-2: 0 1px 2px 0 rgba(0,0,0,0.18), 0 2px 6px 2px rgba(0,0,0,0.10);
 }
 
+/* Dark theme. Used when the system prefers dark and the person has not chosen
+   light, or when they chose dark with the toggle (data-theme on <html>, set by
+   static/js/gen/theme.js). The two blocks must be kept identical. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --md-primary: #aac7ff;
     --md-on-primary: #0a305f;
     --md-primary-container: #284777;
@@ -47,6 +51,29 @@
     --md-elevation-2: 0 1px 3px 0 rgba(0,0,0,0.6), 0 2px 8px 2px rgba(0,0,0,0.35);
   }
 }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --md-primary: #aac7ff;
+  --md-on-primary: #0a305f;
+  --md-primary-container: #284777;
+  --md-on-primary-container: #d6e3ff;
+  --md-surface: #111318;
+  --md-surface-dim: #111318;
+  --md-surface-container: #1d2024;
+  --md-surface-container-high: #272a2f;
+  --md-on-surface: #e2e2e9;
+  --md-on-surface-variant: #c6c6d0;
+  --md-outline: #90909a;
+  --md-outline-variant: #45464f;
+  --md-error: #ffb4ab;
+  --md-error-container: #93000a;
+  --md-on-error-container: #ffdad6;
+  --md-success-container: #0c3b1e;
+  --md-on-success-container: #c4eed0;
+  --md-elevation-1: 0 1px 3px 0 rgba(0,0,0,0.5), 0 1px 4px 1px rgba(0,0,0,0.3);
+  --md-elevation-2: 0 1px 3px 0 rgba(0,0,0,0.6), 0 2px 8px 2px rgba(0,0,0,0.35);
+}
+:root[data-theme="light"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 
@@ -378,3 +405,65 @@ table.list th, table.list td { overflow-wrap: anywhere; }
 .report-button:hover { background: var(--md-surface-container-high); }
 
 .plain-list { list-style: none; margin: 0; padding: 0; }
+
+/* Theme toggle in the top bar (shown by static/js/gen/theme.js). */
+.theme-toggle {
+  background: transparent;
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.theme-toggle:hover { background: var(--md-surface-container-high); box-shadow: none; filter: none; }
+.theme-toggle[hidden] { display: none; }
+
+/* Breadcrumb above a page title. */
+.breadcrumb ol { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 4px; padding: 0; list-style: none; font-size: 0.9em; }
+.breadcrumb li + li::before { content: "\203A"; margin-right: 4px; color: var(--md-outline); }
+.breadcrumb a { text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb [aria-current] { color: var(--md-on-surface-variant); }
+
+/* Title row with an Actions menu on the right. */
+.page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 8px; }
+.page-head h1 { margin: 0; }
+
+/* Actions menu: a <details> element, so it opens and closes without script. */
+.menu { position: relative; }
+.menu summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--md-outline);
+  color: var(--md-primary);
+  font-weight: 500;
+  user-select: none;
+}
+.menu summary::-webkit-details-marker { display: none; }
+.menu summary::after { content: " \25BE"; }
+.menu[open] summary { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.menu-list {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  min-width: 230px;
+  margin: 6px 0 0;
+  padding: 6px 0;
+  list-style: none;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 12px;
+  box-shadow: var(--md-elevation-2);
+}
+.menu-list a, .menu-list .menu-toggle { display: block; padding: 10px 16px; color: var(--md-on-surface); text-decoration: none; cursor: pointer; }
+.menu-list a:hover, .menu-list .menu-toggle:hover, .menu-list a:focus-visible { background: var(--md-surface-container-high); }
+.menu-list .menu-danger a { color: var(--md-error); }
+/* The tick or cross follows the "parade evenings only" switch on the grid. */
+.menu-toggle::before { content: "\2717\00a0\00a0"; color: var(--md-outline); }
+body:has(#parade-only-toggle:checked) .menu-toggle::before { content: "\2713\00a0\00a0"; color: var(--md-primary); font-weight: 700; }

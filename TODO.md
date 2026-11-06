@@ -26,6 +26,32 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   and the `.claude/skills` notes for wording that assumes a private project or a particular
   host, and make them neutral. Edit the `next` docs; released snapshots stay as published.
 
+- [ ] **[P2 helpful feature]** **Planner redesign and public sharing: the plan, in order.** Decided: no Bootstrap;
+  keep the hand-written Material-style CSS. One phase per pull request through dev, test and main.
+  1. *Foundations (done in part):* theme toggle with the system setting first, breadcrumb, and the
+     Actions menu with the parade switch as a tick or cross. Still to do: phone layout of the top bar.
+  2. *The grid:* replace the table with a flowing list where each day is its own row/card (date and day
+     badge, uniform chip, then the activity and instructor per class), laid out with CSS grid and
+     container queries so one layout serves desktop and phone. Drag the day by its handle. Fix the
+     "Day" column after a move. Inline edit (tick/cross) arrives with the same component.
+  3. *Sharing settings:* squadron settings gain parade start and end time (default 19:00 to 21:30, shown
+     in the squadron's time zone, Europe/London) beside the parade days; each month gets a Published
+     setting (off by default; the old `status` column is unused); a per-squadron public link token that
+     expires after 1 month and can be regenerated.
+  4. *Public files:* the PDF and a PNG of each published month at the public link (same token, same
+     1-month expiry, nothing for unpublished months). The PDF is cached, see the next item. The PNG
+     is drawn from the PDF.
+  5. *Calendar feed (`.ics`):* one event per parade day, from the start to the end time, from today
+     onwards, published months only. The description gives the uniform and the activities grouped
+     per class (no instructor names unless a setting allows them), plus the link to the month's
+     public PDF. Stable event ids and a sequence number so calendar apps update, not duplicate; a
+     cancelled night is marked cancelled. An expired link says so instead of returning nothing.
+  6. *QR code* for the feed at the foot of the PDF (and the web page) with its expiry date printed.
+- [ ] **[P2 helpful feature]** **Cache the PDF (and PNG) until the month changes.** Keep the generated file per
+  month with a content version; any save, move, restore or reset invalidates it. Regenerate lazily
+  on the next request, and for a published month regenerate straight after the save so the public
+  link is always warm. A change to the squadron's settings, the uniform colours, or the app
+  version also invalidates it.
 - [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
   the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
   copies it into the month being viewed.

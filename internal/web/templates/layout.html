@@ -12,10 +12,13 @@
        MOD-adjacent staff. The CSS font stack below uses each OS's own
        Roboto/Segoe UI/San Francisco instead — see internal/web/static/css/app.css. -->
   <link rel="stylesheet" href="{{url "/static/css/app.css"}}">
+  <!-- Applies a saved light/dark choice before the page is painted. -->
+  <script src="{{url "/static/js/gen/theme.js"}}"></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="{{url "/"}}">RAFACTools Planner</a>
+    <button type="button" id="theme-toggle" class="theme-toggle" hidden></button>
     {{if .ReportEnabled}}<a class="report-button" href="{{url "/report"}}" data-report-link>Report a problem</a>{{end}}
     {{if .User}}
       <nav aria-label="Account and help">

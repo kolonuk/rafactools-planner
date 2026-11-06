@@ -1,6 +1,25 @@
 {{define "content"}}
-<h1>{{.MonthName}} {{.Year}}</h1>
-<p><a href="{{url "/"}}">&larr; Dashboard</a> · <a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a> · <a href="{{url "/programmes/" .ProgrammeID "/history"}}">History</a>{{if .CanEdit}} · <a href="{{url "/instructors"}}">Manage instructors</a> · <a href="{{url "/programmes/" .ProgrammeID "/reset"}}">Reset this month</a>{{end}}</p>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Dashboard</a></li>
+    <li aria-current="page">{{.MonthName}} {{.Year}}</li>
+  </ol>
+</nav>
+<div class="page-head">
+  <h1>{{.MonthName}} {{.Year}}</h1>
+  <details class="menu">
+    <summary>Actions</summary>
+    <ul class="menu-list">
+      <li><a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a></li>
+      <li><a href="{{url "/programmes/" .ProgrammeID "/history"}}">History</a></li>
+      {{if .CanEdit}}
+      <li><a href="{{url "/instructors"}}">Manage instructors</a></li>
+      <li><label for="parade-only-toggle" class="menu-toggle">Parade evenings only</label></li>
+      <li class="menu-danger"><a href="{{url "/programmes/" .ProgrammeID "/reset"}}">Reset this month</a></li>
+      {{end}}
+    </ul>
+  </details>
+</div>
 
 {{if .CanEdit}}
 <form method="post" action="{{url "/programmes/" .ProgrammeID}}" class="grid-form">
@@ -12,6 +31,7 @@
        all — don't nest the input inside the label. -->
   <input type="checkbox" id="parade-only-toggle" class="parade-toggle-input" role="switch" checked>
   <label for="parade-only-toggle" class="parade-toggle-label">Show parade evenings only</label>
+  <!-- The same switch appears in the Actions menu with a tick or a cross. -->
   <!-- Native browser autocomplete, no JS: Instructor cells get list=
        "instructor-options" below; the input stays free text either way. -->
   <datalist id="instructor-options">
