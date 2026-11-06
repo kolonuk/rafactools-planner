@@ -1,124 +1,75 @@
 # RAFACTools Planner
 
-A monthly training-programme planner for an air cadet squadron (or any youth
-group running a similar parade-night format), built to recreate the paper
-programme format in `examples/pdfs/` as a shared, editable web app instead of
-a spreadsheet one person maintains.
+A friendly, shared planner for an air cadet squadron's monthly training
+programme. Instead of one person keeping a spreadsheet, everyone who needs to
+can see and edit the same plan, then print it as a PDF that looks like the
+paper programme you already use.
 
-## What it does
+It is free and open source. It would suit any youth group that runs a similar
+parade-night format.
 
-- Multi-tenant: one deployment, many squadrons. The first person to sign up
-  with an `snco.<number>@` or `oc.<number>@` address at the configured RAFAC
-  domain **claims** that squadron number and becomes its owner. Everyone else
-  joins by invite (any email address) from an existing member.
-- Each squadron configures its own classifications (progression stages, e.g.
-  Junior → 1st Class → Leading → Senior), parade weekday(s) (1–7 nights/week),
-  and uniform colour key.
-- Build a month's programme in a plain HTML grid (date, parade night half,
-  activity/instructor per classification, notes, weekend events, closures,
-  and a footer requirement tracker), then export it as a PDF matching the
-  existing paper format.
-- In-app help at `/docs` (public, no login needed; same theme): versioned Markdown pages
-  built into the binary, with a version selector, a compare view and per-page
-  version notes. Authoring rules are in `.claude/skills/docs/SKILL.md`; the
-  pages live in `internal/docs/content/`.
+A public copy is running at <https://rafac.tools> if you want to try it without
+installing anything.
 
-## Licence
+## What you can do with it
 
-Copyright (C) 2026. Released under the GNU General Public License,
-version 2 only: see [LICENSE](LICENSE).
+- **Plan the month in one place.** Fill in each parade night: the activity and
+  the instructor for each stage of training, plus notes, weekend events and
+  closures. A tracker at the bottom keeps tabs on what still needs covering.
+- **Make it your squadron's own.** Choose your training stages, your parade
+  nights (one to seven a week) and your uniform colour key.
+- **Share the work.** The first person from a squadron to sign up with their
+  squadron email claims it and becomes its owner. They can then invite anyone
+  else, with an email invite, as an owner, editor or viewer.
+- **Move things around.** Drag a night's activities to another date, or use the
+  Move button if you prefer.
+- **Print it.** Export the month as a PDF laid out like a paper programme.
+- **Look back.** Every saved version of a programme is kept, so you can go back
+  to an earlier one.
+- **Get help as you go.** Built-in help pages, with no sign-in needed, explain
+  each screen and are versioned alongside the app.
 
-## Running it yourself
+## Privacy
 
-For security and trust, run your own copy; a free public site is also available from the
-maintainer. What you need, the settings (which belong in GitHub secrets and which in
-variables) and the deployment stack are in the in-app docs page
-`internal/docs/content/next/run-your-own.md` ("Run your own copy" under Help). The master admin
-settings can be created on GitHub with `go run ./cmd/devtools github-setup`.
+The planner is built to hold as little personal information as possible. Plan
+with first names, ranks or initials where you can, and keep contact details and
+medical information out of it. The in-app help has a short "Security and
+privacy" page that explains what is stored and who can see it.
 
-## Architecture
+## Try it, or run your own copy
 
-- **Backend**: Go (`cmd/server`, `internal/*`), no web framework — stdlib
-  `net/http` with Go 1.22+ method+pattern routing.
-- **Docs**: `internal/docs` renders embedded Markdown (`goldmark`, raw HTML
-  disabled) inside the app layout. Version switching and comparison are
-  plain links and GET forms, so they work without any script.
-- **Storage**: SQLite (`modernc.org/sqlite`, pure Go, no CGO) — one file,
-  mounted as a volume. Migrations are embedded SQL files applied on startup
-  (`internal/db`).
-- **Auth**: email+password, bcrypt, server-side sessions (DB-backed, HTTP-only
-  cookie), CSRF via a session-derived token (or a double-submit cookie for the
-  pre-login claim/login/invite-accept forms). See `internal/auth`.
-- **Email**: SMTP (`internal/mail`) for the claim-verification and invite
-  emails. With no SMTP configured, links are logged to stdout instead — fine
-  for dev, never acceptable for test/prod (see TODO.md).
-- **PDF export**: `internal/pdfgen`, using `github.com/go-pdf/fpdf`. Modelled
-  on a real squadron's paper programme, but matched against the *synthetic*
-  examples in `examples/pdfs/` (fabricated data, same layout patterns —
-  regenerate with `go run ./cmd/genexamples`; the real examples this was
-  built from are deliberately not in this repo or its history, since they
-  carried real cadets'/staff's names) — see `.claude/skills/pdf-fidelity`
-  before touching it.
-- **Frontend**: server-rendered HTML forms (`internal/web/templates`), no JS
-  framework. **Scripts**: JavaScript and TypeScript are fine where they are
-  needed, as first-party files under `internal/web/static/js/` (the CSP is
-  `script-src 'self'`: no inline scripts or handlers, no third-party or `eval`
-  scripts). Pages should still work for the basic task without script where
-  that is reasonable. TypeScript sources go in `internal/web/ts/` and compile
-  into `internal/web/static/js/gen/` (generated: never edit; compiled output is
-  committed and CI checks it is current). Hand-written JavaScript goes in
-  `static/js/` and is type-checked through JSDoc comments;
-  `tsconfig.json` type-checks both strictly. Styled with a hand-rolled Material Design 3 theme
-  (`internal/web/static/css/app.css`) that follows the system light/dark
-  preference automatically.
+You can run the planner on any computer that has
+[Docker](https://www.docker.com/). Your squadron's data then stays with you, in
+a single database file that you back up.
 
-## Local development
+To try it on your own machine:
 
 ```sh
-cp .env.template .env   # fill in SESSION_KEY at minimum
+cp .env.template .env      # then set SESSION_KEY to a long random value
 docker compose up --build
 ```
 
-Opens the app on http://localhost:8080 and Mailpit (catches outgoing mail —
-read the verification/invite emails there) on http://localhost:8025.
+Open <http://localhost:8080>. A mailbox viewer at <http://localhost:8025> shows
+the sign-up and invite emails the app would send.
 
-## Environments and deployment
+For a real deployment, the "Run your own copy" help page
+(`internal/docs/content/next/run-your-own.md`) lists what you need and how to
+set it up.
 
-Three branches: `dev` → `test` → `main`, promoted by PR. Every push/PR to any
-of them runs `.github/workflows/ci.yml` (build, vet, test, gofmt, govulncheck,
-Trivy filesystem scan, CodeQL). Every push to any of them also runs, in the
-same workflow and only after every check above is green, a promotion-order
-gate and an image build that smoke-tests the image against `/health`, scans it
-with Trivy, and pushes it to GHCR tagged `<branch>-<short-sha>` only (an
-immutable tag; there is no `latest` or rolling tag).
+## Getting involved
 
-**This repository stops at the image**: running
-it (the host, its settings and secrets such as `SESSION_KEY`, TLS, redeploying)
-is done by whoever hosts it; `internal/docs/content/next/run-your-own.md` lists
-what the image needs.
+Ideas, bug reports and pull requests are welcome.
 
-GitHub branch protection (require the CI workflow to pass before merging to
-`test`/`main`) is **not** configured by this repo — that's a repo setting, do
-it in GitHub once the repo exists there.
+- Found a problem or have an idea? Open an issue on GitHub.
+- Want to see what is planned? Read [TODO.md](TODO.md).
+- Want to see what has changed? Read [CHANGELOG.md](CHANGELOG.md).
+- Want to work on the code? Read [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Repo layout
+Please never put real cadet or staff details in an issue, a screenshot or a
+pull request. The example programmes in this repository use made-up data on
+purpose.
 
-```
-cmd/server/          entrypoint
-cmd/genexamples/     regenerates examples/pdfs/ from fabricated data
-internal/
-  auth/               claim/invite/login/session/CSRF
-  config/             env var loading
-  db/                 sqlite open + embedded migrations
-  mail/               SMTP sender
-  programme/          domain model + store (CRUD)
-  pdfgen/             PDF rendering
-  web/                routes, handlers, templates, static assets
-migrations/           (embedded under internal/db/migrations)
-examples/pdfs/        synthetic example programmes (see cmd/genexamples)
-.claude/skills/       lint and pdf-fidelity skills for working in this repo
-```
+## Licence
 
-## Known gaps
-
-See `TODO.md`.
+Copyright (C) 2026. Released under the GNU General Public License, version 2
+only. See [LICENSE](LICENSE).

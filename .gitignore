@@ -10,3 +10,8 @@ server
 e2e/node_modules/
 e2e/.tmp/
 e2e/test-results/
+.dual-graph/
+
+# Local tooling
+.cloudflare/
+CLAUDE.md
