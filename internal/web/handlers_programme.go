@@ -133,6 +133,7 @@ type dayView struct {
 	ClosedMessage  string // the closure's message
 	IsParade       bool
 	UniformKey     string
+	UniformHex     string // the colour of UniformKey, for the swatch beside the date ("" for none)
 	Notes          string
 	SubRows        []subRowView
 	ShowAddHalf    bool
@@ -270,7 +271,15 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 
 	var uniformOptions []map[string]any
 	for _, uc := range sq.UniformColours {
-		uniformOptions = append(uniformOptions, map[string]any{"Key": uc.Key, "Label": uc.Label})
+		uniformOptions = append(uniformOptions, map[string]any{"Key": uc.Key, "Label": uc.Label, "Hex": uc.Hex})
+	}
+	days := buildDayViews(fp.Days, canEdit, len(sq.Classifications), fp.Closures)
+	hexByKey := map[string]string{}
+	for _, uc := range sq.UniformColours {
+		hexByKey[uc.Key] = uc.Hex
+	}
+	for i := range days {
+		days[i].UniformHex = hexByKey[days[i].UniformKey]
 	}
 
 	s.render(w, r, "programme_edit", monthNames[fp.Month]+" "+strconv.Itoa(fp.Year), map[string]any{
@@ -282,7 +291,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		"Classifications":     sq.Classifications,
 		"LabelClassColsCount": 1 + len(sq.Classifications),
 		"UniformOptions":      uniformOptions,
-		"Days":                buildDayViews(fp.Days, canEdit, len(sq.Classifications), fp.Closures),
+		"Days":                days,
 		"ClosedColspan":       4 + len(sq.Classifications),
 		"DayOptions":          dayOptions(fp.Days, fp.Closures),
 		"Closures":            fp.Closures,
