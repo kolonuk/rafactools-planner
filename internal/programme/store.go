@@ -50,9 +50,9 @@ func NewStore(db *sql.DB) *Store { return &Store{db: db} }
 func (s *Store) GetSquadron(squadronID int64) (*Squadron, error) {
 	var sq Squadron
 	var paradeJSON, classJSON, coloursJSON string
-	err := s.db.QueryRow(`SELECT id, number, name, subtitle, protective_marking, website_url, parade_weekdays, classifications, uniform_colours
+	err := s.db.QueryRow(`SELECT id, number, name, subtitle, protective_marking, website_url, parade_weekdays, parade_start, parade_end, classifications, uniform_colours
 		FROM squadrons WHERE id = ?`, squadronID).
-		Scan(&sq.ID, &sq.Number, &sq.Name, &sq.Subtitle, &sq.ProtectiveMarking, &sq.WebsiteURL, &paradeJSON, &classJSON, &coloursJSON)
+		Scan(&sq.ID, &sq.Number, &sq.Name, &sq.Subtitle, &sq.ProtectiveMarking, &sq.WebsiteURL, &paradeJSON, &sq.ParadeStart, &sq.ParadeEnd, &classJSON, &coloursJSON)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -97,12 +97,22 @@ func (s *Store) UpdateSquadronSettings(sq *Squadron) error {
 	}
 	defer tx.Rollback()
 
-	var oldJSON string
-	if err := tx.QueryRow(`SELECT classifications FROM squadrons WHERE id = ?`, sq.ID).Scan(&oldJSON); err != nil {
+	var oldJSON, oldStart, oldEnd string
+	if err := tx.QueryRow(`SELECT classifications, parade_start, parade_end FROM squadrons WHERE id = ?`, sq.ID).Scan(&oldJSON, &oldStart, &oldEnd); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		}
 		return err
+	}
+	// A blank parade time keeps the stored one; a given one must be HH:MM, end after start.
+	if sq.ParadeStart == "" {
+		sq.ParadeStart = oldStart
+	}
+	if sq.ParadeEnd == "" {
+		sq.ParadeEnd = oldEnd
+	}
+	if !validClock(sq.ParadeStart) || !validClock(sq.ParadeEnd) || sq.ParadeEnd <= sq.ParadeStart {
+		return fmt.Errorf("%w: parade times must be HH:MM, with the end after the start", ErrInvalidInput)
 	}
 	var oldNames []string
 	if err := json.Unmarshal([]byte(oldJSON), &oldNames); err != nil {
@@ -112,8 +122,8 @@ func (s *Store) UpdateSquadronSettings(sq *Squadron) error {
 		return err
 	}
 
-	if _, err := tx.Exec(`UPDATE squadrons SET name=?, subtitle=?, protective_marking=?, website_url=?, parade_weekdays=?, classifications=?, uniform_colours=? WHERE id=?`,
-		sq.Name, sq.Subtitle, sq.ProtectiveMarking, sq.WebsiteURL, string(paradeJSON), string(classJSON), string(coloursJSON), sq.ID); err != nil {
+	if _, err := tx.Exec(`UPDATE squadrons SET name=?, subtitle=?, protective_marking=?, website_url=?, parade_weekdays=?, parade_start=?, parade_end=?, classifications=?, uniform_colours=? WHERE id=?`,
+		sq.Name, sq.Subtitle, sq.ProtectiveMarking, sq.WebsiteURL, string(paradeJSON), sq.ParadeStart, sq.ParadeEnd, string(classJSON), string(coloursJSON), sq.ID); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -188,7 +198,7 @@ func resizeRows(tx *sql.Tx, squadronID int64, oldNames []string, want int) error
 // --- Programmes --------------------------------------------------------
 
 func (s *Store) ListProgrammes(squadronID int64) ([]Programme, error) {
-	rows, err := s.db.Query(`SELECT id, year, month FROM programmes WHERE squadron_id = ? ORDER BY year DESC, month DESC`, squadronID)
+	rows, err := s.db.Query(`SELECT id, year, month, published FROM programmes WHERE squadron_id = ? ORDER BY year DESC, month DESC`, squadronID)
 	if err != nil {
 		return nil, err
 	}
@@ -197,9 +207,11 @@ func (s *Store) ListProgrammes(squadronID int64) ([]Programme, error) {
 	var out []Programme
 	for rows.Next() {
 		var p Programme
-		if err := rows.Scan(&p.ID, &p.Year, &p.Month); err != nil {
+		var published int
+		if err := rows.Scan(&p.ID, &p.Year, &p.Month, &published); err != nil {
 			return nil, err
 		}
+		p.Published = published != 0
 		out = append(out, p)
 	}
 	return out, rows.Err()
@@ -295,8 +307,12 @@ func (s *Store) DeleteProgramme(squadronID, programmeID int64) error {
 // a PDF, scoped to squadronID so one squadron can never read another's data.
 func (s *Store) GetFullProgramme(squadronID, programmeID int64) (*FullProgramme, error) {
 	var fp FullProgramme
-	err := s.db.QueryRow(`SELECT id, year, month FROM programmes WHERE id = ? AND squadron_id = ?`, programmeID, squadronID).
-		Scan(&fp.ID, &fp.Year, &fp.Month)
+	var published int
+	var updated string
+	err := s.db.QueryRow(`SELECT id, year, month, published, updated_at FROM programmes WHERE id = ? AND squadron_id = ?`, programmeID, squadronID).
+		Scan(&fp.ID, &fp.Year, &fp.Month, &published, &updated)
+	fp.Published = published != 0
+	fp.UpdatedAt = parseSQLTime(updated)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	} else if err != nil {

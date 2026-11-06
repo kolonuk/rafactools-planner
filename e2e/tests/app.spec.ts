@@ -58,7 +58,7 @@ async function settle(): Promise<void> {
 /** "Show parade evenings only" is on by default: turn it off to see every date. */
 async function showAllNights(): Promise<void> {
   const toggle = page.locator("#parade-only-toggle");
-  if (await toggle.isChecked()) await page.locator('label[for="parade-only-toggle"]').click();
+  if (await toggle.isChecked()) await page.locator("label.parade-toggle-label").click();
   await expect(toggle).not.toBeChecked();
 }
 
@@ -163,8 +163,39 @@ test("a closure locks the dates it covers in the grid", async () => {
   await expect(page.locator(`select[name="target_day"] option[value="${day}"]`)).toHaveCount(0);
 });
 
+test("the Actions menu shows the parade-evenings switch as a tick or a cross", async () => {
+  await openProgramme();
+  await page.click('summary:has-text("Actions")');
+  const mark = () => page.locator(".menu-toggle").evaluate((el) => getComputedStyle(el, "::before").content);
+  const toggle = page.locator("#parade-only-toggle");
+  const was = await toggle.isChecked();
+  const before = await mark();
+  await page.locator(".menu-toggle").click();
+  expect(await toggle.isChecked()).toBe(!was);
+  expect(await mark()).not.toBe(before);
+  await page.locator(".menu-toggle").click(); // put it back
+  await expect(page.locator("nav.breadcrumb")).toContainText("Dashboard");
+});
+
+test("the theme button switches between system, light and dark and remembers the choice", async () => {
+  await openProgramme();
+  const root = page.locator("html");
+  const button = page.locator("#theme-toggle");
+  await expect(button).toBeVisible();
+  await expect(root).not.toHaveAttribute("data-theme", /.+/); // starts on the system setting
+  await button.click();
+  await expect(root).toHaveAttribute("data-theme", "light");
+  await button.click();
+  await expect(root).toHaveAttribute("data-theme", "dark");
+  await page.reload();
+  await expect(root).toHaveAttribute("data-theme", "dark");
+  await button.click(); // back to the system setting
+  await expect(root).not.toHaveAttribute("data-theme", /.+/);
+});
+
 test("every save is kept in the history, and an earlier version can be restored", async () => {
   await openProgramme();
+  await page.click('summary:has-text("Actions")');
   await page.click('a:has-text("History")');
   await expect(page.locator("h1")).toContainText(/history/i);
   const rows = page.locator("table.list tbody tr");

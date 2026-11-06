@@ -5,6 +5,7 @@ import (
 	"github.com/go-pdf/fpdf"
 	"strings"
 	"testing"
+	"time"
 
 	"rafactools-planner/internal/programme"
 )
@@ -144,4 +145,36 @@ func newTestPDF(t *testing.T) *fpdf.Fpdf {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 	return pdf
+}
+
+func TestCalendarQRIsPrintedOnlyWhenAskedFor(t *testing.T) {
+	sq, fp := testSquadron(), testProgramme()
+	compressOutput = false
+	defer func() { compressOutput = true }()
+
+	plain, err := Render(sq, fp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(plain), "Add this programme to your calendar") {
+		t.Error("no QR code was asked for, but one was printed")
+	}
+
+	exp := time.Date(2030, 3, 1, 12, 0, 0, 0, time.UTC)
+	with, err := RenderWith(sq, fp, Options{CalendarURL: "webcal://example.test/share/tok/calendar.ics", CalendarExpires: exp})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(with)
+	for _, want := range []string{"Add this programme to your calendar", "This link works until 1 March 2030."} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if !strings.Contains(out, "/Subtype /Image") {
+		t.Error("the QR code image is missing")
+	}
+	if n := strings.Count(out, "/Type /Page\n"); n != 1 {
+		t.Errorf("%d pages, want 1", n)
+	}
 }

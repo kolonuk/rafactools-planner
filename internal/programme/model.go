@@ -4,6 +4,8 @@
 // closures, weekend notes, and the footer requirement tracker).
 package programme
 
+import "time"
+
 type UniformColour struct {
 	Key   string `json:"key"`
 	Label string `json:"label"`
@@ -18,14 +20,18 @@ type Squadron struct {
 	ProtectiveMarking string
 	WebsiteURL        string // optional, shown on the dashboard and PDF title band
 	ParadeWeekdays    []int  // ISO weekday: 1=Mon .. 7=Sun
+	ParadeStart       string // HH:MM in the squadron's local time (Europe/London)
+	ParadeEnd         string // HH:MM, after ParadeStart
 	Classifications   []string
 	UniformColours    []UniformColour
 }
 
 type Programme struct {
-	ID    int64
-	Year  int
-	Month int
+	ID        int64
+	Year      int
+	Month     int
+	Published bool      // true: the month is shown at the squadron's public link
+	UpdatedAt time.Time // when the content last changed (UTC)
 }
 
 type Row struct {

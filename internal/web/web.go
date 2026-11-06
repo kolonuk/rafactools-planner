@@ -68,6 +68,7 @@ type server struct {
 	*Deps
 	pages    map[string]*template.Template
 	activity *activityLog
+	files    *fileCache // rendered PDFs and PNGs, see filecache.go
 }
 
 // pageNames are the content templates under templates/, one per file
@@ -116,7 +117,7 @@ const (
 )
 
 func NewRouter(d *Deps) http.Handler {
-	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog()}
+	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog(), files: newFileCache(64)}
 
 	// 20 attempts per 5 minutes per IP on the endpoints worth scripting an
 	// attack against (credential stuffing on login, mass squadron-claim
@@ -126,6 +127,7 @@ func NewRouter(d *Deps) http.Handler {
 	// Reports carry an upload and send an email, and can be filed without
 	// signing in, so they get a tighter limit of their own.
 	reportLimiter := newIPLimiter(5, 10*time.Minute)
+	shareLimiter := newIPLimiter(120, 5*time.Minute)
 
 	mux := http.NewServeMux()
 
@@ -167,6 +169,11 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /docs/{version}/{$}", s.withUserOptional(s.docsPage))
 	mux.HandleFunc("GET /docs/{version}/{slug}", s.withUserOptional(s.docsPage))
 
+	// Public sharing: no sign-in, a secret link instead (see share.go).
+	mux.HandleFunc("GET /share/{token}/{file}", shareLimiter.rateLimited(s.shareFile))
+	mux.HandleFunc("POST /squadron/share", s.requireOwner(s.shareRenew))
+	mux.HandleFunc("POST /programmes/{id}/publish", s.requireEditor(s.programmePublish))
+
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
 	mux.HandleFunc("GET /squadron/security-log.csv", s.requireOwner(s.securityLogCSV))
@@ -205,6 +212,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /programmes/{id}", s.requireAuth(s.programmeEdit))
 	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.versioned("Saved the programme", s.programmeSave)))
 	mux.HandleFunc("GET /programmes/{id}/pdf", s.requireAuth(s.programmePDF))
+	mux.HandleFunc("GET /programmes/{id}/png", s.requireAuth(s.programmePNG))
 	mux.HandleFunc("GET /programmes/{id}/history", s.requireAuth(s.historyPage))
 	mux.HandleFunc("GET /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreConfirm))
 	mux.HandleFunc("POST /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreSubmit))

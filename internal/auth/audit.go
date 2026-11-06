@@ -23,6 +23,8 @@ const (
 	AuditTempPassword   = "member.temp_password"   // an owner emailed a member a temporary password
 	AuditEmailChange    = "email.change"           // someone changed their email address
 	AuditSquadronEdit   = "squadron.settings"      // an owner saved the squadron settings
+	AuditShareRenew     = "share.renew"            // an owner made or renewed the public link
+	AuditPublish        = "programme.publish"      // an editor published or unpublished a month
 )
 
 const (
