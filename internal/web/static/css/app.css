@@ -207,10 +207,9 @@ button:active { filter: brightness(0.95); }
    below), using each cell's data-label. The markup is still a real table, so
    screen readers and the forms keep working. */
 .grid-form { overflow-x: auto; }
-table.grid { min-width: 760px; }
-
 table.list { border-collapse: collapse; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 8px; overflow: hidden; }
 table.list th, table.list td {
+  overflow-wrap: anywhere; /* long addresses and the role controls wrap on a phone */
   border: 1px solid var(--md-outline-variant);
   padding: 7px 9px;
   font-size: 0.85em;
@@ -219,7 +218,7 @@ table.list th, table.list td {
 }
 table.list th { background: var(--md-surface-container-high); font-weight: 500; }
 
-table.grid { border-collapse: separate; border-spacing: 0; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 12px; overflow: hidden; box-shadow: var(--md-elevation-1); }
+table.grid { min-width: 760px; border-collapse: separate; border-spacing: 0; width: 100%; margin: 10px 0; background: var(--md-surface); border-radius: 12px; overflow: hidden; box-shadow: var(--md-elevation-1); }
 table.grid th, table.grid td { padding: 6px 10px; font-size: 0.85em; text-align: left; vertical-align: top; border: 0; }
 table.grid thead th { background: var(--md-surface-container-high); font-weight: 600; color: var(--md-on-surface-variant); position: sticky; top: 0; }
 table.grid tbody td { border-top: 1px solid transparent; }
@@ -231,14 +230,13 @@ table.grid .date-cell .swatch { margin-left: 6px; vertical-align: -1px; }
 table.grid tr.closed-row td { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
 table.grid tr.non-parade-row td { color: var(--md-on-surface-variant); }
 table.grid input[type=text], table.grid select, table.grid textarea { max-width: none; font-size: 0.85em; padding: 4px 6px; background: transparent; border: 1px solid transparent; border-radius: 6px; }
-table.grid input[type=text] { width: 100%; }
 table.grid select { width: auto; }
 table.grid textarea { width: 100%; min-width: 140px; resize: vertical; }
 /* The border and a fill appear when you point at a box or move into it. */
 table.grid input[type=text]:hover, table.grid select:hover, table.grid textarea:hover { border-color: var(--md-outline-variant); }
 table.grid input[type=text]:focus, table.grid select:focus, table.grid textarea:focus { background: var(--md-surface); border-color: var(--md-primary); outline: none; box-shadow: 0 0 0 2px var(--md-primary-container); }
 /* Every box keeps a faint underline so you can see where to type. */
-table.grid input[type=text] { border-bottom-color: var(--md-outline-variant); }
+table.grid input[type=text] { width: 100%; border-bottom-color: var(--md-outline-variant); }
 
 /* On a phone: no sideways scrolling; each row is a small card. */
 @media (max-width: 700px) {
@@ -425,7 +423,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input[type="checkb
 
 /* Long addresses and the role/remove controls wrap inside the table on a phone
    rather than widening the whole page. */
-table.list th, table.list td { overflow-wrap: anywhere; }
 @media (max-width: 600px) {
   table.list select { max-width: 100%; }
   table.list td form.inline { display: inline-block; }
