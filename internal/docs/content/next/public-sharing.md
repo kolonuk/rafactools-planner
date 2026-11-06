@@ -5,7 +5,7 @@ summary: Publishing a month, the public link, the calendar feed you can subscrib
 since: next
 audience: admin
 changed:
-  - next: New page. Publish a month, share a one-month public link with a calendar feed and a PDF of each published month.
+  - next: New page. Publish a month, share a one-month public link with a calendar feed, a PDF and a PNG of each published month, and a QR code on the PDF.
 ---
 # Public link and calendar
 
@@ -37,12 +37,31 @@ link is known. Changes you save to a published month appear at the link straight
   thing share a line, and a link to that month's PDF. Weekend events appear as all-day entries.
   Nights covered by a closure are left out.
 - **The month's PDF**, the same as the exported one except that the requirements tracker is left off.
+- **The month's PNG**, a picture of the programme (dates, uniform, activities, closures, weekend
+  events and the uniform key) that is easy to send in a message. It is drawn separately from the
+  PDF, so it looks a little different.
+
+The PDF and PNG addresses are `.../share/<link>/2026-11.pdf` and `.../2026-11.png` (year and month),
+and the calendar's description links to the PDF. All of them stop working when the link expires.
+
+## The QR code
+
+While the squadron has a working public link, every PDF and PNG ends with a QR code for the calendar,
+with the date the link stops. People scan it and their phone offers to subscribe. When you make a
+new link, the next PDF you open carries the new code; **a printed copy keeps the old code, which
+stops working**, so reprint after renewing.
 
 ## What is never shared
 
 Cadet names and the requirements tracker, notes on a night, instructor names in the calendar,
 history, members and any unpublished month. The PDF does show the instructor boxes of the grid, as
 the paper programme does, so leave names out of those boxes if you do not want them public.
+
+## Files are kept until the month changes
+
+The planner keeps each PDF and PNG it has made and sends the saved copy until something in the month
+changes (a save, a move, a restore, a reset, a closure, a settings change or a new link). The next request after
+a change makes a new file, so you never get an out-of-date PDF.
 
 ## When the link has expired
 

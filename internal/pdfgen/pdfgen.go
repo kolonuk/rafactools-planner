@@ -22,11 +22,13 @@ package pdfgen
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	"github.com/skip2/go-qrcode"
 
 	"rafactools-planner/internal/programme"
 	"rafactools-planner/internal/version"
@@ -74,6 +76,19 @@ func newColumns(usableWidth float64, numClassifications int) columns {
 // page-break fallback — a month that still doesn't fit is a layout bug to
 // fix here (tighter columns/fonts), not a second page to add.
 func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error) {
+	return RenderWith(sq, fp, Options{})
+}
+
+// Options are the extras that can be printed at the foot of the page.
+type Options struct {
+	// CalendarURL, when set, is printed as a QR code that adds the squadron's
+	// calendar feed to a phone, with CalendarExpires as the date the link stops.
+	CalendarURL     string
+	CalendarExpires time.Time
+}
+
+// RenderWith is Render with the optional extras.
+func RenderWith(sq *programme.Squadron, fp *programme.FullProgramme, opts Options) ([]byte, error) {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetCompression(compressOutput)
 	pdf.SetMargins(8, 8, 8)
@@ -132,6 +147,7 @@ func Render(sq *programme.Squadron, fp *programme.FullProgramme) ([]byte, error)
 
 	drawUniformKey(pdf, sq, usableWidth)
 	drawRequirementsFooter(pdf, fp.Requirements, usableWidth)
+	drawCalendarQR(pdf, opts)
 	drawProtectiveMarking(pdf, sq, usableWidth)
 	drawVersionFooter(pdf, usableWidth)
 
@@ -768,4 +784,38 @@ func hexToRGB(hex string) (int, int, int) {
 	var r, g, b int
 	fmt.Sscanf(hex[1:], "%02x%02x%02x", &r, &g, &b)
 	return r, g, b
+}
+
+// drawCalendarQR prints the calendar QR code and a short note under the grid,
+// as large as the space left on the page allows (up to 18 mm). It is skipped
+// if there is not room for a code that can still be scanned (10 mm).
+func drawCalendarQR(pdf *fpdf.Fpdf, opts Options) {
+	if opts.CalendarURL == "" {
+		return
+	}
+	png, err := qrcode.Encode(opts.CalendarURL, qrcode.Medium, 256)
+	if err != nil {
+		return
+	}
+	_, pageH := pdf.GetPageSize()
+	left, _, _, _ := pdf.GetMargins()
+	const footer = 9.0 // room kept for the protective marking and version line
+	y := pdf.GetY() + 2
+	size := math.Min(18, pageH-footer-y)
+	if size < 10 {
+		return
+	}
+	pdf.RegisterImageOptionsReader("calendar-qr", fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(png))
+	pdf.ImageOptions("calendar-qr", left, y, size, size, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
+	pdf.SetFont("Helvetica", "B", 7)
+	pdf.SetXY(left+size+3, y+1)
+	pdf.CellFormat(100, 3.5, "Add this programme to your calendar", "0", 1, "L", false, 0, "")
+	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetX(left + size + 3)
+	pdf.CellFormat(100, 3, "Scan the code with your phone. New parade nights appear as they are published.", "0", 1, "L", false, 0, "")
+	if !opts.CalendarExpires.IsZero() {
+		pdf.SetX(left + size + 3)
+		pdf.CellFormat(100, 3, "This link works until "+opts.CalendarExpires.In(programme.Local).Format("2 January 2006")+".", "0", 1, "L", false, 0, "")
+	}
+	pdf.SetXY(left, y+size)
 }

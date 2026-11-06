@@ -37,20 +37,16 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   3. *Sharing settings:* DONE. Parade start and end time in squadron settings (default 19:00 to 21:30,
      Europe/London), a Published setting on each month (Actions menu) and a per-squadron public link
      that expires after 1 month and can be renewed.
-  4. *Public files:* the public PDF is DONE (no requirement tracker). Still to do: the PNG of each
-     published month at the same link and expiry, drawn from the PDF (needs `pdftoppm` from
-     poppler-utils in the image, or a Go renderer).
+  4. *Public files:* DONE. The PDF (no requirement tracker) and a PNG of each published month at the
+     same link and expiry. The PNG is drawn separately in Go (`internal/pngrender`), because the
+     image is distroless and cannot run a PDF-to-image tool; it needs to be kept in step with the PDF
+     by eye. Still to do: line the PNG layout up with the PDF more closely.
   5. *Calendar feed (`.ics`):* DONE (one event per parade night from today, uniform and grouped
      activities, link to the month's PDF, weekend notes as all-day entries, closures left out,
      expired link answers 410). Still to do: a setting to include instructor names, and a feed
      entry marked cancelled for a night that was cancelled after being published.
-  6. *QR code* for the feed at the foot of the PDF (and the web page) with its expiry date printed:
-     still to do.
-- [ ] **[P2 helpful feature]** **Cache the PDF (and PNG) until the month changes.** Keep the generated file per
-  month with a content version; any save, move, restore or reset invalidates it. Regenerate lazily
-  on the next request, and for a published month regenerate straight after the save so the public
-  link is always warm. A change to the squadron's settings, the uniform colours, or the app
-  version also invalidates it.
+  6. *QR code* for the feed at the foot of the PDF and the PNG, with its expiry date: DONE. Still to
+     do: the same on a public web page (there is none yet).
 - [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
   the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
   copies it into the month being viewed.

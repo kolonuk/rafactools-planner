@@ -11,6 +11,7 @@
     <summary>Actions</summary>
     <ul class="menu-list">
       <li><a href="{{url "/programmes/" .ProgrammeID "/pdf"}}">Export PDF</a></li>
+      <li><a href="{{url "/programmes/" .ProgrammeID "/png"}}">Export PNG</a></li>
       <li><a href="{{url "/programmes/" .ProgrammeID "/history"}}">History</a></li>
       {{if .CanEdit}}
       <li><a href="{{url "/instructors"}}">Manage instructors</a></li>

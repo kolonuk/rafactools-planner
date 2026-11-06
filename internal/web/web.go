@@ -68,6 +68,7 @@ type server struct {
 	*Deps
 	pages    map[string]*template.Template
 	activity *activityLog
+	files    *fileCache // rendered PDFs and PNGs, see filecache.go
 }
 
 // pageNames are the content templates under templates/, one per file
@@ -116,7 +117,7 @@ const (
 )
 
 func NewRouter(d *Deps) http.Handler {
-	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog()}
+	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog(), files: newFileCache(64)}
 
 	// 20 attempts per 5 minutes per IP on the endpoints worth scripting an
 	// attack against (credential stuffing on login, mass squadron-claim
@@ -211,6 +212,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /programmes/{id}", s.requireAuth(s.programmeEdit))
 	mux.HandleFunc("POST /programmes/{id}", s.requireEditor(s.versioned("Saved the programme", s.programmeSave)))
 	mux.HandleFunc("GET /programmes/{id}/pdf", s.requireAuth(s.programmePDF))
+	mux.HandleFunc("GET /programmes/{id}/png", s.requireAuth(s.programmePNG))
 	mux.HandleFunc("GET /programmes/{id}/history", s.requireAuth(s.historyPage))
 	mux.HandleFunc("GET /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreConfirm))
 	mux.HandleFunc("POST /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreSubmit))

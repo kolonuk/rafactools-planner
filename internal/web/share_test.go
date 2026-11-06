@@ -202,3 +202,84 @@ func TestParadeTimesAreValidated(t *testing.T) {
 
 // unfold undoes calendar line folding.
 func unfold(s string) string { return strings.ReplaceAll(s, "\r\n ", "") }
+
+func TestFilesAreCachedUntilTheMonthChanges(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1306")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
+	p, _ := app.store.CreateProgramme(sq, 2030, 4, 1)
+	pid := strconv.FormatInt(p.ID, 10)
+	parade, _, _ := firstParadeAndPlain(t, app, sq, p.ID)
+	save := func(text string) {
+		t.Helper()
+		if err := app.store.SaveDaysAndRows(sq, p.ID, []programme.DayInput{{ID: parade.ID, IsParade: true, Rows: []programme.RowInput{{ID: parade.Rows[0].ID, Texts: []string{text, "", "", ""}}}}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	save("Drill")
+	wantRedirect(t, c.post("/squadron/share", url.Values{}), "/squadron#sharing")
+	wantRedirect(t, c.post("/programmes/"+pid+"/publish", url.Values{"published": {"1"}}), "/programmes/"+pid)
+	share, _ := app.store.GetShare(sq)
+	anon := app.anon()
+
+	fetch := func(cl *client, path string) (etag string, status int, ctype string) {
+		resp := cl.get(path)
+		defer resp.Body.Close()
+		return resp.Header.Get("ETag"), resp.StatusCode, resp.Header.Get("Content-Type")
+	}
+
+	pdfPath, pngPath := "/share/"+share.Token+"/2030-04.pdf", "/share/"+share.Token+"/2030-04.png"
+	etag1, status, _ := fetch(anon, pdfPath)
+	if status != 200 || etag1 == "" {
+		t.Fatalf("public pdf: status %d etag %q", status, etag1)
+	}
+	if _, status, ctype := fetch(anon, pngPath); status != 200 || ctype != "image/png" {
+		t.Errorf("public png: status %d type %q", status, ctype)
+	}
+	if _, status, ctype := fetch(c, "/programmes/"+pid+"/png"); status != 200 || ctype != "image/png" {
+		t.Errorf("signed-in png: status %d type %q", status, ctype)
+	}
+
+	t.Run("an unchanged month answers 304 from the cache", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", app.srv.URL+pdfPath, nil)
+		req.Header.Set("If-None-Match", etag1)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusNotModified {
+			t.Errorf("status %d, want 304", resp.StatusCode)
+		}
+		if etag2, _, _ := fetch(anon, pdfPath); etag2 != etag1 {
+			t.Error("the file changed although the month did not")
+		}
+	})
+
+	t.Run("a saved change gives a new file", func(t *testing.T) {
+		save("Shooting")
+		if etag3, _, _ := fetch(anon, pdfPath); etag3 == etag1 {
+			t.Error("the month changed but the public PDF is the old one")
+		}
+	})
+
+	t.Run("a closure changes it too, though it does not touch the save time", func(t *testing.T) {
+		before, _, _ := fetch(anon, pdfPath)
+		wantRedirect(t, c.post("/programmes/"+pid+"/closures", url.Values{"start_date": {parade.Date}, "end_date": {parade.Date}, "message": {"Stand-down"}}), "/programmes/"+pid)
+		if after, _, _ := fetch(anon, pdfPath); after == before {
+			t.Error("a closure was added but the public PDF did not change")
+		}
+	})
+
+	t.Run("a new public link changes the QR code and so the file", func(t *testing.T) {
+		before, _, _ := fetch(anon, pdfPath)
+		wantRedirect(t, c.post("/squadron/share", url.Values{}), "/squadron#sharing")
+		renewed, _ := app.store.GetShare(sq)
+		after, status, _ := fetch(anon, "/share/"+renewed.Token+"/2030-04.pdf")
+		if status != 200 || after == before {
+			t.Errorf("status %d, same file after a new link: %v", status, after == before)
+		}
+	})
+}

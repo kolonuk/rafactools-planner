@@ -5,6 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
+  - next: Actions › Export PNG downloads the month as a picture.
   - next: Actions › Publish this month shares the month at the squadron's public link.
   - next: The month page has a breadcrumb and an Actions menu (Export PDF, History, Manage instructors, the parade-evenings switch with a tick or a cross, Reset this month) in place of the row of links.
   - 1.10: A closure locks the dates it covers in the grid.
@@ -78,7 +79,7 @@ that are not parade nights to make the grid shorter; turn it off to see every da
 switch is in the **Actions** menu at the top right of the page, shown with a tick when it is
 on and a cross when it is off.
 
-The **Actions** menu also holds **Export PDF**, **History** and, for owners and editors,
+The **Actions** menu also holds **Export PDF**, **Export PNG** (a picture of the month), **History** and, for owners and editors,
 **Manage instructors**, **Publish this month** (see [public link and calendar](public-sharing)) and **Reset this month**. The trail above the month's name
 (**Dashboard › November 2026**) shows where you are; select **Dashboard** to go back.
 

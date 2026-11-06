@@ -72,13 +72,15 @@ func (s *server) shareSquadron(w http.ResponseWriter, r *http.Request) (*program
 	return nil, false
 }
 
-// shareFile serves a file behind the public link: the calendar or a month's PDF.
+// shareFile serves a file behind the public link: the calendar or a month's PDF or PNG.
 func (s *server) shareFile(w http.ResponseWriter, r *http.Request) {
 	switch name := r.PathValue("file"); {
 	case name == "calendar.ics":
 		s.shareCalendar(w, r)
 	case strings.HasSuffix(name, ".pdf"):
-		s.sharePDF(w, r)
+		s.shareFileOfKind(w, r, "pdf")
+	case strings.HasSuffix(name, ".png"):
+		s.shareFileOfKind(w, r, "png")
 	default:
 		http.NotFound(w, r)
 	}
@@ -106,8 +108,8 @@ func (s *server) shareCalendar(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(ical.Build(sq.Name, events, now))
 }
 
-func (s *server) sharePDF(w http.ResponseWriter, r *http.Request) {
-	year, month, ok := parseMonthFile(r.PathValue("file"), "pdf")
+func (s *server) shareFileOfKind(w http.ResponseWriter, r *http.Request, kind string) {
+	year, month, ok := parseMonthFile(r.PathValue("file"), kind)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -121,23 +123,18 @@ func (s *server) sharePDF(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	} else if err != nil {
-		log.Printf("share pdf: %v", err)
+		log.Printf("share %s: %v", kind, err)
 		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
 		return
 	}
 	// The requirement tracker names cadets: it never goes into a public file.
-	public := *fp
-	public.Requirements = nil
-	data, err := pdfgen.Render(sq, &public)
+	data, key, err := s.monthFileData(kind, sq, fp, true)
 	if err != nil {
-		log.Printf("share pdf render for programme %d: %v", fp.ID, err)
-		http.Error(w, "Could not make the PDF.", http.StatusInternalServerError)
+		log.Printf("share %s render for programme %d: %v", kind, fp.ID, err)
+		http.Error(w, "Could not make the file.", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", `inline; filename="`+monthNames[month]+"_"+strconv.Itoa(year)+`_Programme.pdf"`)
-	w.Header().Set("Cache-Control", "private, max-age=300")
-	_, _ = w.Write(data)
+	serveMonthFile(w, r, kind, data, key, year, month, "private, max-age=300")
 }
 
 // calendarEvents makes one event per parade day from today on, in published
@@ -321,4 +318,22 @@ func (s *server) programmePublish(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, u.SquadronID, auth.AuditPublish, detail)
 	http.Redirect(w, r, s.url("/programmes/"+strconv.FormatInt(id, 10)), http.StatusSeeOther)
+}
+
+// pdfOptions adds the calendar QR code to a PDF when the squadron has a public
+// link that is still valid. The code uses the webcal scheme so a phone offers to
+// subscribe rather than download.
+func (s *server) pdfOptions(squadronID int64) pdfgen.Options {
+	sh, err := s.Store.GetShare(squadronID)
+	if err != nil || sh.Token == "" || sh.Expired(programme.Now()) {
+		return pdfgen.Options{}
+	}
+	link := s.shareURL(sh.Token, "calendar.ics")
+	for _, scheme := range []string{"https://", "http://"} {
+		if rest, ok := strings.CutPrefix(link, scheme); ok {
+			link = "webcal://" + rest
+			break
+		}
+	}
+	return pdfgen.Options{CalendarURL: link, CalendarExpires: sh.ExpiresAt}
 }
