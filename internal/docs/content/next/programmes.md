@@ -5,10 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
-  - next: The grid is a lighter, flowing list: boxes show their outline when you point at them, each night has a colour dot for its uniform, and on a phone every row becomes a card instead of scrolling sideways.
-  - next: Actions › Export PNG downloads the month as a picture.
-  - next: Actions › Publish this month shares the month at the squadron's public link.
-  - next: The month page has a breadcrumb and an Actions menu (Export PDF, History, Manage instructors, the parade-evenings switch with a tick or a cross, Reset this month) in place of the row of links.
+  - next: The month page has a breadcrumb and a menu bar (Export, History, Publish or Unpublish, Instructors, More) and a Parade nights | All nights switch. The grid is a lighter timetable with one line per night (the activity over the instructor in each class's box), a colour dot for the uniform and cards on a phone. Closures, weekend notes and tracker entries can be edited in place with a tick or a cross. Months can be published to the public link.
   - 1.10: A closure locks the dates it covers in the grid.
   - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.
   - 1.9: Every save, reset and restore is kept as a version; the History page lists them (who, when, what) and any can be restored. The draft status is gone: every month is live.
@@ -40,10 +37,9 @@ Leave **Copy the requirement tracker's category names** ticked and the new month
 categories (and due labels) as the nearest earlier month that has any. **Cadets' names and notes are never
 copied**; untick the box to start with an empty tracker.
 
-The new programme has one row per calendar day. Nights that match your
-[parade weekdays](squadron-settings) are marked as parade nights and get an
-**Activity** row and an **Instructor** row with one box for each
-classification.
+The new programme has one line per calendar day. Nights that match your
+[parade weekdays](squadron-settings) are marked as parade nights and get, for each
+classification, an **activity** box with an **instructor** box under it.
 
 ## This month is made for you
 
@@ -56,15 +52,16 @@ The master admin's sign-in makes nothing, because the master admin has no squadr
 
 Open **Edit** on a month. For each day you can set:
 
-- **Day** – the weekday (for example `M` or `Tu`), worked out from the date. It
-  cannot be edited, so it can never disagree with the calendar.
-- **Parade** – tick for a parade night. Its Activity and Instructor rows appear straight
-  away so you can type into them; nothing is stored until you select **Save programme**. A
-  night ticked after the month was created gets its rows when you save. Unticking a night
+- **Date** – the day of the month and the weekday, worked out from the date. It
+  cannot be edited, so it can never disagree with the calendar. A colour dot beside it
+  shows the night's uniform.
+- **Parade** – tick for a parade night. Its boxes appear straight away so you can type into
+  them; nothing is stored until you select **Save programme**. Unticking a night
   that has text keeps the text stored but hides it.
-- The uniform for the night (the dropdown beside Parade).
-- **Activity** and **Instructor** text for each classification. If neighbouring
-  classifications have exactly the same text, the PDF shows them as one wide cell.
+- **Uniform** – the dropdown beside Parade. It lists your uniform colours; the grey
+  **Closure** colour that every squadron starts with is for the PDF's key and is not offered.
+- For each classification, the **activity** (bold) and, under it, the **instructor**. If
+  neighbouring classifications have exactly the same text, the PDF shows them as one wide cell.
 - **Notes** for the day.
 
 Select **Save programme** to keep your changes. Nothing is saved until you do.
@@ -73,21 +70,31 @@ As you type in an **Instructor** box the browser suggests **All Staff**, the peo
 your [instructor list](instructors) and each member of your squadron. They are only
 suggestions: you can type any name.
 
-On a phone or other narrow screen each row becomes a small card with its labels above the boxes, so you do not have to scroll sideways. A colour dot beside each date shows the night's uniform and follows the **Uniform** dropdown as you change it.
+On a phone or other narrow screen each night becomes a small card with its labels above the
+boxes, so you do not have to scroll sideways. The dot beside the date follows the **Uniform**
+dropdown as you change it. Boxes show their outline when you point at them or click into them.
 
-**Show parade evenings only** is a switch above the grid, on by default. It hides the days
-that are not parade nights to make the grid shorter; turn it off to see every day. The same
-switch is in the **Actions** menu at the top right of the page, shown with a tick when it is
-on and a cross when it is off.
+### The menu bar
 
-The **Actions** menu also holds **Export PDF**, **Export PNG** (a picture of the month), **History** and, for owners and editors,
-**Manage instructors**, **Publish this month** (see [public link and calendar](public-sharing)) and **Reset this month**. The trail above the month's name
-(**Dashboard › November 2026**) shows where you are; select **Dashboard** to go back.
+Under the month's name is a menu bar:
+
+- **Export** – **PDF document** or **PNG picture** of the month.
+- **History** – the saved versions (see below).
+- **Publish** / **Unpublish** (owners and editors) – shares the month at the squadron's public
+  link; the page then shows the addresses and a QR code. See [public link and calendar](public-sharing).
+  A **Published** or **Not published** label beside it shows the state.
+- **Instructors** (owners and editors) – the [instructor list](instructors).
+- **More › Reset this month** (owners and editors).
+- **Parade nights | All nights** (owners and editors) – choose whether the grid shows only the parade
+  nights (the default) or every day. It works without scripts.
+
+The trail above the month's name (**Planner › November 2026**) shows where you are; select
+**Planner** to go back to the list of months. Every page has a **Planner** link in the top bar.
 
 ### Adding and removing a second half
 
 A parade night starts with one half. **+ Add a second half to this night** adds a
-second pair of Activity and Instructor rows, **copied from the first half** so
+second line (with its own activity and instructor boxes), **copied from the first half** so
 you only need to change what differs.
 
 **− Remove second half** takes a night back to one half.
@@ -125,6 +132,13 @@ What happens:
 - Anything else you have typed on the page but not yet saved is saved first when
   you use drag and drop, so it is not lost. With the **Move** control, select
   **Save programme** first, because that button reloads the page.
+
+## Editing a closure, a note or a name
+
+Closures, weekend notes, the requirement tracker's categories and entries (and the [instructor list](instructors)) can all
+be changed after you add them. **Click the text** (or select **Edit**): it turns into boxes with a **tick** and a **cross**.
+Press the tick (or Enter) to save the change and the cross (or Escape) to leave it as it was. This works without scripts too.
+Each change is kept in the [history](#history). You can still **Delete** an entry.
 
 ## Closures
 

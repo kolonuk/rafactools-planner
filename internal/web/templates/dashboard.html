@@ -6,14 +6,26 @@
   <h2>Training programmes</h2>
   {{if .Programmes}}
   <table class="list">
-    <thead><tr><th scope="col">Month</th><th scope="col"></th></tr></thead>
+    <thead><tr><th scope="col">Month</th><th scope="col">Public</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     {{range .Programmes}}
       <tr>
         <td>{{.MonthName}} {{.Year}}</td>
         <td>
+          <span class="chip {{if .Published}}chip-on{{end}}">{{if .Published}}Published{{else}}Not published{{end}}</span>
+          {{if $.CanEdit}}
+          <form method="post" action="{{url "/programmes/" .ID "/publish"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <input type="hidden" name="return" value="dashboard">
+            <input type="hidden" name="published" value="{{if .Published}}0{{else}}1{{end}}">
+            <button type="submit" class="link-button" aria-label="{{if .Published}}Unpublish{{else}}Publish{{end}} {{.MonthName}} {{.Year}}">{{if .Published}}Unpublish{{else}}Publish{{end}}</button>
+          </form>
+          {{end}}
+        </td>
+        <td>
           <a href="{{url "/programmes/" .ID}}">Edit</a>
           · <a href="{{url "/programmes/" .ID "/pdf"}}">PDF</a>
+          · <a href="{{url "/programmes/" .ID "/png"}}">PNG</a>
         </td>
       </tr>
     {{end}}

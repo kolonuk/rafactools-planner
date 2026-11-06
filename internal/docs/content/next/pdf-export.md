@@ -46,6 +46,6 @@ the editor before exporting.
 ## QR code for the calendar, and the PNG
 
 If the squadron has a [public link](public-sharing), the PDF ends with a QR code that adds the
-squadron's calendar to a phone, with the date the link stops. **Actions › Export PNG** gives the month as
+squadron's calendar to a phone, with the date the link stops. **Export › PNG picture** in the month's menu bar gives the month as
 a picture instead of a PDF. It shows the same information except the requirements tracker, and is laid
 out as one tall image for sending in a message.

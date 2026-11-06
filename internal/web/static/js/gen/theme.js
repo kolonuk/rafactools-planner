@@ -1,56 +1,58 @@
 "use strict";
-// Light / dark / system theme toggle. The page follows the browser or system
-// preference until the person picks a side; the choice is kept in this
+// Light / dark toggle. The page follows the browser or system preference until
+// the person presses the button; then each press switches to the other side; the choice is kept in this
 // browser only (localStorage, wrapped because storage can be blocked). Loaded
 // as a plain script in <head> so a saved choice is applied before the page is
 // painted. Without this script the page simply follows the system preference.
 (() => {
     const KEY = "theme";
-    const ORDER = ["system", "light", "dark"];
-    const LABEL = { system: "Theme: system", light: "Theme: light", dark: "Theme: dark" };
-    const ICON = { system: "◐", light: "☀", dark: "☾" };
     const root = document.documentElement;
+    const ICON = { light: "\u2600", dark: "\u263E" };
     function saved() {
         try {
             const v = localStorage.getItem(KEY);
-            return v === "light" || v === "dark" ? v : "system";
+            return v === "light" || v === "dark" ? v : null;
         }
         catch {
-            return "system";
+            return null;
         }
     }
-    function apply(mode) {
-        if (mode === "system")
-            root.removeAttribute("data-theme");
-        else
-            root.setAttribute("data-theme", mode);
+    /** What the page looks like right now: the saved choice, else the device setting. */
+    function shown() {
+        const attr = root.getAttribute("data-theme");
+        if (attr === "light" || attr === "dark")
+            return attr;
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
-    function show(button, mode) {
-        button.textContent = ICON[mode];
-        button.title = LABEL[mode] + " (click to change)";
-        button.setAttribute("aria-label", LABEL[mode] + ". Click to change.");
+    function paint(button) {
+        const now = shown();
+        const next = now === "dark" ? "light" : "dark";
+        button.textContent = ICON[now];
+        button.title = `Switch to ${next} mode`;
+        button.setAttribute("aria-label", `Switch to ${next} mode. It is ${now} now.`);
     }
-    apply(saved());
+    const choice = saved();
+    if (choice)
+        root.setAttribute("data-theme", choice);
     document.addEventListener("DOMContentLoaded", () => {
         const button = document.getElementById("theme-toggle");
         if (!(button instanceof HTMLButtonElement))
             return;
-        let mode = saved();
-        show(button, mode);
+        paint(button);
         button.hidden = false;
+        // Each click switches to the other appearance, so it always visibly changes.
         button.addEventListener("click", () => {
-            mode = ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length];
+            const next = shown() === "dark" ? "light" : "dark";
+            root.setAttribute("data-theme", next);
             try {
-                if (mode === "system")
-                    localStorage.removeItem(KEY);
-                else
-                    localStorage.setItem(KEY, mode);
+                localStorage.setItem(KEY, next);
             }
             catch {
                 /* storage blocked: the choice lasts until the page is closed */
             }
-            apply(mode);
-            show(button, mode);
+            paint(button);
         });
+        // Until a choice is saved the page follows the device, so follow it live.
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => paint(button));
     });
 })();

@@ -61,7 +61,7 @@ func TestNonParadeNightsOfferTheBoxesTheyWillHaveWhenTicked(t *testing.T) {
 
 	// New boxes for a night with no rows, hidden and disabled until ticked.
 	id := strconv.FormatInt(off.ID, 10)
-	for _, want := range []string{`name="day_` + id + `_new_activity_0"`, `name="day_` + id + `_new_instructor_0"`, `class="pending-row"`, `class="pending-label" hidden`, "programme-parade.js"} {
+	for _, want := range []string{`name="day_` + id + `_new_activity_0"`, `name="day_` + id + `_new_instructor_0"`, "programme-parade.js"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("page lacks %q", want)
 		}
@@ -175,7 +175,7 @@ func TestUntickedNightKeepsItsTextThroughLaterSaves(t *testing.T) {
 
 	// The page offers the kept text in the hidden boxes, under the real names.
 	page := body(c.get(pid))
-	if !strings.Contains(page, `name="row_`+row0+`_text_0" value="Precious activity" disabled hidden`) {
+	if !regexp.MustCompile(`name="row_` + row0 + `_text_0" value="Precious activity"[^>]*disabled hidden`).MatchString(page) {
 		t.Errorf("the kept text is not offered when the night is ticked again")
 	}
 	// Ticking it again and saving (the enabled boxes now post under their real names).
@@ -196,9 +196,8 @@ func TestUntickedNightKeepsItsTextThroughLaterSaves(t *testing.T) {
 	}
 }
 
-// The Activity/Instructor labels have a column of their own, between the
-// Uniform column and the first classification, so the first classification's
-// heading sits over its own boxes.
+// The grid's columns run Date, Parade, Uniform, a narrow half-number column,
+// then one column per classification (activity over instructor), then Notes.
 func TestGridHasUniformAndLabelColumnsBeforeTheClassifications(t *testing.T) {
 	app := newApp(t)
 	email := app.owner("2105")
@@ -207,7 +206,7 @@ func TestGridHasUniformAndLabelColumnsBeforeTheClassifications(t *testing.T) {
 	p, _ := app.store.CreateProgramme(sq, 2034, 7, 1)
 	page := body(c.get("/programmes/" + strconv.FormatInt(p.ID, 10)))
 	head := page[strings.Index(page, "<thead>"):strings.Index(page, "</thead>")]
-	order := []string{">Date<", ">Day<", ">Parade<", ">Uniform<", ">Row<", ">Junior Cadets<", ">1st Class Cadets<", ">Leading Cadets<", ">Senior Cadets<", ">Notes<"}
+	order := []string{">Date<", ">Parade<", ">Uniform<", ">Half<", ">Junior Cadets<", ">1st Class Cadets<", ">Leading Cadets<", ">Senior Cadets<", ">Notes<"}
 	at := -1
 	for _, h := range order {
 		i := strings.Index(head, h)
@@ -216,10 +215,14 @@ func TestGridHasUniformAndLabelColumnsBeforeTheClassifications(t *testing.T) {
 		}
 		at = i
 	}
-	// A parade night's first line: date, day, tickbox, uniform, THEN the Activity label, then the boxes.
+	// A parade night's first line: date, tickbox, uniform, THEN the boxes (activity, then instructor, per class).
 	row := page[strings.Index(page, `class="day-start"`):]
 	row = row[:strings.Index(row, "</tr>")]
-	if iu, il, ib := strings.Index(row, "_uniform"), strings.Index(row, `class="row-label" data-label="Row">Activity`), strings.Index(row, `name="row_`); !(iu < il && il < ib) {
-		t.Errorf("cells out of order (uniform %d, label %d, first box %d)", iu, il, ib)
+	ip, iu, ib := strings.Index(row, "_parade"), strings.Index(row, "_uniform"), strings.Index(row, `name="row_`)
+	if !(ip >= 0 && ip < iu && iu < ib) {
+		t.Errorf("cells out of order (parade %d, uniform %d, first box %d)", ip, iu, ib)
+	}
+	if ia, ii := strings.Index(row, `placeholder="Activity"`), strings.Index(row, `placeholder="Instructor"`); !(ia >= 0 && ia < ii) {
+		t.Errorf("each class cell should hold the activity box above the instructor box (activity %d, instructor %d)", ia, ii)
 	}
 }

@@ -283,3 +283,21 @@ func TestFilesAreCachedUntilTheMonthChanges(t *testing.T) {
 		}
 	})
 }
+
+// Every script a page loads must be inside the page's content block, or it is
+// never written out (a script tag after the final {{end}} is silently dropped).
+func TestMonthPageLoadsItsScripts(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1307")
+	c := app.login(email)
+	p, _ := app.store.CreateProgramme(app.squadronID(email), 2030, 4, 1)
+	page := body(c.get("/programmes/" + strconv.FormatInt(p.ID, 10)))
+	for _, js := range []string{"programme-grid.js", "programme-parade.js", "programme-uniform.js", "menu.js", "edit.js", "theme.js"} {
+		if !strings.Contains(page, "/static/js/gen/"+js) {
+			t.Errorf("the month page does not load %s", js)
+		}
+	}
+	if !strings.Contains(body(c.get("/instructors")), "/static/js/gen/edit.js") {
+		t.Error("the instructors page does not load edit.js")
+	}
+}
