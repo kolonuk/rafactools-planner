@@ -26,6 +26,24 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   and the `.claude/skills` notes for wording that assumes a private project or a particular
   host, and make them neutral. Edit the `next` docs; released snapshots stay as published.
 
+- [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
+  the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
+  copies it into the month being viewed.
+  - Copy only the uniform, the activities and the instructors. Leave everything else (notes,
+    weekend events, closures, the requirement tracker) alone.
+  - Line the months up by parade night: the first parade night of the source goes on the first
+    parade night of this month, the second on the second, and so on, so every date and weekday
+    comes out right for the current month.
+  - If the source has more parade nights than this month, drop the extra ones from the end.
+  - Ask for confirmation first if this month already has entries, and say what will be replaced.
+  - Test: a 5-night source into a 4-night month, a 4-night source into a 5-night month, and
+    different weekday patterns.
+- [ ] **[P3 usability]** **More detail in the programme history.** The history page should say what
+  actually changed, not just that a version was saved. For example: "Moved 3 Nov activities to
+  10 Nov", "Added closure 22-26 Dec", "Changed uniform for 17 Nov from Blue to Working dress",
+  "Edited instructor on 10 Nov (First Class)". Work out the changes by comparing the saved
+  version with the one before it, and use the same wording on the compare view when that exists
+  (see "Compare two programme versions").
 - [ ] **[P3 usability]** **PDF: the colour key overlaps the planner.** Fix the layout in
   `internal/pdfgen` so the key never sits on top of the grid; compare against `examples/pdfs/`
   (see the `pdf-fidelity` skill).
