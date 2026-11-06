@@ -219,7 +219,7 @@ func TestGridHasUniformAndLabelColumnsBeforeTheClassifications(t *testing.T) {
 	// A parade night's first line: date, day, tickbox, uniform, THEN the Activity label, then the boxes.
 	row := page[strings.Index(page, `class="day-start"`):]
 	row = row[:strings.Index(row, "</tr>")]
-	if iu, il, ib := strings.Index(row, "_uniform"), strings.Index(row, `class="row-label">Activity`), strings.Index(row, `name="row_`); !(iu < il && il < ib) {
+	if iu, il, ib := strings.Index(row, "_uniform"), strings.Index(row, `class="row-label" data-label="Row">Activity`), strings.Index(row, `name="row_`); !(iu < il && il < ib) {
 		t.Errorf("cells out of order (uniform %d, label %d, first box %d)", iu, il, ib)
 	}
 }

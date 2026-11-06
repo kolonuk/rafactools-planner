@@ -5,6 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
+  - next: The grid is a lighter, flowing list: boxes show their outline when you point at them, each night has a colour dot for its uniform, and on a phone every row becomes a card instead of scrolling sideways.
   - next: Actions › Export PNG downloads the month as a picture.
   - next: Actions › Publish this month shares the month at the squadron's public link.
   - next: The month page has a breadcrumb and an Actions menu (Export PDF, History, Manage instructors, the parade-evenings switch with a tick or a cross, Reset this month) in place of the row of links.
@@ -72,7 +73,7 @@ As you type in an **Instructor** box the browser suggests **All Staff**, the peo
 your [instructor list](instructors) and each member of your squadron. They are only
 suggestions: you can type any name.
 
-On a narrow screen the grid scrolls sideways rather than squeezing its columns.
+On a phone or other narrow screen each row becomes a small card with its labels above the boxes, so you do not have to scroll sideways. A colour dot beside each date shows the night's uniform and follows the **Uniform** dropdown as you change it.
 
 **Show parade evenings only** is a switch above the grid, on by default. It hides the days
 that are not parade nights to make the grid shorter; turn it off to see every day. The same

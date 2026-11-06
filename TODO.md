@@ -28,12 +28,12 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
 
 - [ ] **[P2 helpful feature]** **Planner redesign and public sharing: the plan, in order.** Decided: no Bootstrap;
   keep the hand-written Material-style CSS. One phase per pull request through dev, test and main.
-  1. *Foundations (done in part):* theme toggle with the system setting first, breadcrumb, and the
-     Actions menu with the parade switch as a tick or cross. Still to do: phone layout of the top bar.
-  2. *The grid:* replace the table with a flowing list where each day is its own row/card (date and day
-     badge, uniform chip, then the activity and instructor per class), laid out with CSS grid and
-     container queries so one layout serves desktop and phone. Drag the day by its handle. Fix the
-     "Day" column after a move. Inline edit (tick/cross) arrives with the same component.
+  1. *Foundations:* DONE. Theme toggle (system first), breadcrumb and the Actions menu with the parade
+     switch as a tick or cross. Still to do: phone layout of the top bar.
+  2. *The grid:* the restyle is DONE (flowing list, quiet boxes, uniform colour dot, cards on a phone;
+     still a table underneath, so the forms, drag and tests are unchanged). Still to do: a true
+     day-per-card layout rather than a restyled table, the "Day" column after a move, and inline
+     edit (tick/cross), which arrives with the same component.
   3. *Sharing settings:* DONE. Parade start and end time in squadron settings (default 19:00 to 21:30,
      Europe/London), a Published setting on each month (Actions menu) and a per-squadron public link
      that expires after 1 month and can be renewed.
@@ -65,18 +65,11 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   "Edited instructor on 10 Nov (First Class)". Work out the changes by comparing the saved
   version with the one before it, and use the same wording on the compare view when that exists
   (see "Compare two programme versions").
-- [ ] **[P3 usability]** **Menu and breadcrumbs on the monthly planner page.** Replace the row of action links at the
-  top with a proper menu (for example a dropdown or toolbar menu with the actions grouped:
-  Copy, Export PDF, History, and so on). Include the slider (the parade-nights-only toggle) as a
-  menu option shown with a tick or a cross. Add a breadcrumb trail above it (for example
-  Squadron > Programmes > November 2026) so it is clear where you are and easy to go back.
-  The menu must work with the keyboard and on a phone, and still reach every action when
-  scripts are off if that is reasonable. Do this together with "Modernise the planner grid".
 - [ ] **[P3 usability]** **Edit in place for every text entry, not only delete.** Closures, weekend notes,
   programme notes and the requirement tracker (categories and entries) can be deleted today but
   not edited. Clicking the text should turn it into an editable field with a tick (save) and a
   cross (cancel); Enter saves and Escape cancels. Do it the same way everywhere in the grids and
-  lists, as part of making the site friendlier (see "Modernise the planner grid" and the menu
+  lists, as part of making the site friendlier (see the planner redesign plan above and the menu
   item). Keep a plain "Edit" link or button that works without scripts and with the keyboard, and
   record each edit in the programme history. This replaces the old "Edit a closure or weekend
   note" idea.
@@ -85,20 +78,12 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   (see the `pdf-fidelity` skill).
 - [ ] **[P3 usability]** **Bug: moving a day in the grid does not update the "Day" column.** After a
   drag or the Move control, the weekday label keeps the old value until reload.
-- [ ] **[P3 usability]** **Modernise the planner grid.** It feels dated. Idea: each day is its own
-  "line" (row/card) and its contents are what is dragged to rearrange. Look at a more modern
-  table pattern generally (sortable, keyboard-accessible, works on a phone, which also helps
-  the "Phone layout" item). Decide the design before building.
 - [ ] **[P3 usability]** **Lift the JavaScript restriction and review reactive features.** The
   README still says "no JS framework" and "pages should still work without script where
   reasonable". Remove that restriction (keep the CSP `script-src 'self'`, no inline script, no
   third-party or `eval`), update the README, `docs` skill and lint skill wording, then review
   which screens would be better with TypeScript (live validation, inline edit, drag and drop,
   partial refresh) and add the worthwhile ones as items.
-- [ ] **[P3 usability]** **Light/dark mode toggle.** Add a toggle (stored per user in the browser,
-  e.g. `localStorage` or a cookie), but the first appearance must stay the system/browser
-  preference. Offer system / light / dark, with "system" the default. The theme is
-  `internal/web/static/css/app.css`; a script is allowed for this.
 - [ ] **[P2 helpful feature]** **Activity list (default plus per-squadron).**
   - Ship a JSON file of default activities, embedded in the binary. Starting set:
     First Class - Flying Operation; First Class - Map Reading; First Class - Initial Expedition
@@ -158,7 +143,7 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
   and configure mail on a brand-new site without `ALLOW_LOG_MAIL`.
 
 - [ ] **[P2 helpful feature]** **Compare two programme versions** side by side on the history page (today you can only restore).
-- [ ] **[P3 usability]** **Phone layout for the programme grid.** The top bar and tables wrap instead of widening the page
+- [ ] **[P3 usability]** **Phone layout for the programme grid (top bar still to do).** The top bar and tables wrap instead of widening the page
   and a browser test (e2e/) guards that; the programme grid itself still scrolls sideways.
 - [ ] **[P3 usability]** **Password quality:** a check against very common passwords (the 12-character
   minimum is the only rule today), and "last used" on the sessions list.
