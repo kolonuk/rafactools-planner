@@ -22,8 +22,12 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/rafactools-planner
 
 jobs:
-  build-test:
-    name: Build, vet, test
+  # Build, vet and the tests run as separate jobs so they run side by side: the
+  # web package's tests are by far the slowest (every test signs in), so they
+  # have a job to themselves. "Build, vet, test" below is the one check that
+  # branch protection requires; it passes only when all of these did.
+  build-vet:
+    name: Build, vet, format
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,24 +37,80 @@ jobs:
           cache: true
       - run: go build ./...
       - run: go vet ./...
-      # Includes the operational tests in cmd/server, which build and run
-      # the real binary (startup failures, signals, restart persistence).
-      - name: Test (race, coverage)
-        run: go test ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic
-      - name: Coverage summary
-        run: |
-          {
-            echo "### Test coverage"
-            echo '```'
-            go tool cover -func=coverage.out | tail -n 25
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Fuzz (short)
-        run: go test ./internal/auth -run '^$' -fuzz FuzzParseClaimEmail -fuzztime 20s
       - name: gofmt check
         run: |
           out="$(gofmt -l .)"
           if [ -n "$out" ]; then echo "Not gofmt'd:"; echo "$out"; exit 1; fi
+
+  test-web:
+    name: "Tests: web (race)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: Test (race, coverage)
+        run: go test ./internal/web -race -count=1 -coverprofile=coverage.out -covermode=atomic
+      - name: Coverage summary
+        run: |
+          {
+            echo "### Test coverage: web"
+            echo '```'
+            go tool cover -func=coverage.out | tail -n 5
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  test-rest:
+    name: "Tests: other packages (race)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      # Includes the operational tests in cmd/server, which build and run
+      # the real binary (startup failures, signals, restart persistence).
+      - name: Test (race, coverage)
+        run: |
+          mapfile -t pkgs < <(go list ./... | grep -v '/internal/web$')
+          go test "${pkgs[@]}" -race -count=1 -coverprofile=coverage.out -covermode=atomic
+      - name: Coverage summary
+        run: |
+          {
+            echo "### Test coverage: everything except web"
+            echo '```'
+            go tool cover -func=coverage.out | tail -n 25
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  fuzz:
+    name: Fuzz (short)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - run: go test ./internal/auth -run '^$' -fuzz FuzzParseClaimEmail -fuzztime 20s
+
+  build-test:
+    name: Build, vet, test
+    needs: [build-vet, test-web, test-rest, fuzz]
+    # Always run, and check the results by hand: a job whose needs failed is
+    # skipped, and a skipped required check would count as passed.
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every build and test job passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'to_entries | all(.value.result == "success")' > /dev/null
 
   go-lint:
     name: Static analysis (staticcheck, gosec)

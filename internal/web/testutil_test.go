@@ -20,6 +20,8 @@ import (
 	"testing/fstest"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"rafactools-planner/internal/auth"
 	"rafactools-planner/internal/config"
 	"rafactools-planner/internal/db"
@@ -30,7 +32,8 @@ import (
 const testPassword = "correct horse battery staple"
 
 func TestMain(m *testing.M) {
-	log.SetOutput(io.Discard) // the mailer logs links when SMTP is unset
+	auth.HashCost = bcrypt.MinCost // signing in is slow on purpose; tests do it constantly (see auth.HashCost)
+	log.SetOutput(io.Discard)      // the mailer logs links when SMTP is unset
 	os.Exit(m.Run())
 }
 

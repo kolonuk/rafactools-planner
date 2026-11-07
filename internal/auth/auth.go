@@ -26,6 +26,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -136,7 +137,7 @@ func (s *Service) ClaimSquadron(email, password, squadronName string) (userID in
 		squadronName = number + " Squadron"
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), HashCost)
 	if err != nil {
 		return 0, "", fmt.Errorf("hash password: %w", err)
 	}
@@ -282,7 +283,7 @@ func (s *Service) AcceptInvite(token, password string) (userID int64, squadronID
 		return 0, 0, err
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), HashCost)
 	if err != nil {
 		return 0, 0, fmt.Errorf("hash password: %w", err)
 	}
@@ -489,7 +490,7 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		// Burn the same bcrypt time as a real check so response latency
 		// doesn't reveal which emails have accounts.
-		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
+		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
 		return nil, ErrInvalidCredentials
 	} else if err != nil {
 		return nil, fmt.Errorf("lookup user: %w", err)
@@ -511,9 +512,24 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 	return &u, nil
 }
 
-// dummyHash is a valid bcrypt hash (of a random value) used to equalise
-// Authenticate's timing for unknown emails.
-var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("timing-equaliser"), bcrypt.DefaultCost)
+// HashCost is the bcrypt cost of every password hash the app makes. It is
+// bcrypt's default in production and is only ever lowered by tests, where
+// signing in hundreds of times under the race detector would otherwise take
+// minutes. Nothing outside tests may change it.
+var HashCost = bcrypt.DefaultCost
+
+var (
+	dummyOnce sync.Once
+	dummy     []byte
+)
+
+// dummyHash is a valid bcrypt hash (of a fixed value) used to equalise
+// Authenticate's timing for unknown emails. It is made at the current HashCost
+// the first time it is needed, so it always costs the same as a real hash.
+func dummyHash() []byte {
+	dummyOnce.Do(func() { dummy, _ = bcrypt.GenerateFromPassword([]byte("timing-equaliser"), HashCost) })
+	return dummy
+}
 
 const sessionTTL = 30 * 24 * time.Hour
 
