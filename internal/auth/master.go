@@ -95,7 +95,7 @@ func (s *Service) EnsureMasterAdmin(email, password string) (string, error) {
 		if cerr := checkPassword(password); cerr != nil {
 			return "", fmt.Errorf("master admin password rejected: %w", cerr)
 		}
-		if hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err != nil {
+		if hash, err = bcrypt.GenerateFromPassword([]byte(password), HashCost); err != nil {
 			return "", fmt.Errorf("hash password: %w", err)
 		}
 		err = nil
@@ -134,7 +134,7 @@ func (s *Service) ResetMasterPassword(email, password string) error {
 	if err := checkPassword(password); err != nil {
 		return fmt.Errorf("master admin password rejected: %w", err)
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), HashCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}

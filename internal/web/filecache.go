@@ -56,6 +56,18 @@ func (c *fileCache) put(key string, data []byte) {
 	}
 }
 
+// fileHash hashes the given parts (anything JSON can encode), plus the app
+// version, into a hex key.
+func fileHash(parts ...any) string {
+	h := sha256.New()
+	enc := json.NewEncoder(h)
+	_ = enc.Encode(version.Version)
+	for _, part := range parts {
+		_ = enc.Encode(part)
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 // fileKey hashes everything a file is drawn from.
 func fileKey(kind string, sq *programme.Squadron, fp *programme.FullProgramme, pdfOpts pdfgen.Options) string {
 	h := sha256.New()

@@ -61,4 +61,4 @@ For whoever hosts the planner, and for contributors.
 [About these docs](about-these-docs) explains versions, comparing versions and
 the version notes at the foot of each page.
 
-To go back to the planner, use the link at the top of the tree, or go to your [dashboard](app:/).
+To go back to the planner, use the **Planner** link in the top bar, or go to your [dashboard](app:/).

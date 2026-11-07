@@ -68,7 +68,12 @@ type server struct {
 	*Deps
 	pages    map[string]*template.Template
 	activity *activityLog
-	files    *fileCache // rendered PDFs and PNGs, see filecache.go
+	files    *fileCache // rendered PDFs, PNGs and calendars, see filecache.go
+
+	// The public calendar is limited per caller and per link: a calendar app only
+	// needs to look every few hours, and the answer is cached anyway.
+	calendarByIP   *ipLimiter
+	calendarByLink *ipLimiter
 }
 
 // pageNames are the content templates under templates/, one per file
@@ -117,7 +122,8 @@ const (
 )
 
 func NewRouter(d *Deps) http.Handler {
-	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog(), files: newFileCache(64)}
+	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog(), files: newFileCache(64),
+		calendarByIP: newIPLimiter(60, 5*time.Minute), calendarByLink: newIPLimiter(300, 5*time.Minute)}
 
 	// 20 attempts per 5 minutes per IP on the endpoints worth scripting an
 	// attack against (credential stuffing on login, mass squadron-claim

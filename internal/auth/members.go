@@ -140,7 +140,7 @@ func (s *Service) PrepareTempPassword(squadronID, targetUserID, actingUserID int
 	if err != nil {
 		return nil, err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(plain), HashCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}

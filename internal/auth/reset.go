@@ -128,7 +128,7 @@ func (s *Service) ResetPassword(token, newPassword string) error {
 	if err := checkPassword(newPassword); err != nil {
 		return err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), HashCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
@@ -179,7 +179,7 @@ func (s *Service) ChangePassword(userID int64, keepSessionToken, current, newPas
 	if err := checkPassword(newPassword); err != nil {
 		return err
 	}
-	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), HashCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
