@@ -5,7 +5,7 @@ summary: What runs on every change, and what to do when one fails.
 since: 1.0
 audience: dev
 changed:
-  - next: The checks run side by side (the web tests in two halves), the image is built alongside them and pushed only when everything passed, a change that only edits notes skips the heavy jobs, and the analysis tools and the browser download are kept between runs.
+  - 1.15: The checks run side by side (the web tests in two halves), the image is built alongside them and pushed only when everything passed, a change that only edits notes skips the heavy jobs, and the analysis tools and the browser download are kept between runs.
   - 1.13: Added the browser tests and a Releases section.
   - 1.9: Added staticcheck, gosec, CSS and HTML linting, workflow linting, secret and configuration scanning, fuzzing, operational tests and the documentation check.
 ---

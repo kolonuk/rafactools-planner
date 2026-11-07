@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.15
 
 - **fix**: the PDF's uniform key and notes table are no longer drawn on top of the nights below an early closure: they are always below the whole grid.
 - **feat**: the squadron's calendar is one feed for every published month, kept until something it shows changes (a month published or unpublished, an edit to a published night, closure, weekend note or the parade times, or a new day) and answered with an ETag. Each address and each calendar link is rate limited (60 and 300 requests in 5 minutes) with a Retry-After.
