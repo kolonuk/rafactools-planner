@@ -325,3 +325,189 @@ func TestTheQRPictureIsOnlyForSignedInMembersOfTheSquadron(t *testing.T) {
 		t.Errorf("another squadron: status %d, want 404", resp.StatusCode)
 	}
 }
+
+// publishMonth makes and publishes a month with one parade night's activity filled in.
+func publishMonth(t *testing.T, app *testApp, c *client, sq int64, year, month int, activity string) *programme.Programme {
+	t.Helper()
+	p, err := app.store.CreateProgramme(sq, year, month, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parade, _, _ := firstParadeAndPlain(t, app, sq, p.ID)
+	if err := app.store.SaveDaysAndRows(sq, p.ID, []programme.DayInput{{ID: parade.ID, IsParade: true, UniformKey: "green",
+		Rows: []programme.RowInput{{ID: parade.Rows[0].ID, Texts: []string{activity, "", "", ""}}}}}); err != nil {
+		t.Fatal(err)
+	}
+	pid := strconv.FormatInt(p.ID, 10)
+	wantRedirect(t, c.post("/programmes/"+pid+"/publish", url.Values{"published": {"1"}}), "/programmes/"+pid)
+	return p
+}
+
+func TestOneCalendarLinkCoversEveryPublishedMonth(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1310")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
+	apr := publishMonth(t, app, c, sq, 2030, 4, "April drill")
+	publishMonth(t, app, c, sq, 2030, 5, "May shooting")
+	if _, err := app.store.CreateProgramme(sq, 2030, 6, 1); err != nil { // never published
+		t.Fatal(err)
+	}
+	share, _ := app.store.GetShare(sq)
+	anon := app.anon()
+	feed := func() string {
+		resp := anon.get("/share/" + share.Token + "/calendar.ics")
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("calendar status %d", resp.StatusCode)
+		}
+		return unfold(body(resp))
+	}
+
+	out := feed()
+	for _, want := range []string{"April drill", "May shooting", "/2030-04.pdf", "/2030-05.pdf"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the one calendar lacks %q", want)
+		}
+	}
+	if strings.Contains(out, "2030-06.pdf") {
+		t.Error("an unpublished month is in the calendar")
+	}
+	if n := strings.Count(out, "BEGIN:VCALENDAR"); n != 1 {
+		t.Errorf("%d calendars in the feed, want 1", n)
+	}
+	// The same single link is what the squadron is given for every month.
+	if s := app.store; s != nil {
+		if again, _ := s.GetShare(sq); again.Token != share.Token {
+			t.Error("the link changed")
+		}
+	}
+
+	wantRedirect(t, c.post("/programmes/"+strconv.FormatInt(apr.ID, 10)+"/publish", url.Values{"published": {"0"}}), "/programmes/"+strconv.FormatInt(apr.ID, 10))
+	out = feed()
+	if strings.Contains(out, "April drill") || !strings.Contains(out, "May shooting") {
+		t.Errorf("after unpublishing April the calendar should have only May:\n%s", out)
+	}
+}
+
+func TestTheCalendarIsKeptUntilWhatItShowsChanges(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1311")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
+	apr := publishMonth(t, app, c, sq, 2030, 4, "April drill")
+	share, _ := app.store.GetShare(sq)
+	path := "/share/" + share.Token + "/calendar.ics"
+	anon := app.anon()
+	etag := func() string {
+		t.Helper()
+		resp := anon.get(path)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("status %d", resp.StatusCode)
+		}
+		return resp.Header.Get("ETag")
+	}
+	parade, _, _ := firstParadeAndPlain(t, app, sq, apr.ID)
+	e0 := etag()
+	if e0 == "" || etag() != e0 || etag() != e0 {
+		t.Fatalf("the calendar changed between requests with no edit (%q)", e0)
+	}
+
+	t.Run("a repeat request with the ETag is answered 304", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", app.srv.URL+path, nil)
+		req.Header.Set("If-None-Match", e0)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusNotModified {
+			t.Errorf("status %d, want 304", resp.StatusCode)
+		}
+	})
+
+	t.Run("things the calendar does not show leave it alone", func(t *testing.T) {
+		app.store.AddRequirementCategory(apr.ID, "Fieldcraft", "")
+		app.store.AddWeekendNote(apr.ID, "2030-04-06", "x") // this one it does show: see below
+		before := etag()
+		cat, _ := app.store.AddRequirementCategory(apr.ID, "Briefings", "")
+		app.store.AddRequirementEntry(apr.ID, cat, "Cdt Example", "note")
+		if err := app.store.SaveDaysAndRows(sq, apr.ID, []programme.DayInput{{ID: parade.ID, IsParade: true, UniformKey: "green", Notes: "bring a pen",
+			Rows: []programme.RowInput{{ID: parade.Rows[0].ID, Texts: []string{"April drill", "", "", ""}}}}}); err != nil {
+			t.Fatal(err)
+		}
+		if etag() != before {
+			t.Error("a note or the requirement tracker changed the calendar, which shows neither")
+		}
+		// An unpublished month's edits do not either.
+		other, _ := app.store.CreateProgramme(sq, 2030, 7, 1)
+		app.store.AddClosure(other.ID, "2030-07-01", "2030-07-02", "Closed")
+		if etag() != before {
+			t.Error("an unpublished month changed the calendar")
+		}
+	})
+
+	t.Run("things it shows change it", func(t *testing.T) {
+		last := etag()
+		step := func(what string, change func()) {
+			t.Helper()
+			change()
+			if now := etag(); now == last {
+				t.Errorf("%s did not change the calendar", what)
+			} else {
+				last = now
+			}
+		}
+		step("a new activity", func() {
+			app.store.SaveDaysAndRows(sq, apr.ID, []programme.DayInput{{ID: parade.ID, IsParade: true, UniformKey: "green",
+				Rows: []programme.RowInput{{ID: parade.Rows[0].ID, Texts: []string{"Shooting", "", "", ""}}}}})
+		})
+		step("a closure over the night", func() { app.store.AddClosure(apr.ID, parade.Date, parade.Date, "Stand-down") })
+		step("another month being published", func() { publishMonth(t, app, c, sq, 2030, 5, "May drill") })
+		step("new parade times", func() {
+			wantRedirect(t, c.post("/squadron", url.Values{"name": {"1311 Sqn"}, "classifications": {"A\nB\nC\nD"}, "parade_weekdays": {"1", "4"}, "parade_start": {"18:00"}, "parade_end": {"21:00"}}), "/squadron")
+		})
+		step("a night passing", func() { setClock(t, time.Date(2030, 4, 5, 9, 0, 0, 0, time.UTC)) })
+		step("a month being unpublished", func() {
+			wantRedirect(t, c.post("/programmes/"+strconv.FormatInt(apr.ID, 10)+"/publish", url.Values{"published": {"0"}}), "/programmes/"+strconv.FormatInt(apr.ID, 10))
+		})
+	})
+}
+
+func TestTheCalendarIsRateLimited(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1312")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
+	publishMonth(t, app, c, sq, 2030, 4, "April drill")
+	share, _ := app.store.GetShare(sq)
+	path := "/share/" + share.Token + "/calendar.ics"
+
+	greedy := app.anon()
+	greedy.xff = "203.0.113.7"
+	ok, limited := 0, 0
+	var retry string
+	for i := 0; i < 70; i++ {
+		resp := greedy.get(path)
+		switch resp.StatusCode {
+		case http.StatusOK:
+			ok++
+		case http.StatusTooManyRequests:
+			limited++
+			retry = resp.Header.Get("Retry-After")
+		}
+		resp.Body.Close()
+	}
+	if ok != 60 || limited != 10 || retry == "" {
+		t.Errorf("%d answered, %d limited, Retry-After %q: want 60 answered, 10 limited, a Retry-After", ok, limited, retry)
+	}
+	// Someone else is not held up by that caller's use.
+	polite := app.anon()
+	polite.xff = "203.0.113.8"
+	if resp := polite.get(path); resp.StatusCode != http.StatusOK {
+		t.Errorf("another caller got %d", resp.StatusCode)
+	}
+}
