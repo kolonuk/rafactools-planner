@@ -152,9 +152,31 @@ func (a *testApp) squadronID(email string) int64 {
 	return id
 }
 
-// login drives the real login form (anon CSRF cookie and all) and returns a
-// client carrying the resulting session.
+// loginViaForm drives the real login form (anon CSRF cookie and all) and returns
+// a client carrying the resulting session. Use it in tests of signing in itself
+// (audit lines, sessions, two-step, resets); every other test uses login.
+// login returns a client that is already signed in as the user: it starts the
+// session straight in the test database, by the same call the app makes once a
+// password has been checked, instead of going through the form and bcrypt. The
+// built app has no such shortcut; this lives in test files only and the database
+// is the test's own throw-away one. Tests of signing in use loginViaForm.
 func (a *testApp) login(email string) *client {
+	a.t.Helper()
+	var id int64
+	if err := a.db.QueryRow(`SELECT id FROM users WHERE email = ?`, email).Scan(&id); err != nil {
+		a.t.Fatalf("login as %s: no such user: %v", email, err)
+	}
+	token, expires, err := a.auth.CreateSession(id)
+	if err != nil {
+		a.t.Fatalf("login as %s: %v", email, err)
+	}
+	c := a.anon()
+	c.hc.Jar.SetCookies(mustURL(c.base), []*http.Cookie{{Name: sessionCookieName, Value: token, Path: "/", Expires: expires}})
+	c.csrf = a.auth.CSRFToken(token)
+	return c
+}
+
+func (a *testApp) loginViaForm(email string) *client {
 	a.t.Helper()
 	c := a.anon()
 	resp := c.get("/login")
