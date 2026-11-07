@@ -17,6 +17,13 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
+## 1.15
+
+- **fix**: the PDF's uniform key and notes table are no longer drawn on top of the nights below an early closure: they are always below the whole grid.
+- **feat**: the squadron's calendar is one feed for every published month, kept until something it shows changes (a month published or unpublished, an edit to a published night, closure, weekend note or the parade times, or a new day) and answered with an ETag. Each address and each calendar link is rate limited (60 and 300 requests in 5 minutes) with a Retry-After.
+- **chore**: CI is much faster. The Go build, the web tests (in two halves) and the other tests run as separate jobs side by side; on a push the image is built and checked alongside them and pushed only when every check passed; a change that only edits notes skips the heavy jobs; the analysis tools, the vulnerability scanner and the browser download are kept between runs; and tests hash passwords at the cheapest bcrypt cost (production keeps the default) and sign in directly instead of through the form. "Build, vet, test" stays as the single required check.
+- **chore**: help pages brought into line with the menu bar, the Planner link and publishing.
+
 ## 1.14
 
 - **feat**: a public link and calendar. An owner makes a one-month public link under Squadron (or it is made when a month is first published); an editor publishes a month from the month's menu bar or from the list of months. At the link, with no sign-in: a calendar feed (one entry per parade night from today, with the uniform and the activities grouped by class, a link to the month's PDF, and weekend notes as all-day entries), and the PDF and a PNG of each published month without the requirement tracker. A published month shows its addresses and a QR code on the page.

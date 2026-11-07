@@ -3,6 +3,8 @@ package pdfgen
 import (
 	"bytes"
 	"github.com/go-pdf/fpdf"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -250,5 +252,43 @@ func TestACrowdedMonthIsShrunkToFitOnePage(t *testing.T) {
 		if !bytes.Contains(data, []byte("/Count 1")) {
 			t.Errorf("%s: not a single page", name)
 		}
+	}
+}
+
+// textY finds where a piece of text was drawn on the page (points up from the
+// bottom), in a PDF that was made with compression off.
+func textY(t *testing.T, pdf, text string) float64 {
+	t.Helper()
+	m := regexp.MustCompile(`([0-9.]+) ([0-9.]+) Td \(` + regexp.QuoteMeta(text) + `\)Tj`).FindStringSubmatch(pdf)
+	if m == nil {
+		t.Fatalf("%q was not drawn", text)
+	}
+	y, _ := strconv.ParseFloat(m[2], 64)
+	return y
+}
+
+// A closure early in the month used to leave the cursor high on the page, so the
+// uniform key and the notes table were drawn on top of the nights below it.
+func TestTheKeyAndNotesAreBelowTheWholeGridEvenWithAnEarlyClosure(t *testing.T) {
+	compressOutput = false
+	defer func() { compressOutput = true }()
+	sq, fp := heavyMonth(2, 1, false, 3)
+	fp.Closures = []programme.Closure{{StartDate: "2026-11-09", EndDate: "2026-11-12", Message: "STAND DOWN"}}
+	data, err := Render(sq, fp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdf := string(data)
+	lastNight := textY(t, pdf, "30") // the last row of the grid
+	for _, below := range []string{"Uniform Key", "NOTES"} {
+		if y := textY(t, pdf, below); y >= lastNight {
+			t.Errorf("%q is drawn at %.0f, level with or above the last night (%.0f): it overlaps the grid", below, y, lastNight)
+		}
+	}
+	// And with no closure the key is still the same distance below the grid.
+	fp.Closures = nil
+	plain, _ := Render(sq, fp)
+	if y := textY(t, string(plain), "Uniform Key"); y >= textY(t, string(plain), "30") {
+		t.Error("the key overlaps the grid without a closure too")
 	}
 }

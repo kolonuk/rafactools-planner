@@ -47,6 +47,51 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
      entry marked cancelled for a night that was cancelled after being published.
   6. *QR code* for the feed at the foot of the PDF and the PNG, with its expiry date: DONE. Still to
      do: the same on a public web page (there is none yet).
+- [ ] **[P2 helpful feature]** **Move a login to another squadron (account transfer).** Today a person belongs to
+  one squadron and an email address can only have one account, so someone who changes squadron, or is
+  invited by a squadron when their email already has an account elsewhere, has no way across. Decide first
+  whether to *move* the account (what was asked for) or to let one login belong to several squadrons with a
+  switcher; the notes below are for a move.
+  - **Who can start it:** a person moving their own login, or an owner of the squadron the person is in
+    moving someone else's. Never the master admin's own account.
+  - **The target squadron must already be claimed** (picked by its number; show only its number and name).
+    It is not created by a transfer.
+  - **At least one owner of the target squadron must accept**, and the accepting owner **sets the role**
+    (owner, editor or viewer) the person will have there. The request is emailed to the target's owners
+    with a link; any one owner accepting settles it; anyone declining, or 14 days passing, ends it. The
+    requester can cancel while it is pending. One pending transfer per person.
+  - **The person must agree when someone else asks.** An owner moving a member out sends the member a
+    confirmation link; nothing happens until they use it. (A person moving themselves already agrees by
+    asking.) Both steps, the person's and the target owner's, are needed before the move happens.
+  - **Checks before the move:** the person is not the **only owner** of the squadron they are leaving (hand
+    over ownership or delete the squadron first); the account is active and its email confirmed; it is not
+    holding a temporary password; the target does not already have a login with the same email or a pending
+    invite for it (offer to cancel the invite); the master admin account is refused.
+  - **What happens on acceptance, in one transaction:** the person's squadron and role change; every session
+    of theirs is ended so they sign in again into the new squadron; their password and two-step sign-in are
+    kept; their display name is kept. **Nothing else moves:** programmes, history, requirement entries and the
+    instructor list stay with the old squadron (history keeps the email as text), and the person no longer
+    sees any of it. Say this on the confirmation page.
+  - **Records and mail:** a line in the security log of **both** squadrons (requested, accepted, declined,
+    cancelled, expired, moved), and an email to the person, to the old squadron's owners and to the target's
+    owners when it is done. Rate limit requests, and add the human check if Turnstile is on.
+  - **Also useful, alongside it:** a clear refusal on the invite page that says "this email already has a
+    login, ask to be transferred" instead of a bare error; **hand over ownership** (promote another owner)
+    with a warning if the squadron would be left with none; **leave a squadron** and **download my details**
+    for a person who is not moving; show pending transfers on the Squadron page (for the owners involved)
+    and on the person's Your details page.
+  - Needs a migration (`account_transfers`: person, from, to, requested by, role, status, expiry), docs
+    (roles and invites, Squadron, security and privacy, troubleshooting), the changelog and tests for every
+    check above, including a transfer being refused across squadrons the requester does not own.
+- [ ] **[P4 nicety]** **Check what the fuzz test is for, and whether to keep it.** "Fuzz (short)" in CI runs Go's
+  built-in fuzzing for 20 seconds (about a minute of job time including set-up): it feeds a stream of
+  random and mutated strings to one function, `ParseClaimEmail` in `internal/auth` (the check that decides
+  whether an address like `snco.1234@domain` may claim a squadron), and fails if it crashes or gives an
+  answer that breaks its rules. It is a safety net for odd input, not a test of behaviour. Decide: keep
+  it as is; point it at other code that takes text from outside (the help pages' front matter and Markdown,
+  the calendar builder, the closure and weekend-note dates, form fields) where a crash or hang would
+  matter more; shorten it or run it only on pushes to `test` and `main`; or drop it. Whichever, say in
+  the docs what it covers.
 - [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
   the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
   copies it into the month being viewed.

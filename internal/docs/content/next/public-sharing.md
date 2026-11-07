@@ -5,6 +5,7 @@ summary: Publishing a month, the public link, the calendar feed you can subscrib
 since: 1.14
 audience: admin
 changed:
+  - 1.15: There is one calendar per squadron covering every published month. It is kept until something it shows changes, and it is rate limited.
   - 1.14: New page. Publishing a month makes the public link if there is none, and the month page and the list of months show the addresses, a QR code and Publish or Unpublish buttons.
   - 1.14: (earlier) New page. Publish a month, share a one-month public link with a calendar feed, a PDF and a PNG of each published month, and a QR code on the PDF.
 ---
@@ -56,6 +57,25 @@ stops working**, so reprint after renewing.
 Cadet names and the requirements tracker, notes on a night, instructor names in the calendar,
 history, members and any unpublished month. The PDF does show the instructor boxes of the grid, as
 the paper programme does, so leave names out of those boxes if you do not want them public.
+
+## One calendar for the whole squadron
+
+The squadron has **one** calendar address, however many months are published. It lists the parade
+nights of **every published month**, from today on. Publish a new month and it appears in the calendar
+people already subscribed to; unpublish a month and it disappears. People never need a new address
+per month (only the PDF and PNG addresses are per month, and the calendar entries link to them).
+
+The planner keeps the calendar it has built and sends that copy until something the calendar shows
+changes: a month being published or unpublished, a night, uniform or activity changing in a published
+month, a closure over a published night, a weekend note on a published month, the parade times, or the
+new day (nights that have passed drop out). Notes, the requirements tracker and edits to months that are
+not published never change it. Calendar apps that already have the current copy get a short "not modified"
+answer.
+
+To keep the site responsive, each person's address may ask for the calendar at most 60 times in 5 minutes
+and each calendar address at most 300 times in 5 minutes. Past that the site answers
+`Too many requests for this calendar` and a calendar app tries again later. Apps normally check only
+every few hours, so this is only reached by something misbehaving.
 
 ## Files are kept until the month changes
 

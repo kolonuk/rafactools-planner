@@ -1,6 +1,6 @@
 # Runs on every push/PR to the three long-lived branches (dev -> test ->
-# main promotion via PR). Build/vet/test first since they're fast and catch
-# most breakage; security scanning after.
+# main promotion via PR). Everything runs side by side; the image is built and
+# checked alongside the tests and pushed only once every check has passed.
 name: CI
 
 on:
@@ -22,8 +22,55 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/rafactools-planner
 
 jobs:
-  build-test:
-    name: Build, vet, test
+  # What a change touches decides which jobs run. A change that only edits notes
+  # (TODO.md, CHANGELOG.md, README.md, CONTRIBUTING.md, LICENSE, CLAUDE.md or
+  # .claude/) skips the heavy jobs: they report "skipped", which branch
+  # protection counts as passed, and the "Build, vet, test" check below accepts
+  # skipped jobs only when this job said the change was light. Anything else,
+  # including the workflows, the code, the docs pages (they are built into the
+  # app) and a push that cannot be compared, runs everything.
+  changes:
+    name: What changed
+    runs-on: ubuntu-24.04
+    outputs:
+      heavy: ${{ steps.diff.outputs.heavy }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Work out whether the change is only notes
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          heavy() { echo "heavy=true" >> "$GITHUB_OUTPUT"; echo "Running everything: $1"; exit 0; }
+          if [ "$EVENT" = "pull_request" ]; then
+            range="${PR_BASE}...${PR_HEAD}"; base="$PR_BASE"
+          elif [ "$EVENT" = "push" ] && [ "${PUSH_BEFORE//0/}" != "" ]; then
+            range="${PUSH_BEFORE}..${SHA}"; base="$PUSH_BEFORE"
+          else
+            heavy "this run was not started by a push or a pull request"
+          fi
+          git cat-file -e "${base}^{commit}" 2>/dev/null || heavy "the earlier commit is not available to compare with"
+          files="$(git diff --name-only "$range")" || heavy "the change could not be listed"
+          [ -n "$files" ] || heavy "no files changed"
+          while IFS= read -r f; do
+            case "$f" in
+              TODO.md|CHANGELOG.md|README.md|CONTRIBUTING.md|LICENSE|CLAUDE.md|.claude/*) ;;
+              *) heavy "$f is not a notes file" ;;
+            esac
+          done <<< "$files"
+          echo "heavy=false" >> "$GITHUB_OUTPUT"
+          echo "Only notes changed: the heavy jobs are skipped."
+
+  build-vet:
+    name: Build, vet, format
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,10 +80,75 @@ jobs:
           cache: true
       - run: go build ./...
       - run: go vet ./...
+      - name: gofmt check
+        run: |
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then echo "Not gofmt'd:"; echo "$out"; exit 1; fi
+
+  # The web package's tests are by far the slowest (every test builds a site and
+  # most make many requests, and the race detector multiplies that), so they are
+  # split across two jobs that run side by side. The tests are shared out by
+  # their position in the sorted list of test names; every test is in exactly one
+  # half, and a test added later lands in one of them without anyone doing
+  # anything.
+  test-web:
+    name: "Tests: web (race), half ${{ matrix.shard }} of 2"
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: Test this half of the web tests (race)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          go test -race -list '.' ./internal/web | grep -E '^(Test|Fuzz|Example)' | sort > "$RUNNER_TEMP/all.txt"
+          names="$(awk -v s="$SHARD" 'NR % 2 == s % 2' "$RUNNER_TEMP/all.txt" | paste -sd'|' -)"
+          [ -n "$names" ] || { echo "no tests found for half $SHARD"; exit 1; }
+          echo "Half $SHARD runs $(echo "$names" | tr '|' ' ' | wc -w) of $(wc -l < "$RUNNER_TEMP/all.txt") web tests"
+          go test ./internal/web -race -count=1 -run "^($names)$"
+
+  test-rest:
+    name: "Tests: other packages (race)"
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
       # Includes the operational tests in cmd/server, which build and run
       # the real binary (startup failures, signals, restart persistence).
-      - name: Test (race, coverage)
-        run: go test ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic
+      - name: Test (race)
+        run: |
+          mapfile -t pkgs < <(go list ./... | grep -v '/internal/web$')
+          go test "${pkgs[@]}" -race -count=1
+
+  # Coverage is measured on its own plain run (much faster than measuring it under
+  # the race detector); the race jobs above do not measure it.
+  coverage:
+    name: Test coverage
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: Test (coverage)
+        run: go test ./... -count=1 -coverprofile=coverage.out -covermode=atomic
       - name: Coverage summary
         run: |
           {
@@ -45,15 +157,13 @@ jobs:
             go tool cover -func=coverage.out | tail -n 25
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Fuzz (short)
-        run: go test ./internal/auth -run '^$' -fuzz FuzzParseClaimEmail -fuzztime 20s
-      - name: gofmt check
-        run: |
-          out="$(gofmt -l .)"
-          if [ -n "$out" ]; then echo "Not gofmt'd:"; echo "$out"; exit 1; fi
 
-  go-lint:
-    name: Static analysis (staticcheck, gosec)
+  # Fuzzing feeds random input to one function (the squadron-claim email checker)
+  # for 20 seconds, looking for a crash. See TODO.md.
+  fuzz:
+    name: Fuzz (short)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,15 +171,59 @@ jobs:
         with:
           go-version: "1.26"
           cache: true
-      - run: go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
+      - run: go test ./internal/auth -run '^$' -fuzz FuzzParseClaimEmail -fuzztime 20s
+
+  # The one check that branch protection requires for the build and tests. It
+  # passes only when every job it needs passed (or, for a notes-only change,
+  # was skipped on purpose).
+  build-test:
+    name: Build, vet, test
+    needs: [changes, build-vet, test-web, test-rest, coverage, fuzz]
+    # Always run, and check the results by hand: a job whose needs failed is
+    # skipped, and a skipped required check would count as passed.
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every build and test job passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          HEAVY: ${{ needs.changes.outputs.heavy }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e --arg heavy "$HEAVY" 'to_entries | all(.value.result == "success" or ($heavy != "true" and .value.result == "skipped"))' > /dev/null
+
+  go-lint:
+    name: Static analysis (staticcheck, gosec)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26"
+          cache: true
+      # The two tools are built once and kept; the key names their versions.
+      - name: Keep the analysis tools
+        id: tools
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/go/bin
+          key: tools-${{ runner.os }}-staticcheck-2025.1.1-gosec-v2.22.4-go1.26
+      - name: Build the analysis tools
+        if: steps.tools.outputs.cache-hit != 'true'
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
       - run: staticcheck ./...
-      - run: go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
       # Medium+ severity only. cmd/genexamples is a dev-time generator that
       # writes local files, not part of the shipped server.
       - run: gosec -severity medium -exclude-dir=cmd/genexamples ./...
 
   frontend-lint:
     name: Frontend lint (CSS, rendered HTML)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,6 +278,8 @@ jobs:
 
   browser-tests:
     name: Browser tests (Playwright)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -136,11 +292,25 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: e2e/package-lock.json
+      # The browser download is kept between runs (keyed by the locked Playwright
+      # version); the system libraries it needs are installed every time.
+      - name: Keep the Chromium download
+        id: browsers
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
       - name: Install the test tools and Chromium
         working-directory: e2e
+        env:
+          BROWSER_CACHE_HIT: ${{ steps.browsers.outputs.cache-hit }}
         run: |
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          if [ "$BROWSER_CACHE_HIT" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Type-check the tests
         working-directory: e2e
         run: npx tsc -p tsconfig.json
@@ -180,17 +350,34 @@ jobs:
 
   govulncheck:
     name: Known-vulnerability scan (govulncheck)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "1.26"
-      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      # Built from the latest release, so the tool is kept for a week at a time
+      # (the vulnerability data it checks against is always fetched fresh).
+      - name: Work out this week
+        id: week
+        run: echo "week=$(date +%G-%V)" >> "$GITHUB_OUTPUT"
+      - name: Keep the scanner
+        id: tool
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/go/bin
+          key: govulncheck-${{ runner.os }}-go1.26-${{ steps.week.outputs.week }}
+      - name: Build the scanner
+        if: steps.tool.outputs.cache-hit != 'true'
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - run: govulncheck ./...
 
   trivy-fs:
     name: Scan source for vulnerabilities (Trivy FS)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -207,8 +394,9 @@ jobs:
 
   codeql:
     name: CodeQL (go)
+    needs: changes
     runs-on: ubuntu-24.04
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.changes.outputs.heavy == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       security-events: write
       packages: read
@@ -253,16 +441,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: go run ./cmd/devtools promotion-gate
 
-  build:
-    needs: [gate, build-test, go-lint, frontend-lint, browser-tests, workflow-lint, govulncheck, trivy-fs, codeql]
+  # The image is built and checked at the same time as the tests, then only
+  # pushed when every check has passed (the "build" job below), so a push waits
+  # for the tests and not for the tests plus a build.
+  image-meta:
+    name: Work out the image name and version
     if: github.event_name != 'pull_request'
-    name: Build, scan and push image
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
+      app_version: ${{ steps.meta.outputs.app_version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -298,16 +486,24 @@ jobs:
             echo "app_version=${RELEASE}+${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           fi
 
+  image-check:
+    name: Build and check the image (not pushed)
+    needs: image-meta
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - name: Build (local, for scanning)
+      - name: Build (local, for checking)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: Dockerfile
           load: true
-          tags: ${{ steps.meta.outputs.image_ref }}
-          build-args: VERSION=${{ steps.meta.outputs.app_version }}
+          tags: ${{ needs.image-meta.outputs.image_ref }}
+          build-args: VERSION=${{ needs.image-meta.outputs.app_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -321,7 +517,7 @@ jobs:
             -e SESSION_KEY=ci-smoke-test-session-key-not-for-prod-use \
             -e COOKIE_SECURE=false \
             -e ALLOW_LOG_MAIL=true \
-            "${{ steps.meta.outputs.image_ref }}"
+            "${{ needs.image-meta.outputs.image_ref }}"
           code=""
           for _ in $(seq 1 10); do
             code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18081/health || true)"
@@ -336,12 +532,29 @@ jobs:
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ steps.meta.outputs.image_ref }}
+          image-ref: ${{ needs.image-meta.outputs.image_ref }}
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
+
+  build:
+    needs: [image-meta, image-check, gate, build-test, go-lint, frontend-lint, browser-tests, workflow-lint, govulncheck, trivy-fs, codeql]
+    # Runs when every job it needs passed or was skipped on purpose (a notes-only
+    # change), and never when one failed or the run was cancelled.
+    if: ${{ github.event_name != 'pull_request' && !cancelled() && !failure() }}
+    name: Build, scan and push image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_ref: ${{ needs.image-meta.outputs.image_ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GHCR
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
@@ -350,6 +563,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # The layers were built (and are cached) by the image check, so this is quick.
       - name: Push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
@@ -357,10 +571,10 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ${{ steps.meta.outputs.image_ref }}
-          build-args: VERSION=${{ steps.meta.outputs.app_version }}
+            ${{ needs.image-meta.outputs.image_ref }}
+          build-args: VERSION=${{ needs.image-meta.outputs.app_version }}
           cache-from: type=gha
 
       - name: Summary
         run: |
-          echo "Pushed \`${{ steps.meta.outputs.image_ref }}\` — app version \`${{ steps.meta.outputs.app_version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pushed \`${{ needs.image-meta.outputs.image_ref }}\` — app version \`${{ needs.image-meta.outputs.app_version }}\`" >> "$GITHUB_STEP_SUMMARY"

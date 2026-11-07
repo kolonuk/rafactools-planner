@@ -17,7 +17,7 @@ func TestSigningInMakesThisMonthsProgrammeWhenItIsMissing(t *testing.T) {
 	if _, err := app.store.FindProgramme(sq, 2036, 6); err == nil {
 		t.Fatal("the month already exists")
 	}
-	c := app.login(email) // any user signing in
+	c := app.loginViaForm(email) // any user signing in
 	id, err := app.store.FindProgramme(sq, 2036, 6)
 	if err != nil {
 		t.Fatalf("signing in did not make June 2036: %v", err)
@@ -30,7 +30,7 @@ func TestSigningInMakesThisMonthsProgrammeWhenItIsMissing(t *testing.T) {
 		t.Error("the dashboard does not list it")
 	}
 	// Signing in again, and opening the dashboard, make no second one.
-	app.login(email)
+	app.loginViaForm(email)
 	c.get("/")
 	if n := count(t, app.db, `SELECT COUNT(*) FROM programmes WHERE squadron_id = `+itoaID(sq)); n != 1 {
 		t.Errorf("%d programmes, want 1", n)
@@ -44,7 +44,7 @@ func TestAnyRoleTriggersItAndEarlierMonthsAreNeverMade(t *testing.T) {
 	app.member(owner, "vi-month@example.org", "viewer")
 	setClock(t, time.Date(2036, 9, 3, 12, 0, 0, 0, time.UTC))
 
-	app.login("vi-month@example.org") // a viewer
+	app.loginViaForm("vi-month@example.org") // a viewer
 	if _, err := app.store.FindProgramme(sq, 2036, 9); err != nil {
 		t.Errorf("a viewer signing in did not make the month: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestAnyRoleTriggersItAndEarlierMonthsAreNeverMade(t *testing.T) {
 		t.Errorf("%d historic programmes were made", n)
 	}
 	// A session that lasts across a month end gets the new month when the dashboard opens.
-	c := app.login(owner)
+	c := app.loginViaForm(owner)
 	setClock(t, time.Date(2036, 10, 1, 0, 30, 0, 0, time.UTC))
 	c.get("/")
 	if _, err := app.store.FindProgramme(sq, 2036, 10); err != nil {
@@ -74,7 +74,7 @@ func TestMasterAdminSigningInMakesNoProgramme(t *testing.T) {
 func TestThePastCannotBeCreatedFromTheForm(t *testing.T) {
 	app := newApp(t)
 	email := app.owner("2303")
-	c := app.login(email)
+	c := app.loginViaForm(email)
 	setClock(t, time.Date(2036, 6, 15, 12, 0, 0, 0, time.UTC))
 	sq := app.squadronID(email)
 

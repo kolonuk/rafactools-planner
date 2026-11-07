@@ -22,7 +22,9 @@ never force-push (branch protection forbids it, and the history was rewritten on
    `## Unreleased` and a docs `changed: - next:` note in the same commit. When a batch is on `dev` and its
    CI is green, run the manual workflow: `gh workflow run release.yml --ref dev`. It freezes the unreleased
    docs and changelog as the next `1.<N>` and opens a PR `release/1.<N>` into `test` (the promotion check
-   accepts it because the release commit's parent is on `dev`). Merge that PR like any other, wait for CI on
+   accepts it because the release commit's parent is on `dev`). A PR opened by the workflow's own token does
+   not start CI, so its required checks never report and it stays blocked: close it and reopen it
+   (`gh pr close <n>; gh pr reopen <n>`), which starts them. Merge that PR like any other, wait for CI on
    `test`, then promote `test` to `main` as in step 4. Do not skip this: the version shown in the footer and
    PDF, and the "Version history" page, only move when a release is cut.
 6. After the merges, `git fetch` and fast-forward local `dev` (`git merge --ff-only origin/dev`).
@@ -55,6 +57,15 @@ If the gate fails:
 `dev`, `test` and `main` require nine status checks (Frontend lint, Build/vet/test, Browser tests,
 govulncheck, Docs updated, Trivy FS, actionlint, CodeQL, staticcheck/gosec) and forbid force-pushes
 and deletions. `enforce_admins` is off.
+
+## What CI does (so you know what to expect)
+
+Jobs run side by side. "Build, vet, test" is the aggregate required check: it passes when build/vet/format,
+both halves of the web tests, the other tests, the coverage run and the fuzz run passed. A change that
+only edits notes (`TODO.md`, `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE`, `CLAUDE.md`,
+`.claude/`) skips the heavy jobs; they show as skipped, which counts as passed. On a push the image is
+built and checked alongside the tests and only pushed once everything passed. A PR that edits the
+workflows, the code or the help pages runs everything.
 
 ## Waiting for CI
 
