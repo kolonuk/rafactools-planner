@@ -5,6 +5,7 @@ summary: What runs on every change, and what to do when one fails.
 since: 1.0
 audience: dev
 changed:
+  - next: Build, vet, format and the test groups run as separate jobs side by side ("Build, vet, test" is the check that needs them all), and tests use the cheapest password-hash setting so they finish in a fraction of the time.
   - 1.13: Added the browser tests and a Releases section.
   - 1.9: Added staticcheck, gosec, CSS and HTML linting, workflow linting, secret and configuration scanning, fuzzing, operational tests and the documentation check.
 ---
@@ -14,8 +15,8 @@ For people changing the code. Every push and pull request runs these in GitHub.
 
 | Check | What it catches |
 | --- | --- |
-| Build, vet, test | Compile errors; the unit, integration and operational tests, run with the race detector. Coverage is shown in the run summary. |
-| gofmt | Unformatted code. |
+| Build, vet, test | The one check that must pass before merging. It passes only when these ran side by side and all passed: **Build, vet, format** (compile errors, `go vet`, unformatted code), **Tests: web (race)**, **Tests: other packages (race)** (the unit, integration and operational tests, run with the race detector; coverage is shown in each run summary) and **Fuzz (short)**. |
+| gofmt | Unformatted code (part of Build, vet, format). |
 | staticcheck, gosec | Likely bugs and common security mistakes in Go code. |
 | govulncheck | Known vulnerabilities in the Go libraries and standard library in use. |
 | Trivy (source) | Vulnerable dependencies, secrets committed by mistake, and unsafe Docker settings. |
@@ -26,7 +27,7 @@ For people changing the code. Every push and pull request runs these in GitHub.
 | Script rules | Fails on inline scripts, inline event handlers or `javascript:` links in the templates (the security policy refuses them). When the site has its own JavaScript or TypeScript, type-checks it strictly, and checks that committed compiled TypeScript is up to date. |
 | actionlint | Mistakes in the workflow files. |
 | Docs check | Embedded docs are valid, links resolve, and user-visible code changes come with a docs change. |
-| Fuzzing | A short random-input run against the claim-email checker. |
+| Fuzzing | A short random-input run against the claim-email checker (its own job). |
 
 On a push to the deployment branches the image is also built, started and
 checked at `/health`, scanned for vulnerabilities, and published.
