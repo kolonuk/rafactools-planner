@@ -17,6 +17,12 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
+## Unreleased
+
+- **fix**: the PDF's uniform key and notes table are no longer drawn on top of the nights below an early closure: they are always below the whole grid.
+- **feat**: the squadron's calendar is one feed for every published month, kept until something it shows changes (a month published or unpublished, an edit to a published night, closure, weekend note or the parade times, or a new day) and answered with an ETag. Each address and each calendar link is rate limited (60 and 300 requests in 5 minutes) with a Retry-After.
+- **chore**: help pages brought into line with the menu bar, the Planner link and publishing.
+
 ## 1.14
 
 - **feat**: a public link and calendar. An owner makes a one-month public link under Squadron (or it is made when a month is first published); an editor publishes a month from the month's menu bar or from the list of months. At the link, with no sign-in: a calendar feed (one entry per parade night from today, with the uniform and the activities grouped by class, a link to the month's PDF, and weekend notes as all-day entries), and the PDF and a PNG of each published month without the requirement tracker. A published month shows its addresses and a QR code on the page.

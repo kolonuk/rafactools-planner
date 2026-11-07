@@ -5,6 +5,7 @@ summary: What the exported programme looks like.
 since: 1.0
 audience: user
 changed:
+  - next: The uniform key and the notes table are always drawn below the whole grid; with a closure early in the month they used to be drawn on top of the nights after it.
   - 1.14: A crowded month is drawn smaller so that everything fits on the one page, instead of running off the bottom.
   - 1.14: The PDF ends with a QR code for the squadron's calendar when the squadron has a public link, and there is an Export PNG as well. Files are kept until the month changes.
   - 1.9: Only ticked parade nights are printed, and a closed day is one merged block across the classification columns.
@@ -14,8 +15,8 @@ changed:
 ---
 # PDF export
 
-Select **PDF** next to a month on the [dashboard](app:/), or **Export PDF** at
-the top of a programme. The file opens in your browser and is named like
+Select **PDF** next to a month on the [dashboard](app:/) (the **Planner** link in the top bar), or
+**Export › PDF document** in a month's menu bar. The file opens in your browser and is named like
 `April_2030_Programme.pdf`. Any role can export.
 
 ## What is in it
@@ -57,3 +58,8 @@ The PDF is always one A4 page. If a month has so much on it that it would not fi
 (for example two parts on every night with long titles and a long notes table), the whole page is drawn
 smaller, down to 56% of normal, so that nothing runs off the bottom. A month that already fits is drawn
 at normal size. If a month is more crowded than even that allows, shorten some of the text.
+
+## The key and the notes table
+
+The **Uniform Key** and the **NOTES** table (the requirements tracker) are always printed below the
+whole grid, after the last night, however the month is laid out and wherever closures fall.
