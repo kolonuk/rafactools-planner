@@ -83,6 +83,15 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   - Needs a migration (`account_transfers`: person, from, to, requested by, role, status, expiry), docs
     (roles and invites, Squadron, security and privacy, troubleshooting), the changelog and tests for every
     check above, including a transfer being refused across squadrons the requester does not own.
+- [ ] **[P4 nicety]** **Check what the fuzz test is for, and whether to keep it.** "Fuzz (short)" in CI runs Go's
+  built-in fuzzing for 20 seconds (about a minute of job time including set-up): it feeds a stream of
+  random and mutated strings to one function, `ParseClaimEmail` in `internal/auth` (the check that decides
+  whether an address like `snco.1234@domain` may claim a squadron), and fails if it crashes or gives an
+  answer that breaks its rules. It is a safety net for odd input, not a test of behaviour. Decide: keep
+  it as is; point it at other code that takes text from outside (the help pages' front matter and Markdown,
+  the calendar builder, the closure and weekend-note dates, form fields) where a crash or hang would
+  matter more; shorten it or run it only on pushes to `test` and `main`; or drop it. Whichever, say in
+  the docs what it covers.
 - [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
   the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
   copies it into the month being viewed.

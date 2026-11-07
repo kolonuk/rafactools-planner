@@ -21,7 +21,7 @@ baseline instead of per-entry.
 
 - **fix**: the PDF's uniform key and notes table are no longer drawn on top of the nights below an early closure: they are always below the whole grid.
 - **feat**: the squadron's calendar is one feed for every published month, kept until something it shows changes (a month published or unpublished, an edit to a published night, closure, weekend note or the parade times, or a new day) and answered with an ETag. Each address and each calendar link is rate limited (60 and 300 requests in 5 minutes) with a Retry-After.
-- **chore**: CI is faster: build/vet/format, the web tests, the other tests and the fuzz run are separate jobs that run at the same time, and tests hash passwords at the cheapest bcrypt cost (production keeps the default) and tests that are not about signing in start their session directly in the throw-away test database instead of going through the form. "Build, vet, test" stays as the single required check.
+- **chore**: CI is much faster. The Go build, the web tests (in two halves) and the other tests run as separate jobs side by side; on a push the image is built and checked alongside them and pushed only when every check passed; a change that only edits notes skips the heavy jobs; the analysis tools, the vulnerability scanner and the browser download are kept between runs; and tests hash passwords at the cheapest bcrypt cost (production keeps the default) and sign in directly instead of through the form. "Build, vet, test" stays as the single required check.
 - **chore**: help pages brought into line with the menu bar, the Planner link and publishing.
 
 ## 1.14

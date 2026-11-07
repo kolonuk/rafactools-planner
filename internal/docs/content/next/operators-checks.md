@@ -5,7 +5,7 @@ summary: What runs on every change, and what to do when one fails.
 since: 1.0
 audience: dev
 changed:
-  - next: Build, vet, format and the test groups run as separate jobs side by side ("Build, vet, test" is the check that needs them all), and tests use the cheapest password-hash setting so they finish in a fraction of the time.
+  - next: The checks run side by side (the web tests in two halves), the image is built alongside them and pushed only when everything passed, a change that only edits notes skips the heavy jobs, and the analysis tools and the browser download are kept between runs.
   - 1.13: Added the browser tests and a Releases section.
   - 1.9: Added staticcheck, gosec, CSS and HTML linting, workflow linting, secret and configuration scanning, fuzzing, operational tests and the documentation check.
 ---
@@ -15,8 +15,7 @@ For people changing the code. Every push and pull request runs these in GitHub.
 
 | Check | What it catches |
 | --- | --- |
-| Build, vet, test | The one check that must pass before merging. It passes only when these ran side by side and all passed: **Build, vet, format** (compile errors, `go vet`, unformatted code), **Tests: web (race)**, **Tests: other packages (race)** (the unit, integration and operational tests, run with the race detector; coverage is shown in each run summary) and **Fuzz (short)**. |
-| gofmt | Unformatted code (part of Build, vet, format). |
+| Build, vet, test | The one check that must pass before merging. It passes only when these ran side by side and all passed: **Build, vet, format** (compile errors, `go vet`, unformatted code), **Tests: web (race)** (in two halves), **Tests: other packages (race)** (the unit, integration and operational tests, run with the race detector), **Test coverage** (a plain run that shows coverage in the run summary) and **Fuzz (short)**. |
 | staticcheck, gosec | Likely bugs and common security mistakes in Go code. |
 | govulncheck | Known vulnerabilities in the Go libraries and standard library in use. |
 | Trivy (source) | Vulnerable dependencies, secrets committed by mistake, and unsafe Docker settings. |
@@ -63,3 +62,20 @@ You changed something users or operators can notice without changing the
 documentation. Update the pages in `internal/docs/content/next/`: see
 [about these docs](about-these-docs). The pull request description may instead
 contain a line `No docs impact: <reason>` when that is true.
+
+## How fast it runs
+
+Everything that can run at the same time does. The web package's tests, the slowest, are split into two
+jobs that each run half of them. On a push to `dev`, `test` or `main` the image is built and checked
+(started, asked for `/health`, scanned) alongside the tests, and is **pushed only when every check has
+passed**, so a push waits for the slowest check, not for the checks plus a build.
+
+A change that only edits notes (`TODO.md`, `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE`,
+`CLAUDE.md` or `.claude/`) skips the heavy jobs; they show as skipped, which counts as passed for branch
+protection, and "Build, vet, test" accepts skipped jobs only when the change really was notes only. The
+docs check, the workflow lint and the promotion order still run. Anything else, including the help pages
+(which are built into the app), runs everything.
+
+The static-analysis tools, the vulnerability scanner (renewed weekly) and the browser used by the browser
+tests are kept between runs. The tests sign in directly instead of through the form, and use the cheapest
+password-hash cost (the app itself always uses the normal one).
