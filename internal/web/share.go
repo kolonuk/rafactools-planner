@@ -88,7 +88,16 @@ func (s *server) shareFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// shareCalendar serves the squadron's one calendar: every published month, in a
+// single feed behind the one public link. It is rate limited (by caller and by
+// link) and built only when something it shows has changed.
 func (s *server) shareCalendar(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	if !s.calendarByIP.Allow(clientIP(r)) || !s.calendarByLink.Allow(token) {
+		w.Header().Set("Retry-After", "300")
+		http.Error(w, "Too many requests for this calendar: try again in a few minutes. Calendar apps only need to check every few hours.", http.StatusTooManyRequests)
+		return
+	}
 	sq, ok := s.shareSquadron(w, r)
 	if !ok {
 		return
@@ -99,15 +108,38 @@ func (s *server) shareCalendar(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
 		return
 	}
-	token := r.PathValue("token")
+	// What the feed shows, built cheaply from the published months. The feed is
+	// kept under a hash of exactly that, so notes, the requirement tracker, edits
+	// to unpublished months and so on never disturb it, while a month being
+	// published or unpublished, a night, uniform or activity changing in a
+	// published month, or the squadron's times changing, does. The feed lists
+	// nights from today on, so it also changes once a day as nights pass.
 	now := programme.Now()
 	events := calendarEvents(sq, months, now, func(year, month int) string {
 		return s.shareURL(token, monthFile(year, month, "pdf"))
 	})
+	for i := range events {
+		events[i].Modified = time.Time{} // when it was saved is not part of what it shows
+	}
+	key := fileHash("ics", sq.Name, events)
+	data, cached := s.files.get(key)
+	if !cached {
+		for i := range events {
+			events[i].Modified = now // this build is the first with this content
+		}
+		data = ical.Build(sq.Name, events, now)
+		s.files.put(key, data)
+	}
+	etag := `"` + key[:32] + `"`
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Cache-Control", "private, max-age=900")
+	if strings.Contains(r.Header.Get("If-None-Match"), etag) {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Content-Disposition", `inline; filename="programme.ics"`)
-	w.Header().Set("Cache-Control", "private, max-age=300")
-	_, _ = w.Write(ical.Build(sq.Name, events, now))
+	_, _ = w.Write(data)
 }
 
 func (s *server) shareFileOfKind(w http.ResponseWriter, r *http.Request, kind string) {

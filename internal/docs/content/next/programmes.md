@@ -186,9 +186,9 @@ Viewers can open a programme, its History and its PDF, but do not see the editin
 
 ## History and restoring
 
-There is no draft or final status: every programme is live. Instead the planner keeps a **version**
+There is no draft or final status: every programme is live for your squadron (**Publish** only decides whether it is also shown at the squadron's [public link](public-sharing)). Instead the planner keeps a **version**
 every time the programme is saved, reset, restored, or changed in any other way (closures, weekend
-notes, the tracker, second halves and so on). Select **History** at the top of a programme to see the
+notes, the tracker, second halves and so on). Select **History** in a programme's menu bar to see the
 newest first: the version number, the date and time (UTC), who made the change and what it was.
 Identical consecutive versions are kept once, and the newest 200 are kept.
 

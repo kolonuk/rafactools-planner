@@ -199,7 +199,12 @@ func renderAt(sq *programme.Squadron, fp *programme.FullProgramme, opts Options,
 	for _, week := range weeks {
 		drawWeek(pdf, cols, sq, week, weekendByDate, closureByDate, closures, colourByKey)
 	}
+	// Drawing the merged closure cells leaves the cursor inside the closure, which
+	// can be high up the page: put it back at the bottom of the grid, or the key and
+	// the notes table are drawn on top of the nights below the closure.
+	gridEnd := pdf.GetY()
 	closures.draw(pdf, cols)
+	pdf.SetXY(left, gridEnd)
 
 	drawUniformKey(pdf, sq, usableWidth)
 	drawRequirementsFooter(pdf, fp.Requirements, usableWidth)
