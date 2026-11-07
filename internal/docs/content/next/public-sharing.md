@@ -5,7 +5,7 @@ summary: Publishing a month, the public link, the calendar feed you can subscrib
 since: 1.14
 audience: admin
 changed:
-  - next: There is one calendar per squadron covering every published month. It is kept until something it shows changes, and it is rate limited.
+  - 1.15: There is one calendar per squadron covering every published month. It is kept until something it shows changes, and it is rate limited.
   - 1.14: New page. Publishing a month makes the public link if there is none, and the month page and the list of months show the addresses, a QR code and Publish or Unpublish buttons.
   - 1.14: (earlier) New page. Publish a month, share a one-month public link with a calendar feed, a PDF and a PNG of each published month, and a QR code on the PDF.
 ---
