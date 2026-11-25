@@ -5,6 +5,7 @@ summary: Publishing a month, the public link, the calendar feed you can subscrib
 since: 1.14
 audience: admin
 changed:
+  - next: The QR code is only on the PDF and PNG of a published month, because the calendar holds published months only.
   - next: There is one calendar per squadron covering every published month. It is kept until something it shows changes, and it is rate limited.
   - 1.14: New page. Publishing a month makes the public link if there is none, and the month page and the list of months show the addresses, a QR code and Publish or Unpublish buttons.
   - 1.14: (earlier) New page. Publish a month, share a one-month public link with a calendar feed, a PDF and a PNG of each published month, and a QR code on the PDF.
@@ -47,7 +48,7 @@ and the calendar's description links to the PDF. All of them stop working when t
 
 ## The QR code
 
-While the squadron has a working public link, every PDF and PNG ends with a QR code for the calendar,
+While the squadron has a working public link, the PDF and PNG of every published month end with a QR code for the calendar,
 with the date the link stops. People scan it and their phone offers to subscribe. When you make a
 new link, the next PDF you open carries the new code; **a printed copy keeps the old code, which
 stops working**, so reprint after renewing.

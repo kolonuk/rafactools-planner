@@ -18,10 +18,15 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
 
 ## Next up (to be triaged)
 
-- [ ] **[P1 security]** **Turn on CodeQL result uploads.** The repository
-  is public now, so GitHub's code scanning is available. Let the CodeQL job upload its results
-  (see the comment in `.github/workflows/ci.yml`, which still describes the old private-repo
-  limit), and update that comment.
+- [ ] **[P2 helpful feature]** **One calendar link per squadron, covering every published month, built
+  again only when something changes.** `shareCalendar` in `internal/web/share.go` already serves one
+  feed at `calendar.ics` and keeps it under a hash of what it shows (`fileHash("ics", ...)`), so check
+  that this is really what is wanted before changing anything: (1) confirm the link shown on a month
+  page and in squadron settings is the same single link and never a per-month one; (2) confirm the cache
+  is rebuilt when a month is published or unpublished, or a night, uniform or activity changes, and
+  not for edits to notes or unpublished months; (3) the cache is in memory (`s.files`), so decide if it
+  should survive a restart; (4) add a test for each point. Then delete this item.
+
 - [ ] **[P4 nicety]** **Public-repo tidy-up.** Re-read the in-app help pages (`run-your-own`, `about-these-docs`)
   and the `.claude/skills` notes for wording that assumes a private project or a particular
   host, and make them neutral. Edit the `next` docs; released snapshots stay as published.
@@ -101,14 +106,6 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   "Edited instructor on 10 Nov (First Class)". Work out the changes by comparing the saved
   version with the one before it, and use the same wording on the compare view when that exists
   (see "Compare two programme versions").
-- [ ] **[P3 usability]** **Edit in place for every text entry, not only delete.** Closures, weekend notes,
-  programme notes and the requirement tracker (categories and entries) can be deleted today but
-  not edited. Clicking the text should turn it into an editable field with a tick (save) and a
-  cross (cancel); Enter saves and Escape cancels. Do it the same way everywhere in the grids and
-  lists, as part of making the site friendlier (see the planner redesign plan above and the menu
-  item). Keep a plain "Edit" link or button that works without scripts and with the keyboard, and
-  record each edit in the programme history. This replaces the old "Edit a closure or weekend
-  note" idea.
 - [ ] **[P3 usability]** **PDF: the colour key overlaps the planner.** Fix the layout in
   `internal/pdfgen` so the key never sits on top of the grid; compare against `examples/pdfs/`
   (see the `pdf-fidelity` skill).
@@ -154,11 +151,6 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
 
 ## Bugs and rough edges
 
-- [ ] **[P1 security]** **Turnstile on the invite-accept page.** Accepting an invite creates an
-  account, so it is the one account-creating form without the human check that login, claim and
-  delete-squadron now have (`turnstileOK` in `internal/web/turnstile.go`). Add the
-  `{{template "turnstile" .}}` to the form, call `turnstileOK` after the CSRF check in the accept
-  handler, add it to `TestTurnstileGuardsLoginClaimAndDelete`, and update the docs.
 - [ ] **[P3 usability]** **PDF: scripts outside Western European text** (Greek, Cyrillic, Chinese)
   print as `?`. Needs an embedded Unicode font (`AddUTF8Font`); smart quotes,
   dashes and accents already work.

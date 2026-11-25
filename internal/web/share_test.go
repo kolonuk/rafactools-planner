@@ -511,3 +511,38 @@ func TestTheCalendarIsRateLimited(t *testing.T) {
 		t.Errorf("another caller got %d", resp.StatusCode)
 	}
 }
+
+// The calendar QR code points at the feed, which holds published months only, so
+// a month that is not published must not carry it: renewing the public link
+// changes the files of published months and leaves the others alone.
+func TestOnlyPublishedMonthsCarryTheCalendarQR(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1308")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
+	pub, _ := app.store.CreateProgramme(sq, 2030, 4, 1)
+	draft, _ := app.store.CreateProgramme(sq, 2030, 5, 1)
+	pubID, draftID := strconv.FormatInt(pub.ID, 10), strconv.FormatInt(draft.ID, 10)
+	wantRedirect(t, c.post("/programmes/"+pubID+"/publish", url.Values{"published": {"1"}}), "/programmes/"+pubID)
+
+	etag := func(path string) string {
+		t.Helper()
+		resp := c.get(path)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("%s: status %d", path, resp.StatusCode)
+		}
+		return resp.Header.Get("ETag")
+	}
+	for _, kind := range []string{"pdf", "png"} {
+		pubBefore, draftBefore := etag("/programmes/"+pubID+"/"+kind), etag("/programmes/"+draftID+"/"+kind)
+		wantRedirect(t, c.post("/squadron/share", url.Values{}), "/squadron#sharing")
+		if etag("/programmes/"+pubID+"/"+kind) == pubBefore {
+			t.Errorf("%s: the published month has no QR code, a new link did not change it", kind)
+		}
+		if etag("/programmes/"+draftID+"/"+kind) != draftBefore {
+			t.Errorf("%s: a month that is not published carries the calendar QR code", kind)
+		}
+	}
+}

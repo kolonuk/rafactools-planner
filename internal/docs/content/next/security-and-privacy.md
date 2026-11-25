@@ -5,6 +5,7 @@ summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 audience: user
 changed:
+  - next: The Turnstile human check also covers accepting an invite, the one other form that creates an account.
   - 1.14: An owner can make a one-month public link that shows the months an editor has published (calendar and PDF), with no cadet names.
   - 1.13: The help pages are public (no sign-in needed); this page now states that and corrects the list of what the planner does not do.
   - 1.13: Optional Cloudflare Turnstile human check on login, claim and delete-squadron.
@@ -104,7 +105,7 @@ See [configuration](operators-configuration).
 
 ## Human check (optional)
 
-When the operator sets `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET`, the login, claim and
+When the operator sets `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET`, the login, claim, accept-invite and
 delete-squadron forms require a [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)
 check. The server sends the check result and the visitor's address to Cloudflare to verify it, and
 refuses the request if verification fails, times out (5 seconds) or cannot be reached. Only then are

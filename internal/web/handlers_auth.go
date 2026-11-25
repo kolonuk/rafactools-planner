@@ -194,6 +194,10 @@ func (s *server) inviteSubmit(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadRequest, "Invite", "Form expired, try again.")
 		return
 	}
+	if !s.turnstileOK(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Invite", turnstileFailMsg)
+		return
+	}
 	token := r.PathValue("token")
 	yourName, err := auth.CheckDisplayName(r.FormValue("display_name"))
 	if err != nil {

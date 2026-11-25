@@ -19,6 +19,10 @@ baseline instead of per-entry.
 
 ## Unreleased
 
+- **chore**: tests for editing closures, weekend notes and requirement categories and entries in place: what is saved, blank and impossible values refused, the entry staying in its own month and squadron, viewers refused, and a line in the history.
+- **fix**: the calendar QR code is only on the PDF and PNG of a published month. It used to be on every month's files whenever the squadron had a public link, including months that are not in the calendar.
+- **security**: the page where a person accepts an invite, which creates an account, now has the Cloudflare Turnstile human check when it is turned on, like login, claim and delete-squadron.
+- **security**: CodeQL results are uploaded to GitHub code scanning now that the repository is public.
 - **fix**: the PDF's uniform key and notes table are no longer drawn on top of the nights below an early closure: they are always below the whole grid.
 - **feat**: the squadron's calendar is one feed for every published month, kept until something it shows changes (a month published or unpublished, an edit to a published night, closure, weekend note or the parade times, or a new day) and answered with an ETag. Each address and each calendar link is rate limited (60 and 300 requests in 5 minutes) with a Retry-After.
 - **chore**: CI is faster: build/vet/format, the web tests, the other tests and the fuzz run are separate jobs that run at the same time, and tests hash passwords at the cheapest bcrypt cost (production keeps the default) and tests that are not about signing in start their session directly in the throw-away test database instead of going through the form. "Build, vet, test" stays as the single required check.
