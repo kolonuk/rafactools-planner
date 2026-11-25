@@ -42,6 +42,7 @@ type Mailer interface {
 	SendTempPassword(to, squadronName, loginURL, password, expiresUTC string) error
 	SendEmailChangeVerify(to, link string) error
 	SendEmailChanged(to, newEmail string) error
+	SendNotice(to, subject, body string) error
 }
 
 var _ Mailer = mail.Dynamic{}
@@ -62,6 +63,10 @@ type Deps struct {
 	// Turnstile verifies a Turnstile response token. Nil uses Cloudflare's
 	// siteverify endpoint; tests replace it.
 	Turnstile func(ctx context.Context, token, remoteIP string) (bool, error)
+
+	// Background, when set, starts the site's housekeeping (ending account moves that
+	// have run out of time) and stops it when the context ends. Tests leave it nil.
+	Background context.Context
 }
 
 type server struct {
@@ -83,7 +88,7 @@ type server struct {
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
-	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "confirm_reset_programme",
+	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "copy_month", "activities", "account_transfer", "transfer_link", "confirm_reset_programme",
 	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit", "force_password", "email_confirm", "history", "confirm_restore",
 }
 
@@ -124,6 +129,10 @@ const (
 func NewRouter(d *Deps) http.Handler {
 	s := &server{Deps: d, pages: loadPages(d.Cfg.BasePath), activity: newActivityLog(), files: newFileCache(64),
 		calendarByIP: newIPLimiter(60, 5*time.Minute), calendarByLink: newIPLimiter(300, 5*time.Minute)}
+
+	if d.Background != nil {
+		go s.sweepTransfers(d.Background)
+	}
 
 	// 20 attempts per 5 minutes per IP on the endpoints worth scripting an
 	// attack against (credential stuffing on login, mass squadron-claim
@@ -182,6 +191,14 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
+	mux.HandleFunc("POST /squadron/planning", s.requireOwner(s.squadronPlanning))
+	mux.HandleFunc("POST /squadron/members/{memberID}/transfer", authLimiter.rateLimited(s.requireOwner(s.memberTransfer)))
+	mux.HandleFunc("POST /squadron/transfers/{id}/{action}", s.requireOwner(s.transferDecide))
+	mux.HandleFunc("GET /account/transfer", s.requireAuth(s.accountTransferPage))
+	mux.HandleFunc("POST /account/transfer", authLimiter.rateLimited(s.requireAuth(s.accountTransferStart)))
+	mux.HandleFunc("POST /account/transfer/answer", s.requireAuth(s.accountTransferAnswer))
+	mux.HandleFunc("GET /transfer/{token}", s.withUserOptional(s.transferLinkPage))
+	mux.HandleFunc("POST /transfer/{token}/{action}", authLimiter.rateLimited(s.withUserOptional(s.transferLinkAct)))
 	mux.HandleFunc("GET /squadron/security-log.csv", s.requireOwner(s.securityLogCSV))
 	mux.HandleFunc("POST /squadron/delete", authLimiter.rateLimited(s.requireOwner(s.squadronDelete)))
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
@@ -190,6 +207,16 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /squadron/members/{memberID}/active", s.requireOwner(s.memberSetActive))
 	mux.HandleFunc("POST /squadron/members/{memberID}/temp-password", authLimiter.rateLimited(s.requireOwner(s.memberTempPassword)))
 	mux.HandleFunc("POST /squadron/members/{memberID}/remove", s.requireOwner(s.memberRemove))
+
+	mux.HandleFunc("GET /time-off", s.requireAuth(s.timeOffPage))
+	mux.HandleFunc("POST /time-off", s.requireAuth(s.timeOffAdd))
+	mux.HandleFunc("POST /time-off/{id}/edit", s.requireAuth(s.timeOffEdit))
+	mux.HandleFunc("POST /time-off/{id}/delete", s.requireAuth(s.timeOffDelete))
+
+	mux.HandleFunc("GET /activities", s.requireEditor(s.activitiesPage))
+	mux.HandleFunc("POST /activities", s.requireEditor(s.activityAdd))
+	mux.HandleFunc("POST /activities/{id}/edit", s.requireEditor(s.activityEdit))
+	mux.HandleFunc("POST /activities/{id}/delete", s.requireEditor(s.activityDelete))
 
 	mux.HandleFunc("GET /instructors", s.requireEditor(s.instructorsPage))
 	mux.HandleFunc("POST /instructors", s.requireEditor(s.instructorAdd))
@@ -223,6 +250,8 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /programmes/{id}/history", s.requireAuth(s.historyPage))
 	mux.HandleFunc("GET /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreConfirm))
 	mux.HandleFunc("POST /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreSubmit))
+	mux.HandleFunc("GET /programmes/{id}/copy", s.requireEditor(s.copyForm))
+	mux.HandleFunc("POST /programmes/{id}/copy", s.requireEditor(s.versioned("Copied an earlier month into this month", s.copySubmit)))
 	mux.HandleFunc("GET /programmes/{id}/reset", s.requireEditor(s.programmeResetConfirm))
 	mux.HandleFunc("POST /programmes/{id}/reset", s.requireEditor(s.versioned("Reset the month to blank", s.programmeReset)))
 	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/add-half", s.requireEditor(s.versioned("Added a second half to a night", s.dayAddHalf)))

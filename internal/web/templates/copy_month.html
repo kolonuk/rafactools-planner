@@ -1,0 +1,33 @@
+{{define "content"}}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Planner</a></li>
+    <li><a href="{{url "/programmes/" .ProgrammeID}}">{{.MonthName}} {{.Year}}</a></li>
+    <li aria-current="page">Copy a month</li>
+  </ol>
+</nav>
+<h1>Copy a month into {{.MonthName}} {{.Year}}</h1>
+<p>Copies the <strong>uniform, activities and instructors</strong> of an earlier month. Notes, weekend entries, closures and the requirement tracker are not touched.</p>
+<p class="muted">The nights are lined up by parade night: the first parade night of that month goes on the first parade night here, the second on the second, and so on, so every date comes out right. If that month had more parade nights, the extra ones at the end are left out. If it had fewer, the last nights here stay as they are. A night under a closure (such as a bank holiday) is not a parade night.</p>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .Sources}}
+<form method="post" action="{{url "/programmes/" .ProgrammeID "/copy"}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <fieldset>
+    <legend>Copy from</legend>
+    {{range .Sources}}
+    <label class="checkbox-row"><input type="radio" name="source" value="{{.ID}}" {{if eq $.Selected (printf "%d" .ID)}}checked{{end}} required>
+      {{.Label}} <span class="muted">({{.Plan.Copied}} night{{if ne .Plan.Copied 1}}s{{end}} copied{{if .Plan.Dropped}}, {{.Plan.Dropped}} left out{{end}}{{if .Plan.Untouched}}, {{.Plan.Untouched}} here stay as they are{{end}})</span></label>
+    {{end}}
+  </fieldset>
+  {{if .HasEntries}}
+  <label class="checkbox-row"><input type="checkbox" name="confirm" value="1"> This month already has entries on some nights. Replace them.</label>
+  {{end}}
+  <button type="submit">Copy</button>
+  <a href="{{url "/programmes/" .ProgrammeID}}">Cancel</a>
+</form>
+{{else}}
+<p class="muted">This squadron has no earlier month to copy from.</p>
+<p><a href="{{url "/programmes/" .ProgrammeID}}">Back to {{.MonthName}} {{.Year}}</a></p>
+{{end}}
+{{end}}

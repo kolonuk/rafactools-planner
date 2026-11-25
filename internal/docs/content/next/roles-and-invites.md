@@ -5,6 +5,7 @@ summary: What owners, editors and viewers can do, and how to invite people.
 since: 1.0
 audience: admin
 changed:
+  - next: A login with a personal email address can move to another squadron: see moving your login.
   - 1.10: The invitation page has an optional Your name box.
   - 1.9: Editors and owners can keep an instructor list; everyone can set a displayed name.
   - 1.9: Owners can change a member's role and remove members.
@@ -43,7 +44,7 @@ trust, and think before choosing **Owner**.
 
 An address can have only one account. Inviting an address that already has an
 account fails when the invite is accepted; nothing about the existing account
-changes.
+changes. To bring someone who already has a login into your squadron, ask them to [move their login](account-transfer) (only personal email addresses can move).
 
 ## Pending invites
 

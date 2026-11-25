@@ -148,7 +148,10 @@ func runValidateHTML() error {
 	if err := save("confirm-reset-programme", loc+"/reset"); err != nil {
 		return err
 	}
-	for name, path := range map[string]string{"instructors": "/instructors", "account": "/account", "squadron-settings": "/squadron", "report": "/report", "privacy": "/privacy"} {
+	if err := save("copy-month", loc+"/copy"); err != nil {
+		return err
+	}
+	for name, path := range map[string]string{"time-off": "/time-off", "activities": "/activities", "account-transfer": "/account/transfer", "instructors": "/instructors", "account": "/account", "squadron-settings": "/squadron", "report": "/report", "privacy": "/privacy"} {
 		if err := save(name, path); err != nil {
 			return err
 		}

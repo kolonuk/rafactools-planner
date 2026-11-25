@@ -47,6 +47,25 @@
   </form>
 </section>
 
+<section class="card" id="planning">
+  <h2>Bank holidays and reminders</h2>
+  <form method="post" action="{{url "/squadron/planning"}}" >
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Bank holidays to close for
+      <select name="holiday_region">
+        <option value="england-and-wales" {{if eq .HolidayRegion "england-and-wales"}}selected{{end}}>England and Wales</option>
+        <option value="scotland" {{if eq .HolidayRegion "scotland"}}selected{{end}}>Scotland</option>
+        <option value="northern-ireland" {{if eq .HolidayRegion "northern-ireland"}}selected{{end}}>Northern Ireland</option>
+        <option value="none" {{if eq .HolidayRegion "none"}}selected{{end}}>None: I will add closures myself</option>
+      </select>
+    </label>
+    <span class="muted">Each new month gets a one-day closure for every bank holiday in it, from the government's list (checked about once a month). You can edit or delete any of them.</span>
+    <label>Remind staff about blank parade nights <input type="number" name="reminder_days" min="0" max="28" value="{{.ReminderDays}}"> days before (0 for no reminders)</label>
+    <span class="muted">Owners and editors are emailed once for a parade night that still has an empty Activity or Instructor box that many days ahead.</span>
+    <button type="submit">Save</button>
+  </form>
+</section>
+
 <section class="card" id="sharing">
   <h2>Public link and calendar</h2>
   <p>Publish a month from its <strong>Actions</strong> menu and anyone with this squadron's link can
@@ -109,6 +128,15 @@
           </form>
           {{end}}
           {{end}}
+          {{if index $.CanMove .ID}}
+          <form method="post" action="{{url "/squadron/members/" .ID "/transfer"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <label class="visually-hidden" for="move-{{.ID}}">Squadron number to move {{.Email}} to</label>
+            <input type="text" id="move-{{.ID}}" name="number" size="5" maxlength="8" inputmode="numeric" pattern="[0-9]+" placeholder="Sqn no." required>
+            {{template "turnstile" $}}
+            <button type="submit" class="link-button" aria-label="Ask to move {{.Email}} to another squadron">Move to squadron…</button>
+          </form>
+          {{end}}
           <form method="post" action="{{url "/squadron/members/" .ID "/remove"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
             <button type="submit" class="link-button" aria-label="Remove {{.Email}} from the squadron">Remove</button>
@@ -122,6 +150,60 @@
     <strong>Inactive</strong> members can't sign in or reset their password until you make them active again.
     <strong>Send temporary password</strong> emails the member a new password (you never see it): their old one stops
     working, they must choose their own at their next sign-in, and it expires after 7 days.</p>
+</section>
+
+<section class="card" id="transfers">
+  <h2>Moves between squadrons</h2>
+  <p class="muted">A person with a personal email address can move their login to another squadron. They ask on <em>Your details</em>, or an owner asks for them from the Members list above (and they must agree). An owner of the squadron they join accepts and chooses their role. While a move waits, the person's account is switched off. Only the login moves: this squadron's programmes and history stay here.</p>
+  <h3>Waiting for you to accept</h3>
+  {{if .Incoming}}
+  <table class="list">
+    <thead><tr><th scope="col">Person</th><th scope="col">From</th><th scope="col">Ends</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {{range .Incoming}}
+      <tr>
+        <td data-private>{{.Name}} <span class="muted">({{.Email}})</span></td>
+        <td>{{.FromNumber}} {{.FromName}}</td>
+        <td>{{.Expires}}</td>
+        <td>
+          <form method="post" action="{{url "/squadron/transfers/" .ID "/accept"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <label class="visually-hidden" for="role-{{.ID}}">Role for {{.Email}}</label>
+            <select name="role" id="role-{{.ID}}"><option value="viewer">Viewer</option><option value="editor" selected>Editor</option><option value="owner">Owner</option></select>
+            <button type="submit">Accept</button>
+          </form>
+          <form method="post" action="{{url "/squadron/transfers/" .ID "/decline"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button">Decline</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Nobody is waiting.</p>{{end}}
+  <h3>Members moving away</h3>
+  {{if .Outgoing}}
+  <table class="list">
+    <thead><tr><th scope="col">Person</th><th scope="col">To</th><th scope="col">State</th><th scope="col">Ends</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {{range .Outgoing}}
+      <tr>
+        <td data-private>{{.Name}} <span class="muted">({{.Email}})</span></td>
+        <td>{{.ToNumber}} {{.ToName}}</td>
+        <td>{{if eq .Status "awaiting_person"}}Waiting for them to agree{{else}}Waiting for an owner there{{end}}</td>
+        <td>{{.Expires}}</td>
+        <td>
+          <form method="post" action="{{url "/squadron/transfers/" .ID "/cancel"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button" aria-label="Cancel the move of {{.Email}}">Cancel the move</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Nobody is moving away.</p>{{end}}
 </section>
 
 <section class="card">

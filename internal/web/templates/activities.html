@@ -1,0 +1,56 @@
+{{define "content"}}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Planner</a></li>
+    <li aria-current="page">Activities</li>
+  </ol>
+</nav>
+<h1>Activities</h1>
+<p class="muted">The list offered when you click an Activity box in the programme grid: the built-in activities, then your squadron's own. It is only a list of suggestions: you can always type anything else.</p>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+
+<section class="card">
+  <h2>Your squadron's activities</h2>
+  {{if .Custom}}
+  <table class="list">
+    <thead><tr><th scope="col">Activity</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {{range .Custom}}
+      <tr class="ie-row">
+        <td>
+          <input type="checkbox" id="ce-act-{{.ID}}" class="ie-toggle" aria-label="Edit {{.Title}}">
+          <label for="ce-act-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Title}}</label>
+          <input type="text" class="ie-edit" name="title" form="act-form-{{.ID}}" value="{{.Title}}" maxlength="120" required aria-label="Activity">
+        </td>
+        <td class="ie-actions">
+          <span class="ie-view">
+            <label for="ce-act-{{.ID}}" class="link-button">Edit</label>
+            <button type="submit" form="act-delete-{{.ID}}" class="link-button" aria-label="Remove {{.Title}}">Remove</button>
+          </span>
+          <span class="ie-edit">
+            <button type="submit" form="act-form-{{.ID}}" class="ie-ok" aria-label="Save" title="Save">&#10003;</button>
+            <label for="ce-act-{{.ID}}" class="ie-cancel" role="button" aria-label="Cancel" title="Cancel">&#10007;</label>
+          </span>
+          <form id="act-form-{{.ID}}" method="post" action="{{url "/activities/" .ID "/edit"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+          <form id="act-delete-{{.ID}}" method="post" action="{{url "/activities/" .ID "/delete"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">None yet: add the first below.</p>{{end}}
+  <h3>Add an activity</h3>
+  <form method="post" action="{{url "/activities"}}" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Activity <input type="text" name="title" required maxlength="120" placeholder="Fieldcraft"></label>
+    <button type="submit">Add</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Built-in activities</h2>
+  <p class="muted">These are offered to every squadron and cannot be changed. If you add one of your own with the same name, it is not needed and is removed.</p>
+  <ul class="plain-list">{{range .Defaults}}<li>{{.}}</li>{{end}}</ul>
+</section>
+<script type="module" src="{{url "/static/js/gen/edit.js"}}"></script>
+{{end}}

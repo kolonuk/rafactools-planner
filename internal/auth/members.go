@@ -50,6 +50,15 @@ func (s *Service) SetMemberActive(squadronID, targetUserID, actingUserID int64, 
 	if isMaster {
 		return ErrNotMember // the site administrator is never managed from a squadron
 	}
+	if active {
+		var waiting int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM account_transfers WHERE user_id = ? AND status = 'pending'`, targetUserID).Scan(&waiting); err != nil {
+			return err
+		}
+		if waiting > 0 {
+			return ErrTransferWaiting // switched off by a move: only the move ending switches it on
+		}
+	}
 	if !active {
 		last, err := isLastActiveOwner(tx, squadronID, targetUserID)
 		if err != nil {

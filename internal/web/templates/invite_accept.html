@@ -9,6 +9,7 @@
   <label>Password
     <input type="password" name="password" required minlength="12">
   </label>
+  {{template "turnstile" .}}
   <button type="submit">Create account</button>
 </form>
 {{end}}
