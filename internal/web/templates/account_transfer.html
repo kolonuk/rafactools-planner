@@ -1,0 +1,45 @@
+{{define "content"}}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Planner</a></li>
+    <li><a href="{{url "/account"}}">Your details</a></li>
+    <li aria-current="page">Move to another squadron</li>
+  </ol>
+</nav>
+<h1>Move to another squadron</h1>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+
+{{if .Open}}
+  {{if eq .Open.Status "awaiting_person"}}
+  <section class="card">
+    <h2>An owner asks to move you</h2>
+    <p>An owner of <strong>{{.Open.FromNumber}} {{.Open.FromName}}</strong> has asked to move your login to <strong>{{.Open.ToNumber}} {{.Open.ToName}}</strong>. Nothing happens unless you agree.</p>
+    <p class="muted">If you agree, your account is switched off until an owner of {{.Open.ToName}} accepts you and gives you a role there. You then sign in again with the same email address and password. You keep none of {{.Open.FromName}}'s programmes: they stay with that squadron. The request ends on {{.Open.ExpiresAt.Format "2 January 2006"}}.</p>
+    <form method="post" action="{{url "/account/transfer/answer"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <button type="submit" name="answer" value="agree">Agree to the move</button>
+      <button type="submit" name="answer" value="decline" class="link-button">Decline</button>
+    </form>
+  </section>
+  {{end}}
+{{else if .Cannot}}
+  <section class="card"><p>{{.Cannot}}.</p></section>
+{{else}}
+  <section class="card">
+    <p>Your login can move to another squadron that is already on this site. Only the login moves: your password, two-step sign-in and name come with you, and <strong>nothing else</strong>. Programmes, history, requirement entries and the instructor list stay with {{if .User}}your current squadron{{else}}the squadron you leave{{end}}, and you will no longer see them.</p>
+    <ol>
+      <li>You type the number of the squadron you are joining.</li>
+      <li>Your account is <strong>switched off straight away</strong>, so you are signed out and cannot sign in.</li>
+      <li>An owner of that squadron is emailed. They accept, and choose your role (owner, editor or viewer), or decline.</li>
+      <li>When they accept, your account is switched on in the new squadron. If they decline, or 14 days pass, it is switched back on here. You can cancel at any time with the link in the email you will get.</li>
+    </ol>
+    <form method="post" action="{{url "/account/transfer"}}" class="inline-form">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <label>Number of the squadron to join <input type="text" name="number" required maxlength="8" inputmode="numeric" pattern="[0-9]+"></label>
+      <label>Your password <input type="password" name="password" required autocomplete="current-password"></label>
+      {{template "turnstile" .}}
+      <button type="submit">Ask to move</button>
+    </form>
+  </section>
+{{end}}
+{{end}}

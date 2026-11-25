@@ -68,6 +68,8 @@ type Transfer struct {
 	CreatedAt     time.Time
 	ExpiresAt     time.Time
 	PersonalToken string // only set by StartTransfer: the link to email to the person
+	// WasPending is set when a transfer ends: it had been waiting for the target squadron's owners.
+	WasPending bool
 }
 
 const transferSelect = `SELECT t.id, t.user_id, u.email, u.display_name, t.from_squadron_id, fs.number, fs.name, t.to_squadron_id, ts.number, ts.name,
@@ -270,12 +272,22 @@ func (s *Service) TransferGet(id int64) (*Transfer, error) {
 // ConfirmTransfer is the person agreeing, by their emailed link, to a move an owner
 // asked for. The transfer becomes pending and the account is switched off.
 func (s *Service) ConfirmTransfer(token string) (*Transfer, error) {
+	return s.confirm(`t.person_token_hash = ?`, hashTransferToken(token))
+}
+
+// ConfirmTransferFor is the same for a person who is signed in: they agree to the
+// move waiting for them.
+func (s *Service) ConfirmTransferFor(userID int64) (*Transfer, error) {
+	return s.confirm(`t.user_id = ?`, userID)
+}
+
+func (s *Service) confirm(where string, arg any) (*Transfer, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	t, err := scanTransfer(tx.QueryRow(transferSelect+`WHERE t.person_token_hash = ?`, hashTransferToken(token)))
+	t, err := scanTransfer(tx.QueryRow(transferSelect+`WHERE `+where+` AND t.status = 'awaiting_person'`, arg))
 	if errors.Is(err, sql.ErrNoRows) || (err == nil && (t.Status != TransferAwaitingPerson || !t.ExpiresAt.After(time.Now()))) {
 		return nil, ErrTransferGone
 	} else if err != nil {
@@ -300,6 +312,7 @@ func (s *Service) ConfirmTransfer(token string) (*Transfer, error) {
 // finish ends an open transfer without a move: the account is switched back on
 // (only a pending transfer had switched it off).
 func finish(tx *sql.Tx, t *Transfer, status string, by int64) error {
+	t.WasPending = t.Status == TransferPending
 	if _, err := tx.Exec(`UPDATE account_transfers SET status = ?, resolved_at = ?, resolved_by = NULLIF(?, 0) WHERE id = ?`, status, time.Now().UTC(), by, t.ID); err != nil {
 		return err
 	}

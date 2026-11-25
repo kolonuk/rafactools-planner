@@ -87,9 +87,18 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	shareData["PublishedMonths"] = publishedMonths
 
+	canMove := map[int64]bool{}
+	for _, m := range members {
+		canMove[m.ID] = m.ID != u.ID && m.Active && s.Auth.MovableReason(m.ID) == nil
+	}
+	incoming, inErr := s.Auth.IncomingTransfers(u.SquadronID)
+	outgoing, outErr := s.Auth.OutgoingTransfers(u.SquadronID)
 	region, _ := s.Store.SquadronHolidayRegion(u.SquadronID)
 	reminder, _ := s.Store.ReminderDays(u.SquadronID)
 	s.render(w, r, "squadron_settings", "Squadron settings", map[string]any{
+		"CanMove":             canMove,
+		"Incoming":            s.transferViews(incoming, inErr),
+		"Outgoing":            s.transferViews(outgoing, outErr),
 		"HolidayRegion":       region,
 		"ReminderDays":        reminder,
 		"Share":               shareData,
@@ -255,7 +264,7 @@ func (s *server) memberRemove(w http.ResponseWriter, r *http.Request) {
 // database error) for anything else.
 func (s *server) memberError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
-	case errors.Is(err, auth.ErrLastOwner), errors.Is(err, auth.ErrInvalidRole), errors.Is(err, auth.ErrSelfAction), errors.Is(err, auth.ErrMemberInactive):
+	case errors.Is(err, auth.ErrLastOwner), errors.Is(err, auth.ErrInvalidRole), errors.Is(err, auth.ErrSelfAction), errors.Is(err, auth.ErrMemberInactive), errors.Is(err, auth.ErrTransferWaiting):
 		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", err.Error())
 	case errors.Is(err, auth.ErrNotMember):
 		s.renderError(w, r, http.StatusNotFound, "Squadron settings", err.Error())

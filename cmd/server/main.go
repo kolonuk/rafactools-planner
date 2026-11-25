@@ -17,9 +17,9 @@ import (
 	"rafactools-planner/internal/db"
 	"rafactools-planner/internal/docs"
 	"rafactools-planner/internal/holidays"
-	"rafactools-planner/internal/reminders"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/reminders"
 	"rafactools-planner/internal/settings"
 	"rafactools-planner/internal/web"
 )
@@ -131,7 +131,7 @@ func main() {
 		},
 	})
 
-	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg, Settings: siteSettings, Env: os.Getenv})
+	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg, Settings: siteSettings, Env: os.Getenv, Background: bg})
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

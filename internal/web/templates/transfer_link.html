@@ -1,0 +1,27 @@
+{{define "content"}}
+<h1>Move to another squadron</h1>
+<section class="card">
+  <p>This is about the login <strong data-private>{{.T.Email}}</strong>, moving from <strong>{{.T.FromNumber}} {{.T.FromName}}</strong> to <strong>{{.T.ToNumber}} {{.T.ToName}}</strong>.</p>
+  {{if .AwaitingPerson}}
+    <p>An owner of {{.T.FromName}} asked for this. <strong>Nothing happens unless you agree.</strong> If you agree, your account is switched off until an owner of {{.T.ToName}} accepts you and gives you a role there. You then sign in again with the same email address and password. None of {{.T.FromName}}'s programmes come with you. The request ends on {{.T.ExpiresAt.Format "2 January 2006"}}.</p>
+    <form method="post" action="{{url "/transfer/" .Token "/agree"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <button type="submit">Agree to the move</button>
+    </form>
+    <form method="post" action="{{url "/transfer/" .Token "/decline"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <button type="submit" class="link-button">Decline</button>
+    </form>
+  {{else if .Pending}}
+    <p>Your account is switched off until an owner of {{.T.ToName}} accepts you or declines, or until {{.T.ExpiresAt.Format "2 January 2006"}}, when it is switched back on in {{.T.FromName}}.</p>
+    <form method="post" action="{{url "/transfer/" .Token "/cancel"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <button type="submit">Cancel the move and switch my account back on</button>
+    </form>
+  {{else if eq .T.Status "accepted"}}
+    <p>The move is done. You belong to {{.T.ToName}} as {{.T.Role}}. <a href="{{url "/login"}}">Sign in</a> with the same email address and password.</p>
+  {{else}}
+    <p>This move is over ({{.T.Status}}). Your account is switched on. <a href="{{url "/login"}}">Sign in</a>.</p>
+  {{end}}
+</section>
+{{end}}
