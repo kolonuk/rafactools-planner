@@ -5,7 +5,7 @@ summary: What the exported programme looks like.
 since: 1.0
 audience: user
 changed:
-  - next: The QR code is only on the PDF and PNG of a published month; a month that is not published no longer carries it.
+  - 1.16: The QR code is only on the PDF and PNG of a published month; a month that is not published no longer carries it.
   - 1.15: The uniform key and the notes table are always drawn below the whole grid; with a closure early in the month they used to be drawn on top of the nights after it.
   - 1.14: A crowded month is drawn smaller so that everything fits on the one page, instead of running off the bottom.
   - 1.14: The PDF ends with a QR code for the squadron's calendar when the squadron has a public link, and there is an Export PNG as well. Files are kept until the month changes.

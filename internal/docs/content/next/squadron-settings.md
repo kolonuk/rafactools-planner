@@ -5,7 +5,7 @@ summary: Name, classifications, parade nights, members and invites (owners only)
 since: 1.0
 audience: admin
 changed:
-  - next: Bank holidays and reminders: choose which list of UK bank holidays new months get closures from, and how many days ahead staff are reminded about blank parade nights. Moves between squadrons: owners accept or decline members joining, and can ask for a member to move.
+  - 1.16: Bank holidays and reminders: choose which list of UK bank holidays new months get closures from, and how many days ahead staff are reminded about blank parade nights. Moves between squadrons: owners accept or decline members joining, and can ask for a member to move.
   - 1.14: The page is called Squadron in the top bar, links to the instructor list and has a breadcrumb back to the planner.
   - 1.14: Parade night start and end times, and the Public link and calendar section.
   - 1.13: Delete this squadron includes a human check when the operator has turned on Turnstile.
