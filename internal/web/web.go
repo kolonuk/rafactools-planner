@@ -83,7 +83,7 @@ type server struct {
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
-	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "confirm_reset_programme",
+	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "confirm_reset_programme",
 	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit", "force_password", "email_confirm", "history", "confirm_restore",
 }
 
@@ -182,6 +182,7 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
+	mux.HandleFunc("POST /squadron/planning", s.requireOwner(s.squadronPlanning))
 	mux.HandleFunc("GET /squadron/security-log.csv", s.requireOwner(s.securityLogCSV))
 	mux.HandleFunc("POST /squadron/delete", authLimiter.rateLimited(s.requireOwner(s.squadronDelete)))
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
@@ -190,6 +191,11 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /squadron/members/{memberID}/active", s.requireOwner(s.memberSetActive))
 	mux.HandleFunc("POST /squadron/members/{memberID}/temp-password", authLimiter.rateLimited(s.requireOwner(s.memberTempPassword)))
 	mux.HandleFunc("POST /squadron/members/{memberID}/remove", s.requireOwner(s.memberRemove))
+
+	mux.HandleFunc("GET /time-off", s.requireAuth(s.timeOffPage))
+	mux.HandleFunc("POST /time-off", s.requireAuth(s.timeOffAdd))
+	mux.HandleFunc("POST /time-off/{id}/edit", s.requireAuth(s.timeOffEdit))
+	mux.HandleFunc("POST /time-off/{id}/delete", s.requireAuth(s.timeOffDelete))
 
 	mux.HandleFunc("GET /instructors", s.requireEditor(s.instructorsPage))
 	mux.HandleFunc("POST /instructors", s.requireEditor(s.instructorAdd))

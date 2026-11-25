@@ -47,6 +47,25 @@
   </form>
 </section>
 
+<section class="card" id="planning">
+  <h2>Bank holidays and reminders</h2>
+  <form method="post" action="{{url "/squadron/planning"}}" >
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Bank holidays to close for
+      <select name="holiday_region">
+        <option value="england-and-wales" {{if eq .HolidayRegion "england-and-wales"}}selected{{end}}>England and Wales</option>
+        <option value="scotland" {{if eq .HolidayRegion "scotland"}}selected{{end}}>Scotland</option>
+        <option value="northern-ireland" {{if eq .HolidayRegion "northern-ireland"}}selected{{end}}>Northern Ireland</option>
+        <option value="none" {{if eq .HolidayRegion "none"}}selected{{end}}>None: I will add closures myself</option>
+      </select>
+    </label>
+    <span class="muted">Each new month gets a one-day closure for every bank holiday in it, from the government's list (checked about once a month). You can edit or delete any of them.</span>
+    <label>Remind staff about blank parade nights <input type="number" name="reminder_days" min="0" max="28" value="{{.ReminderDays}}"> days before (0 for no reminders)</label>
+    <span class="muted">Owners and editors are emailed once for a parade night that still has an empty Activity or Instructor box that many days ahead.</span>
+    <button type="submit">Save</button>
+  </form>
+</section>
+
 <section class="card" id="sharing">
   <h2>Public link and calendar</h2>
   <p>Publish a month from its <strong>Actions</strong> menu and anyone with this squadron's link can

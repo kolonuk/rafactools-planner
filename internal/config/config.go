@@ -85,7 +85,12 @@ type Config struct {
 	// and delete-squadron forms. Set both or neither; with neither, no check
 	// runs and no third-party script is loaded. The secret belongs in a secret.
 	TurnstileSiteKey string
-	TurnstileSecret  string
+
+	// BankHolidaysURL (BANK_HOLIDAYS_URL) is where the UK bank holiday list is
+	// fetched from, about once a month. "off" stops the fetching (months then get
+	// no bank-holiday closures from it).
+	BankHolidaysURL string
+	TurnstileSecret string
 
 	SMTPHost string
 	SMTPPort int
@@ -112,6 +117,7 @@ func Load() (Config, error) {
 		IssueMasking:             getenvBool("ISSUE_MASKING", true),
 		AllowLogMail:             getenvBool("ALLOW_LOG_MAIL", false),
 		DisableSignups:           getenvBool("DISABLE_SIGNUPS", false),
+		BankHolidaysURL:          getenv("BANK_HOLIDAYS_URL", "https://www.gov.uk/bank-holidays.json"),
 		TurnstileSiteKey:         strings.TrimSpace(os.Getenv("TURNSTILE_SITE_KEY")),
 		TurnstileSecret:          strings.TrimSpace(os.Getenv("TURNSTILE_SECRET")),
 		SMTPHost:                 os.Getenv("SMTP_HOST"),

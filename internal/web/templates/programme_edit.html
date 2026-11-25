@@ -127,7 +127,8 @@
           {{range $i, $c := $half.Cells}}
           <td class="class-cell" data-label="{{index $.Classifications $i}}">
             <input type="text" class="act" name="{{$c.ActName}}" value="{{$c.ActValue}}" placeholder="Activity" aria-label="Activity, {{index $.Classifications $i}}, {{$day.FullLabel}}">
-            <input type="text" class="ins" list="instructor-options" name="{{$c.InsName}}" value="{{$c.InsValue}}" placeholder="Instructor" aria-label="Instructor, {{index $.Classifications $i}}, {{$day.FullLabel}}">
+            <input type="text" class="ins{{if $c.InsAway}} away{{end}}" list="instructor-options" name="{{$c.InsName}}" value="{{$c.InsValue}}" placeholder="Instructor" aria-label="Instructor, {{index $.Classifications $i}}, {{$day.FullLabel}}{{if $c.InsAway}}. Warning: {{$c.InsAway}}{{end}}"{{if $c.InsAway}} title="{{$c.InsAway}}" aria-invalid="true"{{end}}>
+            {{if $c.InsAway}}<span class="away-note">{{$c.InsAway}}</span>{{end}}
           </td>
           {{end}}
           {{if eq $idx 0}}
@@ -218,7 +219,7 @@
           <input type="date" class="ie-edit" name="end_date" form="closure-form-{{.ID}}" value="{{.EndDate}}" required aria-label="To">{{else}}{{.EndDate}}{{end}}
         </td>
         <td>
-          {{if $.CanEdit}}<label for="ce-closure-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Message}}</label>
+          {{if $.CanEdit}}<label for="ce-closure-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Message}}{{if eq .Source "bank"}} <span class="muted">(bank holiday)</span>{{end}}</label>
           <input type="text" class="ie-edit" name="message" form="closure-form-{{.ID}}" value="{{.Message}}" required aria-label="Message">{{else}}{{.Message}}{{end}}
         </td>
         <td class="ie-actions">

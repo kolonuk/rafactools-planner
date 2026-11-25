@@ -16,6 +16,7 @@ import (
 	"rafactools-planner/internal/config"
 	"rafactools-planner/internal/db"
 	"rafactools-planner/internal/docs"
+	"rafactools-planner/internal/holidays"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
 	"rafactools-planner/internal/settings"
@@ -102,6 +103,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("docs: %v", err)
 	}
+
+	bg, stopBackground := context.WithCancel(context.Background())
+	defer stopBackground()
+	go holidays.Run(bg, store, cfg.BankHolidaysURL)
 
 	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg, Settings: siteSettings, Env: os.Getenv})
 
