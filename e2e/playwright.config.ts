@@ -38,7 +38,6 @@ export default defineConfig({
       DB_PATH: resolve(scratch, "e2e.db"),
       SESSION_KEY: "e2e-session-key-e2e-session-key-0123456789",
       COOKIE_SECURE: "false",
-      BANK_HOLIDAYS_URL: "off", // the browser tests never reach out to the internet
       SKIP_EMAIL_VERIFICATION: "true",
       ALLOW_LOG_MAIL: "true",
       ISSUE_EMAIL: "issues@example.org",
