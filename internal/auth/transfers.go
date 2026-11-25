@@ -434,7 +434,8 @@ func (s *Service) TransferOwners(squadronID int64) ([]string, error) {
 // theirs ends so they sign in afresh, and the account is switched back on. The password,
 // two-step sign-in and display name are kept.
 func (s *Service) AcceptTransfer(id, ownerID int64, role string) (*Transfer, error) {
-	if role != "owner" && role != "editor" && role != "viewer" {
+	role = knownRole(role)
+	if role == "" {
 		return nil, ErrTransferRole
 	}
 	tx, err := s.db.Begin()
@@ -527,4 +528,18 @@ func (s *Service) ExpireTransfers(now time.Time) ([]Transfer, error) {
 		out = append(out, *t)
 	}
 	return out, tx.Commit()
+}
+
+// knownRole returns the role's own constant for a valid name and "" for anything else,
+// so nothing typed in a form is ever carried further than the three roles.
+func knownRole(r string) string {
+	switch r {
+	case "owner":
+		return "owner"
+	case "editor":
+		return "editor"
+	case "viewer":
+		return "viewer"
+	}
+	return ""
 }
