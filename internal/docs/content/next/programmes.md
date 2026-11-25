@@ -5,7 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
-  - next: A Copy button copies the uniform, activities and instructors of an earlier month into this one. New months get a closure for each UK bank holiday. Activity boxes suggest the built-in and your own activities, and an Instructor box turns red when that person is away.
+  - 1.16: A Copy button copies the uniform, activities and instructors of an earlier month into this one. New months get a closure for each UK bank holiday. Activity boxes suggest the built-in and your own activities, and an Instructor box turns red when that person is away.
   - 1.14: The month page has a breadcrumb and a menu bar (Export, History, Publish or Unpublish, Instructors, More) and a Parade nights | All nights switch. The grid is a lighter timetable with one line per night (the activity over the instructor in each class's box), a colour dot for the uniform and cards on a phone. Closures, weekend notes and tracker entries can be edited in place with a tick or a cross. Months can be published to the public link.
   - 1.10: A closure locks the dates it covers in the grid.
   - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.

@@ -5,7 +5,7 @@ summary: What the messages mean and what to do.
 since: 1.0
 audience: user
 changed:
-  - next: Added the messages about an account switched off by a move, and the account move refusals.
+  - 1.16: Added the messages about an account switched off by a move, and the account move refusals.
   - 1.15: Added the calendar rate-limit message.
   - 1.9: Error pages show a reference to quote.
   - 1.9: Added the email settings and test email messages.

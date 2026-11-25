@@ -2,10 +2,10 @@
 title: Time off
 order: 46
 summary: Recording when instructors are away, and the red warning in the programme grid.
-since: next
+since: 1.16
 audience: user
 changed:
-  - next: New page.
+  - 1.16: New page.
 ---
 # Time off
 
