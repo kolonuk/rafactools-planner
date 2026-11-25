@@ -18,14 +18,6 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
 
 ## Next up (to be triaged)
 
-- [ ] **[P2 helpful feature]** **One calendar link per squadron, covering every published month, built
-  again only when something changes.** `shareCalendar` in `internal/web/share.go` already serves one
-  feed at `calendar.ics` and keeps it under a hash of what it shows (`fileHash("ics", ...)`), so check
-  that this is really what is wanted before changing anything: (1) confirm the link shown on a month
-  page and in squadron settings is the same single link and never a per-month one; (2) confirm the cache
-  is rebuilt when a month is published or unpublished, or a night, uniform or activity changes, and
-  not for edits to notes or unpublished months; (3) the cache is in memory (`s.files`), so decide if it
-  should survive a restart; (4) add a test for each point. Then delete this item.
 
 - [ ] **[P4 nicety]** **Public-repo tidy-up.** Re-read the in-app help pages (`run-your-own`, `about-these-docs`)
   and the `.claude/skills` notes for wording that assumes a private project or a particular
@@ -48,58 +40,10 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
      by eye. Still to do: line the PNG layout up with the PDF more closely.
   5. *Calendar feed (`.ics`):* DONE (one event per parade night from today, uniform and grouped
      activities, link to the month's PDF, weekend notes as all-day entries, closures left out,
-     expired link answers 410). Still to do: a setting to include instructor names, and a feed
-     entry marked cancelled for a night that was cancelled after being published.
+     expired link answers 410, a night taken out after it was shown goes out as cancelled; instructor
+     names are deliberately never included).
   6. *QR code* for the feed at the foot of the PDF and the PNG, with its expiry date: DONE. Still to
      do: the same on a public web page (there is none yet).
-- [ ] **[P2 helpful feature]** **Move a login to another squadron (account transfer).** Today a person belongs to
-  one squadron and an email address can only have one account, so someone who changes squadron, or is
-  invited by a squadron when their email already has an account elsewhere, has no way across. Decide first
-  whether to *move* the account (what was asked for) or to let one login belong to several squadrons with a
-  switcher; the notes below are for a move.
-  - **Who can start it:** a person moving their own login, or an owner of the squadron the person is in
-    moving someone else's. Never the master admin's own account.
-  - **The target squadron must already be claimed** (picked by its number; show only its number and name).
-    It is not created by a transfer.
-  - **At least one owner of the target squadron must accept**, and the accepting owner **sets the role**
-    (owner, editor or viewer) the person will have there. The request is emailed to the target's owners
-    with a link; any one owner accepting settles it; anyone declining, or 14 days passing, ends it. The
-    requester can cancel while it is pending. One pending transfer per person.
-  - **The person must agree when someone else asks.** An owner moving a member out sends the member a
-    confirmation link; nothing happens until they use it. (A person moving themselves already agrees by
-    asking.) Both steps, the person's and the target owner's, are needed before the move happens.
-  - **Checks before the move:** the person is not the **only owner** of the squadron they are leaving (hand
-    over ownership or delete the squadron first); the account is active and its email confirmed; it is not
-    holding a temporary password; the target does not already have a login with the same email or a pending
-    invite for it (offer to cancel the invite); the master admin account is refused.
-  - **What happens on acceptance, in one transaction:** the person's squadron and role change; every session
-    of theirs is ended so they sign in again into the new squadron; their password and two-step sign-in are
-    kept; their display name is kept. **Nothing else moves:** programmes, history, requirement entries and the
-    instructor list stay with the old squadron (history keeps the email as text), and the person no longer
-    sees any of it. Say this on the confirmation page.
-  - **Records and mail:** a line in the security log of **both** squadrons (requested, accepted, declined,
-    cancelled, expired, moved), and an email to the person, to the old squadron's owners and to the target's
-    owners when it is done. Rate limit requests, and add the human check if Turnstile is on.
-  - **Also useful, alongside it:** a clear refusal on the invite page that says "this email already has a
-    login, ask to be transferred" instead of a bare error; **hand over ownership** (promote another owner)
-    with a warning if the squadron would be left with none; **leave a squadron** and **download my details**
-    for a person who is not moving; show pending transfers on the Squadron page (for the owners involved)
-    and on the person's Your details page.
-  - Needs a migration (`account_transfers`: person, from, to, requested by, role, status, expiry), docs
-    (roles and invites, Squadron, security and privacy, troubleshooting), the changelog and tests for every
-    check above, including a transfer being refused across squadrons the requester does not own.
-- [ ] **[P2 helpful feature]** **"Copy" a previous month into this one.** Put a **Copy** button at the top of
-  the monthly planner page. It opens a popup listing the squadron's earlier months; picking one
-  copies it into the month being viewed.
-  - Copy only the uniform, the activities and the instructors. Leave everything else (notes,
-    weekend events, closures, the requirement tracker) alone.
-  - Line the months up by parade night: the first parade night of the source goes on the first
-    parade night of this month, the second on the second, and so on, so every date and weekday
-    comes out right for the current month.
-  - If the source has more parade nights than this month, drop the extra ones from the end.
-  - Ask for confirmation first if this month already has entries, and say what will be replaced.
-  - Test: a 5-night source into a 4-night month, a 4-night source into a 5-night month, and
-    different weekday patterns.
 - [ ] **[P3 usability]** **More detail in the programme history.** The history page should say what
   actually changed, not just that a version was saved. For example: "Moved 3 Nov activities to
   10 Nov", "Added closure 22-26 Dec", "Changed uniform for 17 Nov from Blue to Working dress",
@@ -117,18 +61,6 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   third-party or `eval`), update the README, `docs` skill and lint skill wording, then review
   which screens would be better with TypeScript (live validation, inline edit, drag and drop,
   partial refresh) and add the worthwhile ones as items.
-- [ ] **[P2 helpful feature]** **Activity list (default plus per-squadron).**
-  - Ship a JSON file of default activities, embedded in the binary. Starting set:
-    First Class - Flying Operation; First Class - Map Reading; First Class - Initial Expedition
-    Training; First Class - Radios; Leading - Pilot Navigation; Leading - Principles of Flight;
-    First Class - History of the RAF; First Class - History of ATC; Annual Briefings;
-    Climatic Injuries; DofE Prep; Laser Quest; Bowling; Section Visit; Guest Speaker - RAF Police.
-  - Custom activities a squadron creates are stored in the database, unique to that squadron.
-  - Clean-up: if a squadron's custom activity matches a default (compare case-insensitively,
-    ignoring surrounding whitespace), delete the database entry, for all squadrons. Run it
-    at start-up or as a migration, and log what was removed.
-  - Pick from the list when filling the grid. This replaces the earlier "Activities and training
-    classes library" idea under Feature ideas; merge the two.
 
 ## The app and its image
 
@@ -170,7 +102,6 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
   `DISABLE_SIGNUPS`. Also: a "mail not set up" mode that lets the master admin sign in
   and configure mail on a brand-new site without `ALLOW_LOG_MAIL`.
 
-- [ ] **[P2 helpful feature]** **Compare two programme versions** side by side on the history page (today you can only restore).
 - [ ] **[P3 usability]** **Phone layout for the programme grid (top bar still to do).** The top bar and tables wrap instead of widening the page
   and a browser test (e2e/) guards that; the programme grid itself still scrolls sideways.
 - [ ] **[P3 usability]** **Password quality:** a check against very common passwords (the 12-character
@@ -191,18 +122,11 @@ TLS, secrets and redeploying belong to whoever runs the image (the docs page
 
 Roughly ordered by value for the effort.
 
-1. **[P2 helpful feature]** **Instructors list, next step.** The list (name and rank, now editable) and
-   display names exist. Still to do: per-instructor availability (see the duty rota idea below).
-2. **[P2 helpful feature]** **Activities and training classes library.** A per-squadron catalogue
-   (title, syllabus/class, default instructor, notes) to pick from when
-   filling the grid. A proper searchable popup needs a small first-party
-   script, which is now allowed (see the README's "Scripts" note); keep the
-   form usable without it where reasonable.
-3. **[P4 nicety]** **Ideas board** (reminder notes for future months). Each idea has a title,
+1. **[P4 nicety]** **Ideas board** (reminder notes for future months). Each idea has a title,
    type, possible dates, contact details (e.g. RAF Careers), equipment needed,
    cost, status (idea / asked / confirmed / dropped) and a "use in programme"
    button that drops it into a day.
-4. **[P4 nicety]** **QR-code suggestions from cadets.** Each squadron gets a revocable public
+2. **[P4 nicety]** **QR-code suggestions from cadets.** Each squadron gets a revocable public
    link and QR code to a short form: type (camp, training day, airshow or
    airbase visit, trip, other), proposed dates, cost, transport, location,
    contact name, description. Submissions land in an inbox on the Ideas board
@@ -210,34 +134,15 @@ Roughly ordered by value for the effort.
    rate limiting (already have `ipLimiter`), a hidden honeypot field, strict
    length limits, no cadet names or phone numbers collected, and moderation
    before anything is shown.
-5. **[P2 helpful feature]** **Read-only sharing:** a read-only link for
-   parents and cadets, and an `.ics` calendar feed.
-   **QR codes at the bottom of the programme PDF** (and the web page): one
-   for subscribing to the `.ics` feed, one for the cadet suggestion form
-   (item 4). Notes:
-   - The PDF gets shared around, so the feed URL carries a long random
-     per-squadron token and exposes only parade dates and activity titles,
-     never cadet names or the requirements tracker.
-   - The link expires after 3 whole months. Users regenerate it themselves,
-     as and when needed (a button in squadron settings), and each
-     regeneration gives a new token, a new QR code and a fresh 3 months; the
-     old link stops working straight away. There is no separate revoke. The
-     expiry date is printed at the bottom of the PDF next to the QR code, so
-     people know when to re-scan. An expired link should say so clearly
-     rather than return an empty calendar. A reminder email to the owner a
-     week before expiry would help.
-   - Generate the QR in Go (e.g. `skip2/go-qrcode`) and embed it as an image
-     in `pdfgen`. Keep the codes big enough to scan from a printed A4 and
-     leave room for them in the single-page layout.
-6. **[P2 helpful feature]** **Reminders:** email staff N days before a parade night that still has
-   blank activity or instructor cells.
-7. **[P2 helpful feature]** **Programme templates** for recurring evenings (e.g. "Monday: drill, then
-   first aid").
-8. **[P3 usability]** **Instructor availability and duty rota,** with a clash warning when the
-   same person is on two things at once.
-9. **[P3 usability]** **Audit trail:** "last edited by X at Y" on each programme, and an
+3. **[P2 helpful feature]** **Read-only sharing, what is left.** The link, the calendar feed, the PDF and PNG
+   and the QR code on them are built, and owners are emailed a week before the link ends. Still to do: a
+   public web page for the squadron (it would show the published months and carry the QR code for the
+   feed, with the expiry date), and the QR code for the cadet suggestion form (item 2).
+4. **[P3 usability]** **Duty rota and clash warning:** time off is recorded and warned about in the grid;
+   still to do is a warning when the same person is on two things at once.
+5. **[P3 usability]** **Audit trail:** "last edited by X at Y" on each programme, and an
     optional change log.
-10. **[P3 usability]** **Documentation, next steps.** The versioned in-app docs exist
+6. **[P3 usability]** **Documentation, next steps.** The versioned in-app docs exist
     (`/docs`, see `.claude/skills/docs/SKILL.md`). Still to do: add pages for
     each feature on this list as it is built; releases are cut by the pipeline on test (`devtools release`);
     the first one (1.9) exists, so the version selector and compare view have something to compare;

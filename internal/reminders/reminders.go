@@ -42,7 +42,7 @@ func RunOnce(d Deps) (int, error) {
 		return 0, err
 	}
 	_ = d.Store.ForgetOldReminders(today)
-	sent := 0
+	sent := d.shareExpiry(now)
 	for _, q := range due {
 		to, err := d.Recipients(q.SquadronID)
 		if err != nil {
@@ -74,6 +74,46 @@ func RunOnce(d Deps) (int, error) {
 		}
 	}
 	return sent, nil
+}
+
+// ShareWarning is how far ahead the owners are told that the public link is ending.
+const ShareWarning = 7 * 24 * time.Hour
+
+// shareExpiry tells each squadron's owners, once, that the public link ends within a
+// week, and returns the number of emails sent. Anything published at the link stops
+// being available when it ends: an owner makes a new link under Squadron.
+func (d Deps) shareExpiry(now time.Time) int {
+	due, err := d.Store.ExpiringShares(now, ShareWarning)
+	if err != nil {
+		log.Printf("reminders: %v", err)
+		return 0
+	}
+	sent := 0
+	for _, q := range due {
+		to, err := d.Recipients(q.SquadronID)
+		if err != nil || len(to) == 0 {
+			continue
+		}
+		subject := q.SquadronName + ": the public link ends on " + q.ExpiresAt.In(programme.Local).Format("2 January")
+		body := fmt.Sprintf("The public link for %s (the calendar and the published months' PDF and PNG) stops working on %s. "+
+			"Calendars people subscribed to, and printed QR codes, stop updating then.\n\n"+
+			"An owner can make a new link under Squadron:\n%s/squadron#sharing\n\n"+
+			"A new link has a new address and a new QR code: the old one stops working straight away, so reprint any programme that carries the QR code.\n",
+			q.SquadronName, q.ExpiresAt.In(programme.Local).Format("Monday 2 January 2006"), strings.TrimRight(d.BaseURL, "/"))
+		ok := 0
+		for _, addr := range to {
+			if d.Send(addr, subject, body) == nil {
+				ok++
+			}
+		}
+		if ok > 0 {
+			sent += ok
+			if err := d.Store.MarkShareReminded(q.SquadronID, q.ExpiresAt); err != nil {
+				log.Printf("reminders: %v", err)
+			}
+		}
+	}
+	return sent
 }
 
 // Message writes the email for one squadron.

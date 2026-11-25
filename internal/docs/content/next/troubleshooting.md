@@ -5,6 +5,7 @@ summary: What the messages mean and what to do.
 since: 1.0
 audience: user
 changed:
+  - next: Added the messages about an account switched off by a move, and the account move refusals.
   - next: Added the calendar rate-limit message.
   - 1.9: Error pages show a reference to quote.
   - 1.9: Added the email settings and test email messages.
@@ -17,6 +18,8 @@ changed:
 | What you see | What it means | What to do |
 | --- | --- | --- |
 | `Too many requests for this calendar` | A calendar address was asked for more than the allowed number of times in 5 minutes (60 per person, 300 per address). | Wait a few minutes. Calendar apps only need to check every few hours: see [public link and calendar](public-sharing). |
+| `this account is switched off while its move to another squadron waits...` | A move of your login is waiting for an owner of the other squadron. | Use the link in the email about the move to cancel it, or wait for the decision (it ends after 14 days): see [moving your login](account-transfer). |
+| `that squadron has an invitation waiting for this email address...` / `the only owner of a squadron cannot be moved...` | A move was refused. | See the list of checks in [moving your login](account-transfer). |
 | `Invalid email or password.` | The email or password is wrong. | Check both, or use **Forgot your password?**: see [signing in](signing-in). |
 | `That password reset link is invalid or has expired.` | The link was used, is older than 1 hour, or a newer one replaced it. | Ask for a new link on the [reset page](app:/forgot). |
 | `Confirm your email first` | You claimed a squadron but never opened the confirmation link. | Open the link in the email (valid 24 hours). If it expired, ask whoever runs the site. |

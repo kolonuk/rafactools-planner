@@ -5,6 +5,7 @@ summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
 audience: user
 changed:
+  - next: An account whose move to another squadron is waiting cannot sign in, and says why.
   - next: The page where you accept an invite also has the human check when the operator has turned on Turnstile.
   - 1.13: When the operator turns on Turnstile, the login form includes a human check.
   - 1.9: A member given a temporary password must choose their own at first sign-in; an inactive account cannot sign in. Email address can be changed on Your details for non-rafac.mod.gov.uk addresses.
@@ -25,6 +26,10 @@ above the **Log in** button. If it fails or times out you see "The human check f
 Reload the page and try again." Your password is not tried until the check passes. The check is
 also on the [claim page](app:/claim), on the page where you accept an invite and on **Delete this squadron**. It is off unless the operator
 sets it up ([configuration](operators-configuration)).
+
+## Switched off while a move waits
+
+If you asked to [move your login to another squadron](account-transfer), your account cannot sign in until an owner there decides. The sign-in page says so; use the link in the email to cancel the move if you changed your mind.
 
 ## Staying signed in
 

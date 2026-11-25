@@ -66,6 +66,8 @@ CREATE TABLE feed_nights (
 -- Reminders to staff about parade nights with blank boxes: how many days ahead (0 is
 -- off), and which nights have been reminded.
 ALTER TABLE squadrons ADD COLUMN reminder_days INTEGER NOT NULL DEFAULT 0;
+-- The expiry of the public link that its owners were last told is coming (so each expiry is told once).
+ALTER TABLE squadrons ADD COLUMN share_expiry_reminded TEXT NOT NULL DEFAULT '';
 CREATE TABLE reminders_sent (
     squadron_id INTEGER NOT NULL REFERENCES squadrons(id) ON DELETE CASCADE,
     date        TEXT NOT NULL,

@@ -153,3 +153,35 @@ type failError struct{}
 func (failError) Error() string { return "mail server down" }
 
 var errFail = failError{}
+
+func TestOwnersAreToldOnceThatThePublicLinkIsEnding(t *testing.T) {
+	st, sq := setup(t)
+	programme.Now = at("2030-04-01 09:00")
+	defer func() { programme.Now = time.Now }()
+	if _, err := st.NewShare(sq); err != nil {
+		t.Fatal(err)
+	}
+	box := &outbox{}
+	deps := func(now string) Deps {
+		return Deps{Store: st, BaseURL: "https://planner.example", Now: at(now), Send: box.send,
+			Recipients: func(int64) ([]string, error) { return []string{"owner@example.org"}, nil }}
+	}
+	if n, _ := RunOnce(deps("2030-04-10 09:00")); n != 0 {
+		t.Errorf("told with three weeks to go (%d)", n)
+	}
+	n, _ := RunOnce(deps("2030-04-27 09:00")) // the link ends on 1 May
+	if n != 1 || !strings.Contains(box.sent[0], "ends on 1 May") || !strings.Contains(box.sent[0], "/squadron#sharing") {
+		t.Fatalf("sent %d: %v", n, box.sent)
+	}
+	if n, _ := RunOnce(deps("2030-04-28 09:00")); n != 0 {
+		t.Errorf("told twice (%d)", n)
+	}
+	// A renewed link is a new expiry, so it is told about again.
+	programme.Now = at("2030-05-20 09:00")
+	if _, err := st.NewShare(sq); err != nil { // ends on 20 June
+		t.Fatal(err)
+	}
+	if n, _ := RunOnce(deps("2030-06-15 09:00")); n != 1 {
+		t.Errorf("the renewed link's expiry was not announced (%d)", n)
+	}
+}

@@ -137,3 +137,58 @@ func (s *Store) ForgetOldReminders(today time.Time) error {
 	_, err := s.db.Exec(`DELETE FROM reminders_sent WHERE date < ?`, today.AddDate(0, 0, -7).Format("2006-01-02"))
 	return err
 }
+
+// ShareDue is a squadron whose public link is about to stop working.
+type ShareDue struct {
+	SquadronID   int64
+	SquadronName string
+	ExpiresAt    time.Time
+}
+
+// ExpiringShares finds the squadrons whose public link ends within `within` of now,
+// and whose owners have not yet been told about that expiry.
+func (s *Store) ExpiringShares(now time.Time, within time.Duration) ([]ShareDue, error) {
+	rows, err := s.db.Query(`SELECT id, name FROM squadrons WHERE share_token <> '' AND share_expires_at IS NOT NULL`)
+	if err != nil {
+		return nil, err
+	}
+	type sq struct {
+		id   int64
+		name string
+	}
+	var all []sq
+	for rows.Next() {
+		var q sq
+		if err := rows.Scan(&q.id, &q.name); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		all = append(all, q)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	var out []ShareDue
+	for _, q := range all {
+		sh, err := s.GetShare(q.id)
+		if err != nil || sh.ExpiresAt.IsZero() || !sh.ExpiresAt.After(now) || sh.ExpiresAt.After(now.Add(within)) {
+			continue
+		}
+		var told string
+		if err := s.db.QueryRow(`SELECT share_expiry_reminded FROM squadrons WHERE id = ?`, q.id).Scan(&told); err != nil {
+			return nil, err
+		}
+		if told == sh.ExpiresAt.UTC().Format(time.RFC3339) {
+			continue
+		}
+		out = append(out, ShareDue{q.id, q.name, sh.ExpiresAt})
+	}
+	return out, nil
+}
+
+// MarkShareReminded records that the owners were told about this expiry.
+func (s *Store) MarkShareReminded(squadronID int64, expires time.Time) error {
+	_, err := s.db.Exec(`UPDATE squadrons SET share_expiry_reminded = ? WHERE id = ?`, expires.UTC().Format(time.RFC3339), squadronID)
+	return err
+}
