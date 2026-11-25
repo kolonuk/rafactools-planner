@@ -546,3 +546,98 @@ func TestOnlyPublishedMonthsCarryTheCalendarQR(t *testing.T) {
 		}
 	}
 }
+
+// A night the calendar showed and that is then taken out (a closure, or the month
+// being unpublished) stays in the feed as cancelled until its date has passed, so a
+// calendar app that already has it removes it. The feed never names instructors.
+func TestCalendarCancelsNightsThatDisappear(t *testing.T) {
+	app := newApp(t)
+	email := app.owner("1312")
+	sq := app.squadronID(email)
+	c := app.login(email)
+	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
+	apr := publishMonth(t, app, c, sq, 2030, 4, "April drill")
+	parade, parade2, _ := firstParadeAndPlain(t, app, sq, apr.ID)
+	if err := app.store.SaveDaysAndRows(sq, apr.ID, []programme.DayInput{{ID: parade.ID, IsParade: true, UniformKey: "green",
+		Rows: []programme.RowInput{{ID: parade.Rows[0].ID, Texts: []string{"April drill", "", "", ""}}, {ID: parade.Rows[1].ID, Texts: []string{"Fg Off Secretname", "", "", ""}}}}}); err != nil {
+		t.Fatal(err)
+	}
+	share, _ := app.store.GetShare(sq)
+	path := "/share/" + share.Token + "/calendar.ics"
+	feed := func() string { return unfold(body(app.anon().get(path))) }
+	uid := func(date string) string { return "UID:parade-1312-" + date + "@rafactools-planner" }
+	// event returns the lines of the event with this UID.
+	event := func(out, date string) string {
+		i := strings.Index(out, uid(date))
+		if i < 0 {
+			return ""
+		}
+		j := strings.Index(out[i:], "END:VEVENT")
+		return out[i : i+j]
+	}
+
+	out := feed()
+	if strings.Contains(out, "STATUS:CANCELLED") {
+		t.Fatal("a cancelled night in a calendar that has had none removed")
+	}
+	if strings.Contains(out, "Secretname") {
+		t.Error("an instructor's name is in the feed")
+	}
+	if event(out, parade.Date) == "" || event(out, parade2.Date) == "" {
+		t.Fatalf("the nights %s and %s are missing:\n%s", parade.Date, parade2.Date, out)
+	}
+
+	t.Run("a closure cancels that night only", func(t *testing.T) {
+		if err := app.store.AddClosure(apr.ID, parade.Date, parade.Date, "Stand-down"); err != nil {
+			t.Fatal(err)
+		}
+		out := feed()
+		ev := event(out, parade.Date)
+		if !strings.Contains(ev, "STATUS:CANCELLED") || !strings.Contains(ev, "(cancelled)") {
+			t.Errorf("the closed night is not marked cancelled:\n%s", ev)
+		}
+		if strings.Contains(event(out, parade2.Date), "STATUS:CANCELLED") {
+			t.Error("another night was cancelled too")
+		}
+		if n := strings.Count(out, "STATUS:CANCELLED"); n != 1 {
+			t.Errorf("%d cancelled entries, want 1", n)
+		}
+	})
+
+	t.Run("the night coming back is not cancelled any more", func(t *testing.T) {
+		fp, _ := app.store.GetFullProgramme(sq, apr.ID)
+		if err := app.store.DeleteClosure(apr.ID, fp.Closures[0].ID); err != nil {
+			t.Fatal(err)
+		}
+		if out := feed(); strings.Contains(out, "STATUS:CANCELLED") || event(out, parade.Date) == "" {
+			t.Errorf("the restored night is wrong:\n%s", out)
+		}
+	})
+
+	t.Run("unpublishing cancels every night, and they go once their dates have passed", func(t *testing.T) {
+		pid := strconv.FormatInt(apr.ID, 10)
+		wantRedirect(t, c.post("/programmes/"+pid+"/publish", url.Values{"published": {"0"}}), "/programmes/"+pid)
+		out := feed()
+		cancelled := strings.Count(out, "STATUS:CANCELLED")
+		if cancelled < 2 || cancelled != strings.Count(out, "BEGIN:VEVENT") {
+			t.Errorf("%d cancelled of %d entries after unpublishing", cancelled, strings.Count(out, "BEGIN:VEVENT"))
+		}
+		setClock(t, time.Date(2030, 6, 1, 9, 0, 0, 0, time.UTC))
+		if out := feed(); strings.Contains(out, "BEGIN:VEVENT") {
+			t.Errorf("cancelled nights are still listed after their dates:\n%s", out)
+		}
+	})
+
+	t.Run("there is one calendar link, the same everywhere", func(t *testing.T) {
+		settings := body(c.get("/squadron"))
+		if n := strings.Count(settings, "calendar.ics"); n != 1 {
+			t.Errorf("the Squadron page names the calendar %d times, want 1", n)
+		}
+		pid := strconv.FormatInt(apr.ID, 10)
+		wantRedirect(t, c.post("/programmes/"+pid+"/publish", url.Values{"published": {"1"}}), "/programmes/"+pid)
+		page := body(c.get("/programmes/" + pid))
+		if !strings.Contains(page, share.Token+"/calendar.ics") || strings.Contains(page, ".ics\"") && strings.Count(page, "calendar.ics") != 1 {
+			t.Error("the month page does not show the one calendar link")
+		}
+	})
+}
