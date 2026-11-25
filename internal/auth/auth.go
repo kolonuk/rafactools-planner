@@ -40,6 +40,7 @@ var (
 	ErrEmailNotVerified      = errors.New("email address has not been verified yet")
 	ErrTokenInvalid          = errors.New("verification link is invalid or has expired")
 	ErrInviteInvalid         = errors.New("invite link is invalid, expired, or already used")
+	ErrTransferWaiting       = errors.New("this account is switched off while its move to another squadron waits for an owner there to accept it. Use the link in the email about the move to cancel it, or wait; it ends after 14 days")
 	ErrAccountInactive       = errors.New("this account is inactive: ask an owner of your squadron to make it active again")
 	ErrTempPasswordExpired   = errors.New("that temporary password has expired: use \"Forgot your password?\", or ask an owner to send a new one")
 )
@@ -501,6 +502,10 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 		return nil, ErrInvalidCredentials
 	}
 	if !u.Active {
+		var waiting int
+		if s.db.QueryRow(`SELECT COUNT(*) FROM account_transfers WHERE user_id = ? AND status = 'pending'`, u.ID).Scan(&waiting) == nil && waiting > 0 {
+			return nil, ErrTransferWaiting
+		}
 		return nil, ErrAccountInactive
 	}
 	if u.MustChangePassword && tempExpires.Valid && time.Now().After(tempExpires.Time) {

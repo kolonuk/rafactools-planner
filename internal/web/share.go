@@ -118,6 +118,21 @@ func (s *server) shareCalendar(w http.ResponseWriter, r *http.Request) {
 	events := calendarEvents(sq, months, now, func(year, month int) string {
 		return s.shareURL(token, monthFile(year, month, "pdf"))
 	})
+	// Nights the feed showed before and does not now stay in it as cancelled until their
+	// date has passed, so calendar apps that have them take them out.
+	var nights []string
+	for _, e := range events {
+		if !e.AllDay {
+			nights = append(nights, e.Start.In(programme.Local).Format("2006-01-02"))
+		}
+	}
+	cancelled, err := s.Store.SyncFeedNights(sq.ID, nights, now.In(programme.Local).Format("2006-01-02"))
+	if err != nil {
+		log.Printf("share calendar: %v", err)
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+	events = append(events, cancelledEvents(sq, cancelled)...)
 	for i := range events {
 		events[i].Modified = time.Time{} // when it was saved is not part of what it shows
 	}
@@ -230,6 +245,32 @@ func calendarEvents(sq *programme.Squadron, months []*programme.FullProgramme, n
 				Modified: fp.UpdatedAt,
 			})
 		}
+	}
+	return out
+}
+
+// cancelledEvents makes the entries for nights that were shown and have been taken
+// out. They keep the night's identity, so the calendar app replaces its copy.
+func cancelledEvents(sq *programme.Squadron, dates []string) []ical.Event {
+	var out []ical.Event
+	for _, date := range dates {
+		day, err := time.ParseInLocation("2006-01-02", date, programme.Local)
+		if err != nil {
+			continue
+		}
+		start, ok1 := atClock(day, sq.ParadeStart)
+		end, ok2 := atClock(day, sq.ParadeEnd)
+		if !ok1 || !ok2 {
+			continue
+		}
+		out = append(out, ical.Event{
+			UID:         "parade-" + sq.Number + "-" + date + "@rafactools-planner",
+			Start:       start,
+			End:         end,
+			Summary:     sq.Name + " parade night (cancelled)",
+			Description: "This parade night has been cancelled.",
+			Cancelled:   true,
+		})
 	}
 	return out
 }

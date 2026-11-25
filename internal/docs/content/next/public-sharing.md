@@ -5,6 +5,9 @@ summary: Publishing a month, the public link, the calendar feed you can subscrib
 since: 1.14
 audience: admin
 changed:
+  - next: Owners and editors with a confirmed address are emailed once, a week before the public link ends.
+  - next: A night that was in the calendar and is then taken out (a closure, unticked, or the month unpublished) stays in it as cancelled until its date has passed. The calendar never names instructors.
+  - next: The QR code is only on the PDF and PNG of a published month, because the calendar holds published months only.
   - 1.15: There is one calendar per squadron covering every published month. It is kept until something it shows changes, and it is rate limited.
   - 1.14: New page. Publishing a month makes the public link if there is none, and the month page and the list of months show the addresses, a QR code and Publish or Unpublish buttons.
   - 1.14: (earlier) New page. Publish a month, share a one-month public link with a calendar feed, a PDF and a PNG of each published month, and a QR code on the PDF.
@@ -45,9 +48,13 @@ link is known. Changes you save to a published month appear at the link straight
 The PDF and PNG addresses are `.../share/<link>/2026-11.pdf` and `.../2026-11.png` (year and month),
 and the calendar's description links to the PDF. All of them stop working when the link expires.
 
+## A week's warning
+
+When the public link has a week or less to run, the owners and editors with a confirmed address are emailed once, saying when it ends and where to make a new link. A renewed link has a new end date, so it is announced again in its last week.
+
 ## The QR code
 
-While the squadron has a working public link, every PDF and PNG ends with a QR code for the calendar,
+While the squadron has a working public link, the PDF and PNG of every published month end with a QR code for the calendar,
 with the date the link stops. People scan it and their phone offers to subscribe. When you make a
 new link, the next PDF you open carries the new code; **a printed copy keeps the old code, which
 stops working**, so reprint after renewing.

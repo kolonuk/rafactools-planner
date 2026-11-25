@@ -106,6 +106,8 @@ func (s *server) loginForm(w http.ResponseWriter, r *http.Request) {
 		extra["Flash"] = "Your squadron and all its data have been deleted."
 	case r.URL.Query().Get("reset") == "1":
 		extra["Flash"] = "Password changed. Log in with your new password."
+	case r.URL.Query().Get("transfer") == "1":
+		extra["Flash"] = "Your account is switched off while its move to another squadron waits. Check your email: it has a link to cancel the move."
 	case r.URL.Query().Get("claimed") == "1":
 		extra["Flash"] = "Squadron claimed — you can log in now (dev mode: no email verification)."
 	}
@@ -127,7 +129,7 @@ func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, auth.ErrEmailNotVerified):
 			msg = "Confirm your email first — check your inbox for the verification link."
-		case errors.Is(err, auth.ErrAccountInactive), errors.Is(err, auth.ErrTempPasswordExpired):
+		case errors.Is(err, auth.ErrAccountInactive), errors.Is(err, auth.ErrTempPasswordExpired), errors.Is(err, auth.ErrTransferWaiting):
 			// Only reached with the right password, so this says nothing to
 			// someone guessing which addresses have accounts.
 			msg = err.Error() + "."
@@ -192,6 +194,10 @@ func (s *server) inviteForm(w http.ResponseWriter, r *http.Request) {
 func (s *server) inviteSubmit(w http.ResponseWriter, r *http.Request) {
 	if !s.checkCSRF(r) {
 		s.renderError(w, r, http.StatusBadRequest, "Invite", "Form expired, try again.")
+		return
+	}
+	if !s.turnstileOK(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Invite", turnstileFailMsg)
 		return
 	}
 	token := r.PathValue("token")

@@ -5,6 +5,7 @@ summary: Name, classifications, parade nights, members and invites (owners only)
 since: 1.0
 audience: admin
 changed:
+  - next: Bank holidays and reminders: choose which list of UK bank holidays new months get closures from, and how many days ahead staff are reminded about blank parade nights. Moves between squadrons: owners accept or decline members joining, and can ask for a member to move.
   - 1.14: The page is called Squadron in the top bar, links to the instructor list and has a breadcrumb back to the planner.
   - 1.14: Parade night start and end times, and the Public link and calendar section.
   - 1.13: Delete this squadron includes a human check when the operator has turned on Turnstile.
@@ -47,12 +48,23 @@ Select **Save** to apply.
   Text stays in its column position when you **rename or reorder**
   classifications, so add new ones at the end of the list.
 
+## Bank holidays and reminders
+
+Under **Bank holidays and reminders**:
+
+- **Bank holidays to close for** is England and Wales (the default), Scotland, Northern Ireland, or **None**. Each month gets a one-day closure for each bank holiday on the chosen list: see [programmes](programmes). Changing it updates the current and later months.
+- **Remind staff about blank parade nights** is a number of days, 0 (the default, off) to 28. Once it is on, the owners and editors with a confirmed address are emailed, in the morning (from 08:00 UK time), about each parade night within that many days that still has an empty Activity or Instructor box. A night under a closure is left out. Each night is reminded about once, and one email lists all the nights that are due. Turn it off by setting 0.
+
 ## Members and invites
 
 The page lists everyone in the squadron with their name (if they have set one, see
 [instructors](instructors)), their email and their role, and any pending
 invites. Owners can change a role, mark a person inactive, send a temporary password or remove them here, and invite new people.
 See [roles and invites](roles-and-invites).
+
+## Moves between squadrons
+
+**Moves between squadrons** lists the people waiting to join your squadron (an owner chooses the role and accepts, or declines) and your members moving away (an owner can cancel). In the Members list, **Move to squadron…** asks for a member with a personal email address to move; they must agree first. See [moving your login](account-transfer) for the whole process.
 
 ## Security log
 
