@@ -1,11 +1,9 @@
 package mail
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
-	"mime/quotedprintable"
 	"strings"
 )
 
@@ -177,28 +175,8 @@ func (d Dynamic) SendNotice(to, subject, body string) error {
 	return s.SendNotice(to, subject, body)
 }
 
-// SendNotice sends a plain-text message the caller has written. The text can hold
-// names people typed, so the body is sent quoted-printable encoded (no line of it can
-// be read as a header, an SMTP command or the end of the message), and the address
-// and subject must hold no line break.
+// SendNotice sends a plain-text message the caller has written. The address and subject
+// must hold no line break (send refuses them), and the body is encoded by send.
 func (s Sender) SendNotice(to, subject, body string) error {
-	if !headerSafe(to, subject, s.From) {
-		return errHeaderInjection
-	}
-	body = strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\n", "\r\n")
-	if !s.configured() {
-		log.Printf("[mail] SMTP not configured: %q for %s:\n%s", subject, to, body)
-		return nil
-	}
-	var enc bytes.Buffer
-	qw := quotedprintable.NewWriter(&enc)
-	if _, err := qw.Write([]byte(body)); err != nil {
-		return err
-	}
-	if err := qw.Close(); err != nil {
-		return err
-	}
-	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\n%sSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n%s",
-		s.From, to, s.stdHeaders(), encodeSubject(subject), enc.String())
-	return s.deliver(to, msg)
+	return s.send(to, subject, strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\n", "\r\n"))
 }
