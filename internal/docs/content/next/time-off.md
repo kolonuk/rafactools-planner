@@ -13,13 +13,12 @@ The **Time off** list (the link in the top bar) shows when instructors and other
 
 ## Adding time off
 
-- **Anyone** with a login can add their own time off: enter the first and last day and, if you want, a note such as "course". A viewer can only add their own.
-- **Owners and editors** can also add time off for anyone: type a name, or pick one from the suggestions (the instructor list and the members). Use the name the way it appears in the grid's Instructor boxes.
+- **Everyone** with a login, viewers included, can add time off for anyone: enter the first and last day and, if you want, a note such as "course". The name starts as your own; type another, or pick one from the suggestions (the instructor list and the members). Use the name the way it appears in the grid's Instructor boxes.
 - The last day must be on or after the first, and an entry can cover at most 366 days. A squadron can hold at most 1,000 entries, so delete old ones; the list only shows time off that has not finished yet.
 
 ## Changing it
 
-Click a date or note to edit it in place (tick to save, cross to cancel), or choose **Delete**. You can change your own entries; owners and editors can change anyone's. To give an entry to someone else, delete it and add it again.
+Click a date or note to edit it in place (tick to save, cross to cancel), or choose **Delete**. Everyone can change or delete any entry. To give an entry to someone else, delete it and add it again.
 
 ## The warning in the grid
 

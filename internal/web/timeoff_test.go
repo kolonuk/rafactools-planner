@@ -20,18 +20,15 @@ func TestTimeOffIsSharedWarnsInTheGridAndStaysOutOfFiles(t *testing.T) {
 	setClock(t, time.Date(2030, 4, 1, 9, 0, 0, 0, time.UTC))
 	o, v := app.login(owner), app.login("viewer1501@example.org")
 
-	t.Run("a viewer adds their own time off and everyone sees it", func(t *testing.T) {
+	t.Run("a viewer adds time off for someone else and everyone sees it", func(t *testing.T) {
 		wantRedirect(t, v.post("/time-off", url.Values{"name": {"Someone Else"}, "start_date": {"2030-04-08"}, "end_date": {"2030-04-12"}, "note": {"exams"}}), "/time-off")
 		page := body(o.get("/time-off"))
-		if !strings.Contains(page, "viewer1501@example.org") || !strings.Contains(page, "exams") {
-			t.Errorf("the owner does not see the viewer's time off:\n%.600s", page)
-		}
-		if strings.Contains(page, "Someone Else") {
-			t.Error("a viewer added time off for another person")
+		if !strings.Contains(page, "Someone Else") || !strings.Contains(page, "exams") {
+			t.Errorf("the owner does not see the viewer's entry:\n%.600s", page)
 		}
 	})
 
-	t.Run("an owner adds for anyone and a viewer cannot change it", func(t *testing.T) {
+	t.Run("a viewer can change and delete anyone's, another squadron cannot", func(t *testing.T) {
 		wantRedirect(t, o.post("/time-off", url.Values{"name": {"Fg Off Smith"}, "start_date": {"2030-04-08"}, "end_date": {"2030-04-08"}, "note": {"course"}}), "/time-off")
 		list, _ := app.store.ListAbsences(sq, "")
 		var smith programme.Absence
@@ -44,13 +41,15 @@ func TestTimeOffIsSharedWarnsInTheGridAndStaysOutOfFiles(t *testing.T) {
 			t.Fatal("not saved")
 		}
 		id := strconv.FormatInt(smith.ID, 10)
-		wantStatus(t, v.post("/time-off/"+id+"/delete", url.Values{}), http.StatusForbidden)
-		wantStatus(t, v.post("/time-off/"+id+"/edit", url.Values{"start_date": {"2030-04-08"}, "end_date": {"2030-04-09"}}), http.StatusForbidden)
 		stranger := app.login(app.owner("1502"))
 		wantStatus(t, stranger.post("/time-off/"+id+"/delete", url.Values{}), http.StatusNotFound)
-		wantRedirect(t, o.post("/time-off/"+id+"/edit", url.Values{"start_date": {"2030-04-08"}, "end_date": {"2030-04-09"}, "note": {"course, 2 days"}}), "/time-off")
+		wantRedirect(t, v.post("/time-off/"+id+"/edit", url.Values{"start_date": {"2030-04-08"}, "end_date": {"2030-04-09"}, "note": {"course, 2 days"}}), "/time-off")
 		if got, _ := app.store.GetAbsence(sq, smith.ID); got.End != "2030-04-09" || got.Note != "course, 2 days" {
 			t.Errorf("edit = %+v", got)
+		}
+		wantRedirect(t, v.post("/time-off/"+id+"/delete", url.Values{}), "/time-off")
+		if _, err := app.store.GetAbsence(sq, smith.ID); err == nil {
+			t.Error("a viewer's delete did not remove the entry")
 		}
 		wantStatus(t, o.post("/time-off", url.Values{"name": {"X"}, "start_date": {"2030-04-09"}, "end_date": {"2030-04-08"}}), http.StatusBadRequest)
 		if page := body(app.login(app.owner("1503")).get("/time-off")); strings.Contains(page, "Smith") {

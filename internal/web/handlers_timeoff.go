@@ -11,8 +11,7 @@ import (
 )
 
 // Time off for instructors and other staff. Everyone in the squadron can see the
-// list. Anyone can add their own; owners and editors can add anyone's. A person
-// changes their own entries, and owners and editors change any. It is shown in
+// list, and everyone (viewers too) can add, change and delete anyone's entries. It is shown in
 // the planning grid as a warning and is never in the PDF, the PNG or the calendar.
 
 func ownName(u *auth.User) string {
@@ -22,12 +21,10 @@ func ownName(u *auth.User) string {
 	return u.Email
 }
 
-// canChangeAbsence says whether u may edit or delete an entry.
-func canChangeAbsence(u *auth.User, a programme.Absence) bool {
-	if u.ViewingOther {
-		return false
-	}
-	return u.CanEdit() || a.CreatedBy == u.ID
+// canChangeAbsence says whether u may edit or delete an entry: anyone in the
+// squadron may, except the master admin looking at it read-only.
+func canChangeAbsence(u *auth.User, _ programme.Absence) bool {
+	return !u.ViewingOther
 }
 
 func (s *server) timeOffPage(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +58,7 @@ func (s *server) renderTimeOff(w http.ResponseWriter, r *http.Request, status in
 	}
 	s.render(w, r, "time_off", "Time off", map[string]any{
 		"Rows": rows, "Options": options, "OwnName": ownName(u),
-		"CanAddForOthers": u.CanEdit() && !u.ViewingOther, "CanAdd": !u.ViewingOther, "Error": errMsg,
+		"CanAddForOthers": !u.ViewingOther, "CanAdd": !u.ViewingOther, "Error": errMsg,
 	})
 }
 
@@ -76,8 +73,8 @@ func (s *server) timeOffAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
-	if !u.CanEdit() || name == "" {
-		name = ownName(u) // a viewer can only add their own
+	if name == "" {
+		name = ownName(u)
 	}
 	var userID int64
 	if strings.EqualFold(name, ownName(u)) {
@@ -114,7 +111,7 @@ func (s *server) timeOffEntry(w http.ResponseWriter, r *http.Request) (*auth.Use
 		return nil, programme.Absence{}, false
 	}
 	if !canChangeAbsence(u, a) {
-		s.renderError(w, r, http.StatusForbidden, "Forbidden", "You can change your own time off; owners and editors can change anyone's.")
+		s.renderError(w, r, http.StatusForbidden, "Forbidden", "You are looking at this squadron read-only.")
 		return nil, programme.Absence{}, false
 	}
 	return u, a, true
