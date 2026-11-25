@@ -2,6 +2,8 @@ package mail
 
 import (
 	"bufio"
+	"io"
+	"mime/quotedprintable"
 	"net"
 	"regexp"
 	"strconv"
@@ -19,6 +21,20 @@ type fakeSMTP struct {
 	from string
 	rcpt []string
 	data string
+}
+
+// text is the recorded message with its quoted-printable body decoded, as a mail
+// program would show it.
+func (f *fakeSMTP) text() string {
+	head, body, ok := strings.Cut(f.data, "\r\n\r\n")
+	if !ok || !strings.Contains(head, "Content-Transfer-Encoding: quoted-printable") {
+		return f.data
+	}
+	b, err := io.ReadAll(quotedprintable.NewReader(strings.NewReader(body)))
+	if err != nil {
+		return f.data
+	}
+	return head + "\r\n\r\n" + string(b)
 }
 
 func newFakeSMTP(t *testing.T) *fakeSMTP {
@@ -110,8 +126,8 @@ func TestSendVerificationOnTheWire(t *testing.T) {
 		"To: oc.1@rafac.mod.gov.uk\r\n", "Subject: Confirm your RAFACTools Planner account\r\n",
 		"Content-Type: text/plain; charset=UTF-8\r\n", "https://x.example/rafactools/verify?token=tok123",
 	} {
-		if !strings.Contains(f.data, want) {
-			t.Errorf("message missing %q:\n%s", want, f.data)
+		if !strings.Contains(f.text(), want) {
+			t.Errorf("message missing %q:\n%s", want, f.text())
 		}
 	}
 }
@@ -124,8 +140,8 @@ func TestSendInviteOnTheWire(t *testing.T) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for _, want := range []string{"Subject: You've been invited to 2491 Sqn on RAFACTools Planner\r\n", "https://x.example/invite/invtok", "boss@rafac.mod.gov.uk has invited you", "7 days"} {
-		if !strings.Contains(f.data, want) {
-			t.Errorf("invite missing %q:\n%s", want, f.data)
+		if !strings.Contains(f.text(), want) {
+			t.Errorf("invite missing %q:\n%s", want, f.text())
 		}
 	}
 }
@@ -175,8 +191,8 @@ func TestSendPasswordResetOnTheWire(t *testing.T) {
 		"Subject: Reset your RAFACTools Planner password\r\n", "https://x.example/planner/reset/resettok",
 		"expires in 1 hour", "signs you out everywhere", "If you didn't ask for this, ignore this email",
 	} {
-		if !strings.Contains(f.data, want) {
-			t.Errorf("reset email missing %q:\n%s", want, f.data)
+		if !strings.Contains(f.text(), want) {
+			t.Errorf("reset email missing %q:\n%s", want, f.text())
 		}
 	}
 }

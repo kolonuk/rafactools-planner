@@ -5,6 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
+  - next: A Copy button copies the uniform, activities and instructors of an earlier month into this one. New months get a closure for each UK bank holiday. Activity boxes suggest the built-in and your own activities, and an Instructor box turns red when that person is away.
   - 1.14: The month page has a breadcrumb and a menu bar (Export, History, Publish or Unpublish, Instructors, More) and a Parade nights | All nights switch. The grid is a lighter timetable with one line per night (the activity over the instructor in each class's box), a colour dot for the uniform and cards on a phone. Closures, weekend notes and tracker entries can be edited in place with a tick or a cross. Months can be published to the public link.
   - 1.10: A closure locks the dates it covers in the grid.
   - 1.9: Moving a night now carries its uniform and notes too, and un-ticks the date it left when the target was not a parade night.
@@ -154,6 +155,14 @@ Enter the first and last date and a message, then select **Add closure**.
   before is kept, and comes back if the closure is deleted.
 - **Delete** removes it.
 
+### Bank holidays
+
+When a month is made, it gets a one-day closure for each UK bank holiday in it, taken from the government's list. In [squadron settings](squadron-settings) an owner chooses which list the squadron follows (England and Wales, Scotland or Northern Ireland) or **None**. They are marked "(bank holiday)" in the Closures list. You can edit one (it then becomes your own and is never changed again) or delete it (it is not put back in that month). The list is fetched about once a month; if the government changes a date, the months not yet over are brought into line. Months already over are never changed, and a bank holiday is not added inside a closure you made.
+
+## Copying an earlier month
+
+Choose **Copy** in the menu bar to copy an earlier month into this one. It copies **only** the uniform, the activities and the instructors; notes, weekend notes, closures and the requirements tracker stay as they are. Nights are lined up by parade night: the first parade night of that month goes on the first parade night here, the second on the second, and so on, so every date and weekday is right. A night under a closure (a bank holiday, say) is not counted as a parade night. If that month had more parade nights, the extra ones at the end are left out; if it had fewer, the last nights here stay as they were. If some nights here already have entries, you must tick a box to replace them. The copy is saved in the History.
+
 ## Weekend notes
 
 A weekend note is a line of text against one date, for events such as a camp.
@@ -179,6 +188,10 @@ You are asked to confirm first, and **Cancel** changes nothing.
 - Kept: the month itself, which nights are parade nights, uniform colours and any second halves.
 - It cannot be undone, so use **Export PDF** first if you want a copy. Only owners and editors can.
 - Months are never deleted; they stay in your list.
+
+## Suggestions and warnings in the grid
+
+Activity boxes suggest the [built-in and your own activities](activities). Instructor boxes suggest [people](instructors). An Instructor box turns **red**, with a line saying why, when the person named is away that night: see [time off](time-off).
 
 ## Who can do what
 

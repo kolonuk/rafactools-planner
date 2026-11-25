@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 )
 
 // ErrNotConfigured is returned when no mail server is set and logging mail was
@@ -161,4 +162,21 @@ func (s Sender) SendEmailChanged(to, newEmail string) error {
 	return s.send(to, "Your RAFACTools Planner email address was changed",
 		"The email address on your RAFACTools Planner account was changed to "+newEmail+".\r\n\r\n"+
 			"If that was you, nothing more is needed. If it wasn't, tell an owner of your squadron straight away.\r\n")
+}
+
+// SendNotice sends a plain-text message the caller has written: the reminders and
+// the account-transfer messages. The subject and address must not contain line breaks.
+func (d Dynamic) SendNotice(to, subject, body string) error {
+	s, err := d.sender()
+	if err != nil {
+		log.Printf("mail not sent: %v", err)
+		return err
+	}
+	return s.SendNotice(to, subject, body)
+}
+
+// SendNotice sends a plain-text message the caller has written. The address and subject
+// must hold no line break (send refuses them), and the body is encoded by send.
+func (s Sender) SendNotice(to, subject, body string) error {
+	return s.send(to, subject, strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\n", "\r\n"))
 }

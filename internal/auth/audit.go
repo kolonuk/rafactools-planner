@@ -25,6 +25,7 @@ const (
 	AuditSquadronEdit   = "squadron.settings"      // an owner saved the squadron settings
 	AuditShareRenew     = "share.renew"            // an owner made or renewed the public link
 	AuditPublish        = "programme.publish"      // an editor published or unpublished a month
+	AuditTransfer       = "account.transfer"       // a login was asked to move, or the request was decided or ended
 )
 
 const (
@@ -171,6 +172,8 @@ func AuditText(action string) string {
 		return "Sent a member a temporary password"
 	case AuditEmailChange:
 		return "Changed their email address"
+	case AuditTransfer:
+		return "Account move between squadrons"
 	}
 	return "Changed something"
 }

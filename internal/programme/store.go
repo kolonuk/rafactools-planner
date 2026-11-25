@@ -286,6 +286,9 @@ func (s *Store) CreateProgramme(squadronID int64, year, month int, createdBy int
 		}
 	}
 
+	if err := applyBankHolidaysTx(tx, programmeID, squadronID, year, month); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -598,7 +601,7 @@ type queryer interface {
 }
 
 func (s *Store) listClosuresTx(q queryer, programmeID int64) ([]Closure, error) {
-	rows, err := q.Query(`SELECT id, start_date, end_date, message FROM programme_closures WHERE programme_id = ? ORDER BY start_date`, programmeID)
+	rows, err := q.Query(`SELECT id, start_date, end_date, message, source FROM programme_closures WHERE programme_id = ? ORDER BY start_date`, programmeID)
 	if err != nil {
 		return nil, err
 	}
@@ -606,7 +609,7 @@ func (s *Store) listClosuresTx(q queryer, programmeID int64) ([]Closure, error) 
 	var out []Closure
 	for rows.Next() {
 		var c Closure
-		if err := rows.Scan(&c.ID, &c.StartDate, &c.EndDate, &c.Message); err != nil {
+		if err := rows.Scan(&c.ID, &c.StartDate, &c.EndDate, &c.Message, &c.Source); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -635,8 +638,27 @@ func (s *Store) AddClosure(programmeID int64, start, end, message string) error 
 }
 
 func (s *Store) DeleteClosure(programmeID, closureID int64) error {
-	_, err := s.db.Exec(`DELETE FROM programme_closures WHERE id = ? AND programme_id = ?`, closureID, programmeID)
-	return err
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var source, start string
+	switch err := tx.QueryRow(`SELECT source, start_date FROM programme_closures WHERE id = ? AND programme_id = ?`, closureID, programmeID).Scan(&source, &start); {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil
+	case err != nil:
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM programme_closures WHERE id = ? AND programme_id = ?`, closureID, programmeID); err != nil {
+		return err
+	}
+	if source == "bank" { // taken out on purpose: the next update of the list must not put it back
+		if _, err := tx.Exec(`INSERT OR IGNORE INTO programme_holiday_skips (programme_id, date) VALUES (?, ?)`, programmeID, start); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // --- Weekend notes ---------------------------------------------------------

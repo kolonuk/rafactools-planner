@@ -1,0 +1,72 @@
+{{define "content"}}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{url "/"}}">Planner</a></li>
+    <li aria-current="page">Time off</li>
+  </ol>
+</nav>
+<h1>Time off</h1>
+<p class="muted">When instructors and other staff are away. Everyone in the squadron can see this list. In the planning grid, an Instructor box naming someone who is away that night turns red. It is never printed in the PDF or PNG or put in the calendar.</p>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+
+<section class="card">
+  <h2>Coming up</h2>
+  {{if .Rows}}
+  <table class="list">
+    <thead><tr><th scope="col">Who</th><th scope="col">From</th><th scope="col">To</th><th scope="col">Note</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {{range .Rows}}
+      <tr class="ie-row">
+        <td data-private>{{.Name}}</td>
+        <td>
+          {{if .CanChange}}<input type="checkbox" id="ce-off-{{.ID}}" class="ie-toggle" aria-label="Edit time off for {{.Name}}">
+          <label for="ce-off-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.Start}}</label>
+          <input type="date" class="ie-edit" name="start_date" form="off-form-{{.ID}}" value="{{.Start}}" required aria-label="From">{{else}}{{.Start}}{{end}}
+        </td>
+        <td>
+          {{if .CanChange}}<label for="ce-off-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{.End}}</label>
+          <input type="date" class="ie-edit" name="end_date" form="off-form-{{.ID}}" value="{{.End}}" required aria-label="To">{{else}}{{.End}}{{end}}
+        </td>
+        <td>
+          {{if .CanChange}}<label for="ce-off-{{.ID}}" class="ie-view ie-click" title="Click to edit">{{if .Note}}{{.Note}}{{else}}<span class="muted">add a note</span>{{end}}</label>
+          <input type="text" class="ie-edit" name="note" form="off-form-{{.ID}}" value="{{.Note}}" maxlength="200" aria-label="Note">{{else}}{{.Note}}{{end}}
+        </td>
+        <td class="ie-actions">
+          {{if .CanChange}}
+          <span class="ie-view">
+            <label for="ce-off-{{.ID}}" class="link-button">Edit</label>
+            <button type="submit" form="off-delete-{{.ID}}" class="link-button" aria-label="Delete time off for {{.Name}} from {{.Start}} to {{.End}}">Delete</button>
+          </span>
+          <span class="ie-edit">
+            <button type="submit" form="off-form-{{.ID}}" class="ie-ok" aria-label="Save" title="Save">&#10003;</button>
+            <label for="ce-off-{{.ID}}" class="ie-cancel" role="button" aria-label="Cancel" title="Cancel">&#10007;</label>
+          </span>
+          <form id="off-form-{{.ID}}" method="post" action="{{url "/time-off/" .ID "/edit"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+          <form id="off-delete-{{.ID}}" method="post" action="{{url "/time-off/" .ID "/delete"}}" class="hidden-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"></form>
+          {{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Nobody has time off coming up.</p>{{end}}
+</section>
+
+{{if .CanAdd}}
+<section class="card">
+  <h2>Add time off</h2>
+  <form method="post" action="{{url "/time-off"}}" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    {{if .CanAddForOthers}}
+    <label>Who <input type="text" name="name" list="time-off-people" value="{{.OwnName}}" required maxlength="121" data-private></label>
+    <datalist id="time-off-people">{{range .Options}}<option value="{{.}}"></option>{{end}}</datalist>
+    {{else}}<p>For <strong data-private>{{.OwnName}}</strong> (you).</p>{{end}}
+    <label>From <input type="date" name="start_date" required></label>
+    <label>To <input type="date" name="end_date" required></label>
+    <label>Note (optional) <input type="text" name="note" maxlength="200" placeholder="Leave, course, exams"></label>
+    <button type="submit">Add</button>
+  </form>
+</section>
+{{end}}
+<script type="module" src="{{url "/static/js/gen/edit.js"}}"></script>
+{{end}}
