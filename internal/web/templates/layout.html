@@ -23,6 +23,7 @@
       {{if .User}}
         <nav aria-label="Account and help">
           <a href="{{url "/"}}">Planner</a>
+          <a href="{{url "/time-off"}}">Time off</a>
           {{if eq .User.Role "owner"}}<a href="{{url "/squadron"}}">Squadron</a>{{end}}
           <a href="{{url "/docs"}}">Help</a>
           <a href="{{url "/account"}}" class="muted" data-private>{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Email}}{{end}} ({{.User.Role}})</a>

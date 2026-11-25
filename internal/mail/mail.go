@@ -5,10 +5,12 @@
 package mail
 
 import (
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"log"
+	"mime/quotedprintable"
 	"net"
 	"net/smtp"
 	"strconv"
@@ -59,8 +61,18 @@ func (s Sender) send(to, subject, body string) error {
 		return nil
 	}
 
-	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\n%sSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
-		s.From, to, s.stdHeaders(), encodeSubject(subject), body)
+	// Bodies hold names and squadron names people typed, so the text is sent quoted-printable
+	// encoded: no line of it can be read as a header, an SMTP command or the end of the message.
+	var enc bytes.Buffer
+	qw := quotedprintable.NewWriter(&enc)
+	if _, err := qw.Write([]byte(body)); err != nil {
+		return err
+	}
+	if err := qw.Close(); err != nil {
+		return err
+	}
+	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\n%sSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n%s",
+		s.From, to, s.stdHeaders(), encodeSubject(subject), enc.String())
 	return s.deliver(to, msg)
 }
 

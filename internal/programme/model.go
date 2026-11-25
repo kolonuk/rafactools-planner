@@ -58,6 +58,9 @@ type Closure struct {
 	StartDate string
 	EndDate   string
 	Message   string
+	// Source is "bank" for a closure that came from the bank-holiday list and
+	// has not been edited, and empty for one a person made.
+	Source string
 }
 
 // ClosureOn returns the closure covering an ISO date (yyyy-mm-dd), if any.

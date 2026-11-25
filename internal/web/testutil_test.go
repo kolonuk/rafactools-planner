@@ -318,8 +318,11 @@ type recordingMail struct {
 	verifies  []string
 	changed   []string
 	notices   []string
+	notes     []sentNotice
 	testErr   error
 }
+
+type sentNotice struct{ To, Subject, Body string }
 
 type sentMail struct{ Kind, To, Token string }
 
@@ -450,4 +453,11 @@ func setClock(t *testing.T, at time.Time) {
 	old := programme.Now
 	programme.Now = func() time.Time { return at }
 	t.Cleanup(func() { programme.Now = old })
+}
+
+func (m *recordingMail) SendNotice(to, subject, body string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notes = append(m.notes, sentNotice{to, subject, body})
+	return nil
 }
