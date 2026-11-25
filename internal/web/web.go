@@ -42,6 +42,7 @@ type Mailer interface {
 	SendTempPassword(to, squadronName, loginURL, password, expiresUTC string) error
 	SendEmailChangeVerify(to, link string) error
 	SendEmailChanged(to, newEmail string) error
+	SendNotice(to, subject, body string) error
 }
 
 var _ Mailer = mail.Dynamic{}

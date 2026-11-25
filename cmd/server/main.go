@@ -17,6 +17,7 @@ import (
 	"rafactools-planner/internal/db"
 	"rafactools-planner/internal/docs"
 	"rafactools-planner/internal/holidays"
+	"rafactools-planner/internal/reminders"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
 	"rafactools-planner/internal/settings"
@@ -113,6 +114,22 @@ func main() {
 	bg, stopBackground := context.WithCancel(context.Background())
 	defer stopBackground()
 	go holidays.Run(bg, store, cfg.BankHolidaysURL)
+	go reminders.Run(bg, reminders.Deps{
+		Store: store, BaseURL: cfg.BaseURL, Now: time.Now, Send: sender.SendNotice,
+		Recipients: func(squadronID int64) ([]string, error) {
+			members, err := authSvc.ListMembers(squadronID)
+			if err != nil {
+				return nil, err
+			}
+			var to []string
+			for _, m := range members {
+				if m.Active && m.EmailVerifiedAt.Valid && (m.Role == "owner" || m.Role == "editor") {
+					to = append(to, m.Email)
+				}
+			}
+			return to, nil
+		},
+	})
 
 	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg, Settings: siteSettings, Env: os.Getenv})
 
