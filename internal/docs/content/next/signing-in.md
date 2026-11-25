@@ -5,8 +5,8 @@ summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
 audience: user
 changed:
-  - next: An account whose move to another squadron is waiting cannot sign in, and says why.
-  - next: The page where you accept an invite also has the human check when the operator has turned on Turnstile.
+  - 1.16: An account whose move to another squadron is waiting cannot sign in, and says why.
+  - 1.16: The page where you accept an invite also has the human check when the operator has turned on Turnstile.
   - 1.13: When the operator turns on Turnstile, the login form includes a human check.
   - 1.9: A member given a temporary password must choose their own at first sign-in; an inactive account cannot sign in. Email address can be changed on Your details for non-rafac.mod.gov.uk addresses.
   - 1.9: Your details now lists where you are signed in and can sign out other places; the master admin signs in for 8 hours and can use two-step sign-in.

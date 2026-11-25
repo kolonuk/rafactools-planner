@@ -2,10 +2,10 @@
 title: Activities
 order: 47
 summary: The list of activities offered in the grid's Activity boxes, built in and your own.
-since: next
+since: 1.16
 audience: user
 changed:
-  - next: New page.
+  - 1.16: New page.
 ---
 # Activities
 
