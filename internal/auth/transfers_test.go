@@ -8,11 +8,11 @@ import (
 )
 
 type transferWorld struct {
-	s                *Service
-	db               *sql.DB
-	ownerA, ownerB   int64 // owners of squadrons 101 and 202 (claim-domain addresses)
-	sqA, sqB         int64
-	mover, moverMail int64
+	s              *Service
+	db             *sql.DB
+	ownerA, ownerB int64 // owners of squadrons 101 and 202 (claim-domain addresses)
+	sqA, sqB       int64
+	mover          int64
 }
 
 func newTransferWorld(t *testing.T) *transferWorld {
