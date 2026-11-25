@@ -1,7 +1,7 @@
 # Builds the production image: a single static Go binary with the SQLite
 # driver compiled in (modernc.org/sqlite is pure Go, no CGO needed) and
 # templates/static assets embedded via go:embed — no files to COPY at runtime.
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /app
 
