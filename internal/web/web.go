@@ -83,7 +83,7 @@ type server struct {
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
-	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "confirm_reset_programme",
+	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "copy_month", "confirm_reset_programme",
 	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit", "force_password", "email_confirm", "history", "confirm_restore",
 }
 
@@ -229,6 +229,8 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("GET /programmes/{id}/history", s.requireAuth(s.historyPage))
 	mux.HandleFunc("GET /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreConfirm))
 	mux.HandleFunc("POST /programmes/{id}/history/{version}/restore", s.requireEditor(s.restoreSubmit))
+	mux.HandleFunc("GET /programmes/{id}/copy", s.requireEditor(s.copyForm))
+	mux.HandleFunc("POST /programmes/{id}/copy", s.requireEditor(s.versioned("Copied an earlier month into this month", s.copySubmit)))
 	mux.HandleFunc("GET /programmes/{id}/reset", s.requireEditor(s.programmeResetConfirm))
 	mux.HandleFunc("POST /programmes/{id}/reset", s.requireEditor(s.versioned("Reset the month to blank", s.programmeReset)))
 	mux.HandleFunc("POST /programmes/{id}/days/{dayID}/add-half", s.requireEditor(s.versioned("Added a second half to a night", s.dayAddHalf)))

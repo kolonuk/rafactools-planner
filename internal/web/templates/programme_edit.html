@@ -20,6 +20,7 @@
     </li>
     <li><a class="mb-item" href="{{url "/programmes/" .ProgrammeID "/history"}}">History</a></li>
     {{if .CanEdit}}
+    <li><a class="mb-item" href="{{url "/programmes/" .ProgrammeID "/copy"}}">Copy</a></li>
     <li>
       <form method="post" action="{{url "/programmes/" .ProgrammeID "/publish"}}" class="mb-form">
         <input type="hidden" name="csrf" value="{{.CSRF}}">
