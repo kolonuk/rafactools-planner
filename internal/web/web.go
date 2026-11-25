@@ -83,7 +83,7 @@ type server struct {
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
-	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "copy_month", "confirm_reset_programme",
+	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "copy_month", "activities", "confirm_reset_programme",
 	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit", "force_password", "email_confirm", "history", "confirm_restore",
 }
 
@@ -196,6 +196,11 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /time-off", s.requireAuth(s.timeOffAdd))
 	mux.HandleFunc("POST /time-off/{id}/edit", s.requireAuth(s.timeOffEdit))
 	mux.HandleFunc("POST /time-off/{id}/delete", s.requireAuth(s.timeOffDelete))
+
+	mux.HandleFunc("GET /activities", s.requireEditor(s.activitiesPage))
+	mux.HandleFunc("POST /activities", s.requireEditor(s.activityAdd))
+	mux.HandleFunc("POST /activities/{id}/edit", s.requireEditor(s.activityEdit))
+	mux.HandleFunc("POST /activities/{id}/delete", s.requireEditor(s.activityDelete))
 
 	mux.HandleFunc("GET /instructors", s.requireEditor(s.instructorsPage))
 	mux.HandleFunc("POST /instructors", s.requireEditor(s.instructorAdd))

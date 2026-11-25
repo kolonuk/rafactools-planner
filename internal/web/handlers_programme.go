@@ -335,6 +335,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		"WeekendNotes":      fp.WeekendNotes,
 		"Requirements":      fp.Requirements,
 		"InstructorOptions": s.instructorOptions(u.SquadronID),
+		"ActivityOptions":   s.activityOptions(u.SquadronID),
 	})
 }
 
@@ -799,4 +800,15 @@ func newRowTexts(form url.Values, prefix string, n int) []string {
 // something a night can be set to wear.
 func isClosureColour(uc programme.UniformColour) bool {
 	return uc.Key == "grey" || strings.EqualFold(strings.TrimSpace(uc.Label), "closure")
+}
+
+// activityOptions is the datalist content for the grid's Activity boxes: the
+// built-in activities and the squadron's own.
+func (s *server) activityOptions(squadronID int64) []string {
+	opts, err := s.Store.ActivityOptions(squadronID)
+	if err != nil {
+		log.Printf("list activities for options: %v", err)
+		return programme.DefaultActivities()
+	}
+	return opts
 }

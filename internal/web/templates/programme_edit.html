@@ -29,6 +29,7 @@
       </form>
     </li>
     <li><a class="mb-item" href="{{url "/instructors"}}">Instructors</a></li>
+    <li><a class="mb-item" href="{{url "/activities"}}">Activities</a></li>
     {{end}}
     <li class="mb-status"><span class="chip {{if .Published}}chip-on{{end}}">{{if .Published}}Published{{else}}Not published{{end}}</span></li>
     {{if .CanEdit}}
@@ -79,6 +80,9 @@
   <input type="radio" name="nights" id="nights-all" class="nights-input">
   <!-- Native browser autocomplete, no JS: Instructor boxes get list=
        "instructor-options" below; the input stays free text either way. -->
+  <datalist id="activity-options">
+    {{range .ActivityOptions}}<option value="{{.}}"></option>{{end}}
+  </datalist>
   <datalist id="instructor-options">
     {{range .InstructorOptions}}<option value="{{.}}"></option>{{end}}
   </datalist>
@@ -127,7 +131,7 @@
           <td class="half-cell" data-label="Part">{{if gt (len $day.Halves) 1}}{{$half.Number}}{{end}}</td>
           {{range $i, $c := $half.Cells}}
           <td class="class-cell" data-label="{{index $.Classifications $i}}">
-            <input type="text" class="act" name="{{$c.ActName}}" value="{{$c.ActValue}}" placeholder="Activity" aria-label="Activity, {{index $.Classifications $i}}, {{$day.FullLabel}}">
+            <input type="text" class="act" list="activity-options" name="{{$c.ActName}}" value="{{$c.ActValue}}" placeholder="Activity" aria-label="Activity, {{index $.Classifications $i}}, {{$day.FullLabel}}">
             <input type="text" class="ins{{if $c.InsAway}} away{{end}}" list="instructor-options" name="{{$c.InsName}}" value="{{$c.InsValue}}" placeholder="Instructor" aria-label="Instructor, {{index $.Classifications $i}}, {{$day.FullLabel}}{{if $c.InsAway}}. Warning: {{$c.InsAway}}{{end}}"{{if $c.InsAway}} title="{{$c.InsAway}}" aria-invalid="true"{{end}}>
             {{if $c.InsAway}}<span class="away-note">{{$c.InsAway}}</span>{{end}}
           </td>
@@ -167,7 +171,7 @@
           {{if .Pending}}
             {{range $i, $c := .Pending}}
             <td class="class-cell" data-label="{{index $.Classifications $i}}">
-              <input type="text" class="act pending-input" name="{{$c.ActName}}" value="{{$c.ActValue}}" placeholder="Activity" aria-label="Activity, {{index $.Classifications $i}}, {{$day.FullLabel}}" disabled hidden>
+              <input type="text" class="act pending-input" list="activity-options" name="{{$c.ActName}}" value="{{$c.ActValue}}" placeholder="Activity" aria-label="Activity, {{index $.Classifications $i}}, {{$day.FullLabel}}" disabled hidden>
               <input type="text" class="ins pending-input" list="instructor-options" name="{{$c.InsName}}" value="{{$c.InsValue}}" placeholder="Instructor" aria-label="Instructor, {{index $.Classifications $i}}, {{$day.FullLabel}}" disabled hidden>
             </td>
             {{end}}

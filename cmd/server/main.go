@@ -104,6 +104,12 @@ func main() {
 		log.Fatalf("docs: %v", err)
 	}
 
+	if n, err := store.RemoveDuplicatesOfDefaults(); err != nil {
+		log.Printf("WARNING activity clean-up: %v", err)
+	} else if n > 0 {
+		log.Printf("activities: removed %d own activities that are in the built-in list", n)
+	}
+
 	bg, stopBackground := context.WithCancel(context.Background())
 	defer stopBackground()
 	go holidays.Run(bg, store, cfg.BankHolidaysURL)
