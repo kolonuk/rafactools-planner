@@ -44,6 +44,15 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
      names are deliberately never included).
   6. *QR code* for the feed at the foot of the PDF and the PNG, with its expiry date: DONE. Still to
      do: the same on a public web page (there is none yet).
+- [ ] **[P4 nicety]** **Check what the fuzz test is for, and whether to keep it.** "Fuzz (short)" in CI runs Go's
+  built-in fuzzing for 20 seconds (about a minute of job time including set-up): it feeds a stream of
+  random and mutated strings to one function, `ParseClaimEmail` in `internal/auth` (the check that decides
+  whether an address like `snco.1234@domain` may claim a squadron), and fails if it crashes or gives an
+  answer that breaks its rules. It is a safety net for odd input, not a test of behaviour. Decide: keep
+  it as is; point it at other code that takes text from outside (the help pages' front matter and Markdown,
+  the calendar builder, the closure and weekend-note dates, form fields) where a crash or hang would
+  matter more; shorten it or run it only on pushes to `test` and `main`; or drop it. Whichever, say in
+  the docs what it covers.
 - [ ] **[P3 usability]** **More detail in the programme history.** The history page should say what
   actually changed, not just that a version was saved. For example: "Moved 3 Nov activities to
   10 Nov", "Added closure 22-26 Dec", "Changed uniform for 17 Nov from Blue to Working dress",

@@ -6,7 +6,7 @@ since: 1.0
 audience: user
 changed:
   - next: Added the messages about an account switched off by a move, and the account move refusals.
-  - next: Added the calendar rate-limit message.
+  - 1.15: Added the calendar rate-limit message.
   - 1.9: Error pages show a reference to quote.
   - 1.9: Added the email settings and test email messages.
   - 1.9: Added the sign-up closed, authenticator code and delete-squadron messages, and the site refusing to start without mail.

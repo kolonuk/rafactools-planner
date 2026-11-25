@@ -58,6 +58,15 @@ If the gate fails:
 govulncheck, Docs updated, Trivy FS, actionlint, CodeQL, staticcheck/gosec) and forbid force-pushes
 and deletions. `enforce_admins` is off.
 
+## What CI does (so you know what to expect)
+
+Jobs run side by side. "Build, vet, test" is the aggregate required check: it passes when build/vet/format,
+both halves of the web tests, the other tests, the coverage run and the fuzz run passed. A change that
+only edits notes (`TODO.md`, `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE`, `CLAUDE.md`,
+`.claude/`) skips the heavy jobs; they show as skipped, which counts as passed. On a push the image is
+built and checked alongside the tests and only pushed once everything passed. A PR that edits the
+workflows, the code or the help pages runs everything.
+
 ## Waiting for CI
 
 `gh pr checks <n>` lists the checks; `gh run list --branch <b> --limit 3` shows the push runs. Do
