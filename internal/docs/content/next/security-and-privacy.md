@@ -5,8 +5,8 @@ summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 audience: user
 changed:
-  - next: Time off is stored and shown to the squadron; a login can move between squadrons with an owner's acceptance; the site fetches the government's bank holiday list.
-  - next: The Turnstile human check also covers accepting an invite, the one other form that creates an account.
+  - 1.16: Time off is stored and shown to the squadron; a login can move between squadrons with an owner's acceptance; the site fetches the government's bank holiday list.
+  - 1.16: The Turnstile human check also covers accepting an invite, the one other form that creates an account.
   - 1.14: An owner can make a one-month public link that shows the months an editor has published (calendar and PDF), with no cadet names.
   - 1.13: The help pages are public (no sign-in needed); this page now states that and corrects the list of what the planner does not do.
   - 1.13: Optional Cloudflare Turnstile human check on login, claim and delete-squadron.

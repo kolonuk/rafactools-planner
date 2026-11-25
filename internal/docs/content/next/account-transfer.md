@@ -2,10 +2,10 @@
 title: Moving your login to another squadron
 order: 25
 summary: How a login with a personal email address moves to another squadron, and what happens to the account on the way.
-since: next
+since: 1.16
 audience: user
 changed:
-  - next: New page.
+  - 1.16: New page.
 ---
 # Moving your login to another squadron
 

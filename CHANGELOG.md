@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.16
 
 - **feat**: UK bank holidays. Every month a squadron makes gets a one-day closure for each bank holiday in it, from the government's list, which is kept in the database and fetched about once a month (every year it lists); when it changes, the current and later months of every squadron are brought into line. An owner chooses England and Wales, Scotland, Northern Ireland or none under Squadron. A closure can be edited (then it is the squadron's own) or deleted (then it stays deleted). `BANK_HOLIDAYS_URL` sets or turns off the fetching.
 - **feat**: time off for instructors and other staff, in a list (Time off, in the top bar) every member of the squadron can see. Everyone in the squadron, viewers included, can add, change and delete anyone's. An Instructor box in the grid that names someone who is away that night turns red with a warning. It is never in the PDF, the PNG or the calendar.
