@@ -40,7 +40,7 @@ func (s *Store) UpdateClosure(programmeID, closureID int64, start, end, message 
 	if message, err = requireText("the message", message); err != nil {
 		return err
 	}
-	return mustChange(s.db.Exec(`UPDATE programme_closures SET start_date = ?, end_date = ?, message = ? WHERE id = ? AND programme_id = ?`,
+	return mustChange(s.db.Exec(`UPDATE programme_closures SET start_date = ?, end_date = ?, message = ?, source = '' WHERE id = ? AND programme_id = ?`,
 		start, end, message, closureID, programmeID))
 }
 

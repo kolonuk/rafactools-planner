@@ -86,3 +86,41 @@ func TestTurnstileOffByDefault(t *testing.T) {
 		t.Error("Turnstile leaked into a site that has not configured it")
 	}
 }
+
+func TestTurnstileGuardsInviteAccept(t *testing.T) {
+	app := turnstileApp(t)
+	owner := app.owner("502")
+	var sqID, ownerID int64
+	if err := app.db.QueryRow(`SELECT squadron_id, id FROM users WHERE email = ?`, owner).Scan(&sqID, &ownerID); err != nil {
+		t.Fatal(err)
+	}
+	invite, err := app.auth.CreateInvite(sqID, ownerID, "joiner@example.org", "editor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := "/invite/" + invite
+	if page := body(app.anon().get(path)); !strings.Contains(page, `data-sitekey="site-key"`) {
+		t.Error("invite form has no Turnstile widget")
+	}
+	post := func(tok string) *http.Response {
+		c := app.anon()
+		v := url.Values{"csrf": {scrapeCSRF(t, c.get(path))}, "password": {testPassword}}
+		if tok != "" {
+			v.Set("cf-turnstile-response", tok)
+		}
+		return c.postRaw(path, v)
+	}
+	for _, tok := range []string{"", "bad"} {
+		if got := post(tok).StatusCode; got != http.StatusBadRequest {
+			t.Errorf("accept with token %q = %d, want 400", tok, got)
+		}
+	}
+	var n int
+	app.db.QueryRow(`SELECT COUNT(*) FROM users WHERE email = ?`, "joiner@example.org").Scan(&n)
+	if n != 0 {
+		t.Error("an account was created without passing the human check")
+	}
+	if got := post("good").StatusCode; got != http.StatusSeeOther {
+		t.Errorf("accept with good token = %d, want 303", got)
+	}
+}

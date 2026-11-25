@@ -124,6 +124,9 @@ func (s *server) programmeCreate(w http.ResponseWriter, r *http.Request) {
 type cellView struct {
 	ActName, ActValue string
 	InsName, InsValue string
+	// InsAway is set when the instructor named in the box is away that night: what to
+	// warn about, for example "Fg Off Smith is away 3 Nov to 10 Nov (leave)".
+	InsAway string
 }
 
 // halfView is one half of a parade night: a single line of the grid.
@@ -158,7 +161,7 @@ type dayView struct {
 
 type pendingCell struct{ Name, Value string }
 
-func buildDayViews(days []programme.Day, canEdit bool, classes int, closures []programme.Closure) []dayView {
+func buildDayViews(days []programme.Day, canEdit bool, classes int, closures []programme.Closure, away *programme.AwayMatcher) []dayView {
 	var out []dayView
 	for _, d := range days {
 		t, _ := time.Parse("2006-01-02", d.Date)
@@ -186,6 +189,11 @@ func buildDayViews(days []programme.Day, canEdit bool, classes int, closures []p
 					}
 					if i < len(ins.Texts) {
 						c.InsValue = ins.Texts[i]
+						var notes []string
+						for _, a := range away.Away(c.InsValue, d.Date) {
+							notes = append(notes, a.Describe())
+						}
+						c.InsAway = strings.Join(notes, "; ")
 					}
 					hv.Cells = append(hv.Cells, c)
 				}
@@ -301,7 +309,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		}
 		uniformOptions = append(uniformOptions, map[string]any{"Key": uc.Key, "Label": uc.Label, "Hex": uc.Hex})
 	}
-	days := buildDayViews(fp.Days, canEdit, len(sq.Classifications), fp.Closures)
+	days := buildDayViews(fp.Days, canEdit, len(sq.Classifications), fp.Closures, s.awayMatcher(u.SquadronID))
 	hexByKey := map[string]string{}
 	for _, uc := range sq.UniformColours {
 		hexByKey[uc.Key] = uc.Hex
@@ -327,6 +335,7 @@ func (s *server) programmeEdit(w http.ResponseWriter, r *http.Request) {
 		"WeekendNotes":      fp.WeekendNotes,
 		"Requirements":      fp.Requirements,
 		"InstructorOptions": s.instructorOptions(u.SquadronID),
+		"ActivityOptions":   s.activityOptions(u.SquadronID),
 	})
 }
 
@@ -791,4 +800,15 @@ func newRowTexts(form url.Values, prefix string, n int) []string {
 // something a night can be set to wear.
 func isClosureColour(uc programme.UniformColour) bool {
 	return uc.Key == "grey" || strings.EqualFold(strings.TrimSpace(uc.Label), "closure")
+}
+
+// activityOptions is the datalist content for the grid's Activity boxes: the
+// built-in activities and the squadron's own.
+func (s *server) activityOptions(squadronID int64) []string {
+	opts, err := s.Store.ActivityOptions(squadronID)
+	if err != nil {
+		log.Printf("list activities for options: %v", err)
+		return programme.DefaultActivities()
+	}
+	return opts
 }

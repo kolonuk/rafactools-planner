@@ -20,6 +20,7 @@ type Event struct {
 	Description string
 	URL         string
 	Modified    time.Time // when the content last changed; also the sequence number
+	Cancelled   bool      // written with STATUS:CANCELLED, so a calendar app removes it
 }
 
 // Build returns the whole calendar. name is shown by the calendar app.
@@ -55,6 +56,9 @@ func Build(name string, events []Event, now time.Time) []byte {
 		}
 		if e.URL != "" {
 			line("URL:" + e.URL)
+		}
+		if e.Cancelled {
+			line("STATUS:CANCELLED")
 		}
 		line("TRANSP:TRANSPARENT")
 		line("END:VEVENT")

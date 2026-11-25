@@ -5,6 +5,8 @@ summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 audience: user
 changed:
+  - next: Time off is stored and shown to the squadron; a login can move between squadrons with an owner's acceptance; the site fetches the government's bank holiday list.
+  - next: The Turnstile human check also covers accepting an invite, the one other form that creates an account.
   - 1.14: An owner can make a one-month public link that shows the months an editor has published (calendar and PDF), with no cadet names.
   - 1.13: The help pages are public (no sign-in needed); this page now states that and corrects the list of what the planner does not do.
   - 1.13: Optional Cloudflare Turnstile human check on login, claim and delete-squadron.
@@ -34,6 +36,12 @@ changed:
 | Problem reports | **Not stored.** A report you send is emailed to the site's operators, and the server briefly remembers your last 20 requests (method, path and result code only, in memory) so that a report can include them. See [report a problem](report-a-problem). |
 | Names | The name each person chooses to display (optional), and your squadron's instructor list: a name and a rank each, no contact details. |
 | Programmes | Everything you type: activities, instructor names, notes, closures, weekend notes. |
+| Time off | A name, dates and an optional note for each period an instructor is away, and who typed it in. Every member of the squadron can see it. It is never in the PDF, the PNG or the calendar. See [time off](time-off). |
+| Your squadron's activities | A list of activity titles, shown to your squadron only. |
+| Moves between squadrons | Who asked, which two squadrons, the role chosen and how it ended, with a hash of the link emailed to the person. Both squadrons' security logs record each step: see [moving your login](account-transfer). |
+| Bank holidays | The government's published list of UK bank holidays (dates and names only). The site fetches it about once a month; nothing about your squadron or people is sent. |
+| Calendar record | The dates of parade nights the calendar has shown, so that a night taken out can be sent as cancelled until its date has passed. |
+| Reminders | The dates of parade nights already reminded about, kept for a week after the date. |
 | Requirements tracker | **Cadets' names** and notes. |
 | Squadron | Name, subtitle, protective marking, classifications, parade nights. |
 
@@ -104,7 +112,7 @@ See [configuration](operators-configuration).
 
 ## Human check (optional)
 
-When the operator sets `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET`, the login, claim and
+When the operator sets `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET`, the login, claim, accept-invite and
 delete-squadron forms require a [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)
 check. The server sends the check result and the visitor's address to Cloudflare to verify it, and
 refuses the request if verification fails, times out (5 seconds) or cannot be reached. Only then are

@@ -16,8 +16,10 @@ import (
 	"rafactools-planner/internal/config"
 	"rafactools-planner/internal/db"
 	"rafactools-planner/internal/docs"
+	"rafactools-planner/internal/holidays"
 	"rafactools-planner/internal/mail"
 	"rafactools-planner/internal/programme"
+	"rafactools-planner/internal/reminders"
 	"rafactools-planner/internal/settings"
 	"rafactools-planner/internal/web"
 )
@@ -103,7 +105,33 @@ func main() {
 		log.Fatalf("docs: %v", err)
 	}
 
-	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg, Settings: siteSettings, Env: os.Getenv})
+	if n, err := store.RemoveDuplicatesOfDefaults(); err != nil {
+		log.Printf("WARNING activity clean-up: %v", err)
+	} else if n > 0 {
+		log.Printf("activities: removed %d own activities that are in the built-in list", n)
+	}
+
+	bg, stopBackground := context.WithCancel(context.Background())
+	defer stopBackground()
+	go holidays.Run(bg, store, cfg.BankHolidaysURL)
+	go reminders.Run(bg, reminders.Deps{
+		Store: store, BaseURL: cfg.BaseURL, Now: time.Now, Send: sender.SendNotice,
+		Recipients: func(squadronID int64) ([]string, error) {
+			members, err := authSvc.ListMembers(squadronID)
+			if err != nil {
+				return nil, err
+			}
+			var to []string
+			for _, m := range members {
+				if m.Active && m.EmailVerifiedAt.Valid && (m.Role == "owner" || m.Role == "editor") {
+					to = append(to, m.Email)
+				}
+			}
+			return to, nil
+		},
+	})
+
+	handler := web.NewRouter(&web.Deps{Auth: authSvc, Store: store, Mail: sender, Docs: docLib, Cfg: cfg, Settings: siteSettings, Env: os.Getenv, Background: bg})
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

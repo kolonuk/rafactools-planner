@@ -15,6 +15,8 @@
   <button type="submit">Save</button>
 </form>
 
+<p><a href="{{url "/account/transfer"}}">Move my login to another squadron</a></p>
+
 {{if .Squadrons}}
 <h2>Switch squadron</h2>
 <form method="post" action="{{url "/account/switch"}}" class="card">

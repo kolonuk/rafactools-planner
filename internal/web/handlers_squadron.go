@@ -87,7 +87,20 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	shareData["PublishedMonths"] = publishedMonths
 
+	canMove := map[int64]bool{}
+	for _, m := range members {
+		canMove[m.ID] = m.ID != u.ID && m.Active && s.Auth.MovableReason(m.ID) == nil
+	}
+	incoming, inErr := s.Auth.IncomingTransfers(u.SquadronID)
+	outgoing, outErr := s.Auth.OutgoingTransfers(u.SquadronID)
+	region, _ := s.Store.SquadronHolidayRegion(u.SquadronID)
+	reminder, _ := s.Store.ReminderDays(u.SquadronID)
 	s.render(w, r, "squadron_settings", "Squadron settings", map[string]any{
+		"CanMove":             canMove,
+		"Incoming":            s.transferViews(incoming, inErr),
+		"Outgoing":            s.transferViews(outgoing, outErr),
+		"HolidayRegion":       region,
+		"ReminderDays":        reminder,
 		"Share":               shareData,
 		"Squadron":            sq,
 		"Members":             members,
@@ -251,7 +264,7 @@ func (s *server) memberRemove(w http.ResponseWriter, r *http.Request) {
 // database error) for anything else.
 func (s *server) memberError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
-	case errors.Is(err, auth.ErrLastOwner), errors.Is(err, auth.ErrInvalidRole), errors.Is(err, auth.ErrSelfAction), errors.Is(err, auth.ErrMemberInactive):
+	case errors.Is(err, auth.ErrLastOwner), errors.Is(err, auth.ErrInvalidRole), errors.Is(err, auth.ErrSelfAction), errors.Is(err, auth.ErrMemberInactive), errors.Is(err, auth.ErrTransferWaiting):
 		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", err.Error())
 	case errors.Is(err, auth.ErrNotMember):
 		s.renderError(w, r, http.StatusNotFound, "Squadron settings", err.Error())
@@ -454,4 +467,27 @@ func (s *server) memberTempPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, u.SquadronID, auth.AuditTempPassword, tp.Email)
 	http.Redirect(w, r, s.url("/squadron"), http.StatusSeeOther)
+}
+
+// squadronPlanning saves the bank-holiday list the squadron follows and how many
+// days ahead staff are reminded about blank parade nights.
+func (s *server) squadronPlanning(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	days, err := strconv.Atoi(strings.TrimSpace(r.FormValue("reminder_days")))
+	if err != nil {
+		days = 0
+	}
+	if err := s.Store.SetReminderDays(u.SquadronID, days); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", errorText(err))
+		return
+	}
+	if err := s.Store.SetHolidayRegion(u.SquadronID, r.FormValue("holiday_region")); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", errorText(err))
+		return
+	}
+	http.Redirect(w, r, s.url("/squadron#planning"), http.StatusSeeOther)
 }

@@ -239,6 +239,8 @@ table.grid input[type=text], table.grid select, table.grid textarea { max-width:
 table.grid input[type=text] { display: block; width: 100%; border-bottom-color: var(--md-outline-variant); }
 table.grid input.act { font-weight: 600; }
 table.grid input.ins { font-size: 0.8em; color: var(--md-on-surface-variant); margin-top: 3px; }
+table.grid input.ins.away { color: var(--md-error); border-color: var(--md-error); font-weight: 600; }
+table.grid .away-note { display: block; font-size: 0.75em; color: var(--md-error); }
 table.grid select { width: auto; max-width: 100%; }
 table.grid textarea { width: 100%; min-width: 140px; resize: vertical; }
 /* The border and a fill appear when you point at a box or move into it. */
