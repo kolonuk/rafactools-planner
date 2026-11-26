@@ -97,6 +97,11 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 	for _, c := range sq.UniformColours {
 		uniformRows = append(uniformRows, uniformRow{c.Key, c.Label, c.Hex, !isClosureColour(c) && inUse[c.Key] == 0, inUse[c.Key]})
 	}
+	suggest, _ := s.Store.GetSuggestSettings(u.SquadronID)
+	suggestURL := ""
+	if suggest.HasToken {
+		suggestURL = s.suggestURL(suggest.Token)
+	}
 	canMove := map[int64]bool{}
 	for _, m := range members {
 		canMove[m.ID] = m.ID != u.ID && m.Active && s.Auth.MovableReason(m.ID) == nil
@@ -107,6 +112,8 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 	reminder, _ := s.Store.ReminderDays(u.SquadronID)
 	s.render(w, r, "squadron_settings", "Squadron settings", map[string]any{
 		"CanMove":             canMove,
+		"Suggest":             suggest,
+		"SuggestURL":          suggestURL,
 		"UniformRows":         uniformRows,
 		"Incoming":            s.transferViews(incoming, inErr),
 		"Outgoing":            s.transferViews(outgoing, outErr),

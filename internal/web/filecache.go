@@ -89,10 +89,7 @@ func (s *server) monthFileData(kind string, sq *programme.Squadron, fp *programm
 	}
 	// The calendar QR code subscribes to the squadron's feed, which holds published
 	// months only: a month that is not published must not point people at it.
-	var opts pdfgen.Options
-	if fp.Published {
-		opts = s.pdfOptions(sq.ID)
-	}
+	opts := s.printOptions(sq.ID, fp.Published)
 	key := fileKey(kind, sq, fp, opts)
 	if data, ok := s.files.get(key); ok {
 		return data, key, nil

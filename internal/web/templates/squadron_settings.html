@@ -74,6 +74,41 @@
   </form>
 </section>
 
+<section class="card" id="suggestions">
+  <h2>Activity suggestions</h2>
+  <p class="muted">Cadets can suggest an activity: they scan a QR code on the printed programme (or use the link) and type its name. Nothing else is collected. Editors see the suggestions on the <a href="{{url "/activities#suggestions"}}">Activities</a> page and can add one as an activity.</p>
+  {{if .Suggest.HasToken}}
+    <p>Suggestion link:</p>
+    <p><input type="text" readonly value="{{.SuggestURL}}" class="wide" aria-label="Suggestion link"></p>
+    <p><img src="{{url "/squadron/suggest-qr.png"}}" width="140" height="140" alt="QR code for the suggestion link"></p>
+    <p>{{.Suggest.Pending}} suggestion{{if ne .Suggest.Pending 1}}s{{end}} waiting.</p>
+    <form method="post" action="{{url "/squadron/suggest"}}">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="pdf">
+      <label class="checkbox"><input type="checkbox" name="qr_on_pdf" value="1" {{if .Suggest.QROnPDF}}checked{{end}}> Print this QR code at the foot of the PDF</label>
+      <button type="submit">Save</button>
+    </form>
+    <form method="post" action="{{url "/squadron/suggest"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="new">
+      <button type="submit" class="link-button">Make a new link</button>
+    </form>
+    <form method="post" action="{{url "/squadron/suggest"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="off">
+      <button type="submit" class="link-button">Turn the link off</button>
+    </form>
+    <p class="muted">A new link stops the old one at once (and changes the QR code, so reprint any programme that carries the old one).</p>
+  {{else}}
+    <p class="muted">There is no suggestion link yet.</p>
+    <form method="post" action="{{url "/squadron/suggest"}}">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="new">
+      <button type="submit">Make the suggestion link</button>
+    </form>
+  {{end}}
+</section>
+
 <section class="card" id="planning">
   <h2>Bank holidays and reminders</h2>
   <form method="post" action="{{url "/squadron/planning"}}" >

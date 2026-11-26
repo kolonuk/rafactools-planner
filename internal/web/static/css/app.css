@@ -359,6 +359,7 @@ a { color: var(--md-primary); }
 
 /* --- Moving activities between dates ---------------------------------- */
 .hidden-form { display: none; }
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 .drag-handle {
   display: none;
   margin-left: 4px;
