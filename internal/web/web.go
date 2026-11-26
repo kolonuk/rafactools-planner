@@ -191,6 +191,7 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
+	mux.HandleFunc("POST /squadron/uniforms", s.requireOwner(s.uniformsSave))
 	mux.HandleFunc("POST /squadron/planning", s.requireOwner(s.squadronPlanning))
 	mux.HandleFunc("POST /squadron/members/{memberID}/transfer", authLimiter.rateLimited(s.requireOwner(s.memberTransfer)))
 	mux.HandleFunc("POST /squadron/transfers/{id}/{action}", s.requireOwner(s.transferDecide))
@@ -203,6 +204,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /squadron/delete", authLimiter.rateLimited(s.requireOwner(s.squadronDelete)))
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
 	mux.HandleFunc("POST /squadron/invites/{token}/revoke", s.requireOwner(s.inviteRevoke))
+	mux.HandleFunc("POST /squadron/invites/{token}/resend", s.requireOwner(s.inviteResend))
 	mux.HandleFunc("POST /squadron/members/{memberID}/role", s.requireOwner(s.memberSetRole))
 	mux.HandleFunc("POST /squadron/members/{memberID}/active", s.requireOwner(s.memberSetActive))
 	mux.HandleFunc("POST /squadron/members/{memberID}/temp-password", authLimiter.rateLimited(s.requireOwner(s.memberTempPassword)))
