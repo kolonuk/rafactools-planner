@@ -135,7 +135,7 @@ func TestUnicodeTextKeepsWhatTheFontHasAndMarksTheRest(t *testing.T) {
 		"Zoë’s café – Ελληνικά": "Zoë’s café – Ελληνικά",
 		"日本語 and Тест":          "? and Тест",
 		"Fun 😀🎉 night":          "Fun ? night",
-		"a‍b":                   "ab",
+		"a\u200db":              "ab",
 	} {
 		if got := unicodeText(in); got != want {
 			t.Errorf("unicodeText(%q) = %q, want %q", in, got, want)
