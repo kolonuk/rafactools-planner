@@ -152,9 +152,17 @@ func renderAt(sq *programme.Squadron, fp *programme.FullProgramme, opts Options,
 	}
 
 	// Re-encode all user text for the single-byte core fonts (smart quotes,
-	// dashes and accented letters survive; anything else prints as "?").
+	// dashes and accented letters survive; anything else prints as "?"). If the text
+	// holds more than that (Greek, Cyrillic and so on), the whole page uses a Unicode
+	// font in the same place instead.
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
 	text := pdfText(tr)
+	if needsUnicode(sq, fp, text) {
+		useUnicodeFont(pdf)
+		unicodeDocs.Store(pdf, true)
+		defer unicodeDocs.Delete(pdf)
+		text = unicodeText
+	}
 	sq, fp = mapStrings(sq, text), mapStrings(fp, text)
 
 	pageW, _ := pdf.GetPageSize()
@@ -352,7 +360,10 @@ func wrapLineCount(pdf *fpdf.Fpdf, text string, w float64) int {
 	if strings.TrimSpace(text) == "" {
 		return 1
 	}
-	lines := pdf.SplitText(byteRunes(text), w-2*cellPad)
+	if _, unicode := unicodeDocs.Load(pdf); !unicode {
+		text = byteRunes(text) // the built-in fonts' text is Windows-1252 bytes
+	}
+	lines := pdf.SplitText(text, w-2*cellPad)
 	if len(lines) < 1 {
 		return 1
 	}

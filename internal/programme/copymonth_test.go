@@ -188,3 +188,54 @@ func TestCopyableNights(t *testing.T) {
 		t.Error("a filled month has no entries")
 	}
 }
+
+func TestUntickingABlankNightRemovesItsRowsButTextIsKept(t *testing.T) {
+	st, _ := newStore(t)
+	sq, _ := st.GetSquadron(1)
+	sq.ParadeWeekdays = []int{1}
+	if err := st.UpdateSquadronSettings(sq); err != nil {
+		t.Fatal(err)
+	}
+	p := mustProg(t, st, 1, 2030, 4)
+	fp, _ := st.GetFullProgramme(1, p.ID)
+	var blank, typed Day
+	for _, d := range fp.Days {
+		if d.IsParade && blank.ID == 0 {
+			blank = d
+		} else if d.IsParade && typed.ID == 0 {
+			typed = d
+		}
+	}
+	if err := st.AddHalf(1, p.ID, blank.ID, 4); err != nil {
+		t.Fatal(err)
+	}
+	act, _ := typed.RowByHalfType(1, "activity")
+	save := func(parade bool, d Day, rows []RowInput) {
+		t.Helper()
+		if err := st.SaveDaysAndRows(1, p.ID, []DayInput{{ID: d.ID, IsParade: parade, Rows: rows}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	save(false, blank, nil)
+	save(false, typed, []RowInput{{ID: act.ID, Texts: []string{"Drill", "", "", ""}}})
+	fp, _ = st.GetFullProgramme(1, p.ID)
+	for _, d := range fp.Days {
+		switch d.ID {
+		case blank.ID:
+			if len(d.Rows) != 0 || d.Halves != 1 {
+				t.Errorf("an unticked blank night kept %d rows and %d halves", len(d.Rows), d.Halves)
+			}
+		case typed.ID:
+			if len(d.Rows) == 0 {
+				t.Error("an unticked night with text lost its rows")
+			}
+		}
+	}
+	save(true, blank, nil) // ticking it again starts it afresh
+	fp, _ = st.GetFullProgramme(1, p.ID)
+	for _, d := range fp.Days {
+		if d.ID == blank.ID && len(d.Rows) != 2 {
+			t.Errorf("a re-ticked night has %d rows, want 2", len(d.Rows))
+		}
+	}
+}

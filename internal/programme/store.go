@@ -488,12 +488,51 @@ func (s *Store) SaveDaysAndRows(squadronID, programmeID int64, days []DayInput) 
 				return fmt.Errorf("row %d does not belong to day %d", r.ID, d.ID)
 			}
 		}
+		if !d.IsParade {
+			if err := dropEmptyNight(tx, d.ID); err != nil {
+				return err
+			}
+		}
 	}
 
 	if _, err := tx.Exec(`UPDATE programmes SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, programmeID); err != nil {
 		return err
 	}
 	return tx.Commit()
+}
+
+// dropEmptyNight tidies a night that is no longer a parade night: if none of its boxes
+// has any text, its rows go and it is back to one part, as if it had never been a
+// parade night. A night with text keeps it, so ticking the night again brings it back.
+func dropEmptyNight(tx *sql.Tx, dayID int64) error {
+	rows, err := tx.Query(`SELECT texts FROM programme_rows WHERE day_id = ?`, dayID)
+	if err != nil {
+		return err
+	}
+	empty := true
+	for rows.Next() {
+		var raw string
+		if err := rows.Scan(&raw); err != nil {
+			rows.Close()
+			return err
+		}
+		var texts []string
+		if json.Unmarshal([]byte(raw), &texts) != nil || rowHasText(texts) {
+			empty = false
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if !empty {
+		return nil
+	}
+	if _, err := tx.Exec(`DELETE FROM programme_rows WHERE day_id = ?`, dayID); err != nil {
+		return err
+	}
+	_, err = tx.Exec(`UPDATE programme_days SET halves = 1 WHERE id = ?`, dayID)
+	return err
 }
 
 // seedParadeRows gives a parade night its half-1 activity and instructor
