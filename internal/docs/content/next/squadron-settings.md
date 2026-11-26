@@ -5,6 +5,7 @@ summary: Name, classifications, parade nights, members and invites (owners only)
 since: 1.0
 audience: admin
 changed:
+  - next: Owners can edit uniform colours, send an invitation again, and make a suggestion link for cadets.
   - 1.16: Bank holidays and reminders: choose which list of UK bank holidays new months get closures from, and how many days ahead staff are reminded about blank parade nights. Moves between squadrons: owners accept or decline members joining, and can ask for a member to move.
   - 1.14: The page is called Squadron in the top bar, links to the instructor list and has a breadcrumb back to the planner.
   - 1.14: Parade night start and end times, and the Public link and calendar section.
@@ -48,6 +49,14 @@ Select **Save** to apply.
   Text stays in its column position when you **rename or reorder**
   classifications, so add new ones at the end of the list.
 
+## Uniform colours
+
+**Uniform colours** lists the colours offered for a night's uniform and printed in the key at the foot of the PDF. Change a colour's name or pick a different colour and every night wearing it follows, because nights remember the colour, not its name. Type a name and choose a colour in the last row to add one (up to 12 in all, names up to 30 characters, no two alike). Tick **Remove** to delete one. A colour that any night still wears (in any month) shows how many nights, and cannot be removed; the grey **Closure** colour, used for closed days, always stays.
+
+## Activity suggestions
+
+**Activity suggestions** makes a link, and a QR code for it, that cadets use to suggest an activity: a form with one box, for the activity's name. Nothing else is collected. You can print the code on the PDF (see [PDF export](pdf-export)), make a new link (the old one stops at once) or turn the link off. Editors see the suggestions on the [Activities](activities) page. The form is rate limited, ignores a hidden "trap" field that automated forms fill in, and takes at most 200 waiting suggestions.
+
 ## Bank holidays and reminders
 
 Under **Bank holidays and reminders**:
@@ -61,6 +70,10 @@ The page lists everyone in the squadron with their name (if they have set one, s
 [instructors](instructors)), their email and their role, and any pending
 invites. Owners can change a role, mark a person inactive, send a temporary password or remove them here, and invite new people.
 See [roles and invites](roles-and-invites).
+
+## Pending invites
+
+The **Pending invites** table shows when each invitation was last emailed and when it ends. **Send again** emails the same link again with a fresh seven days (not more often than every 10 minutes); **Revoke** cancels it. See [roles and invites](roles-and-invites).
 
 ## Moves between squadrons
 
