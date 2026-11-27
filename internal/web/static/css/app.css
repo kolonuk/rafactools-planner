@@ -282,6 +282,8 @@ table.grid tr.half-row td { padding-top: 0; }
   table.grid tr:not(.day-start):not(.non-parade-row):not(.closed-row) { margin-top: -10px; border-radius: 0 0 12px 12px; box-shadow: none; border-top: 1px dashed var(--md-outline-variant); }
   table.grid tr[hidden] { display: none; }
   table.grid tr.non-parade-row, table.grid tr.closed-row { padding-top: 4px; padding-bottom: 4px; }
+  /* A night that is not a parade night is one short line: its boxes appear when Parade is ticked. */
+  table.grid tr.non-parade-row td.class-cell, table.grid tr.non-parade-row td.notes-cell { display: none; }
   table.grid tbody tr:hover td { background: transparent; }
   table.grid tbody tr:hover { box-shadow: var(--md-elevation-2, var(--md-elevation-1)); }
   table.grid tr.drop-target { outline: 2px solid var(--md-primary); }
@@ -311,6 +313,7 @@ table.grid tr.half-row td { padding-top: 0; }
   table.grid td.parade-cell::before { display: inline; margin: 0; }
   table.grid td[colspan] { padding-top: 6px; }
   table.grid input[type=text], table.grid select, table.grid textarea { border-color: var(--md-outline-variant); }
+  table.grid tr.non-parade-row td.class-cell, table.grid tr.non-parade-row td.notes-cell { display: none; }
   table.grid tbody tr:hover td { background: transparent; }
 }
 
