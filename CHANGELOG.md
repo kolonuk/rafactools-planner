@@ -17,7 +17,7 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
-## Unreleased
+## 1.17
 
 - **chore**: the short fuzz run in CI (and the test it ran) is removed: it covered one small function and cost about a minute on every change.
 - **feat**: activity suggestions. An owner makes a suggestion link (with a QR code) under Squadron; anyone with it can type the name of an activity (nothing else is collected; the form is rate limited and has a hidden trap field). Editors see the suggestions on the Activities page and can add one as an activity: the button then goes and the row shows the activity's name. The QR code can be printed on the PDF, beside the calendar one (a squadron option).

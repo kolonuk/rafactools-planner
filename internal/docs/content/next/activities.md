@@ -5,7 +5,7 @@ summary: The list of activities offered in the grid's Activity boxes, built in a
 since: 1.16
 audience: user
 changed:
-  - next: Cadets can suggest an activity, and an editor can add a suggestion as an activity.
+  - 1.17: Cadets can suggest an activity, and an editor can add a suggestion as an activity.
   - 1.16: New page.
 ---
 # Activities
