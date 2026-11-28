@@ -5,7 +5,7 @@ summary: Logging in and out, password rules and how long you stay signed in.
 since: 1.0
 audience: user
 changed:
-  - next: The list of places you are signed in shows when each was last used.
+  - 1.17: The list of places you are signed in shows when each was last used.
   - 1.16: An account whose move to another squadron is waiting cannot sign in, and says why.
   - 1.16: The page where you accept an invite also has the human check when the operator has turned on Turnstile.
   - 1.13: When the operator turns on Turnstile, the login form includes a human check.

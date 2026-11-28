@@ -5,7 +5,7 @@ summary: Things the planner cannot do yet, so you do not waste time looking for 
 since: 1.0
 audience: user
 changed:
-  - next: Uniform colours can be edited, activities have a list to choose from, and the PDF prints Greek and Cyrillic; the limits for those are corrected.
+  - 1.17: Uniform colours can be edited, activities have a list to choose from, and the PDF prints Greek and Cyrillic; the limits for those are corrected.
   - 1.13: Removed two entries that were wrong: the help is public, and a squadron can be deleted from squadron settings.
   - 1.9: Two-step sign-in exists for the master admin only.
   - 1.9: A month can be reset to blank; months are deliberately never deleted.

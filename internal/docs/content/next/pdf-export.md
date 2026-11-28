@@ -5,7 +5,7 @@ summary: What the exported programme looks like.
 since: 1.0
 audience: user
 changed:
-  - next: Greek and Cyrillic text prints. When a month holds either, the whole page is drawn in another font. The PNG is laid out like the PDF (centred title, grey header, a Notes column, a Weekends table, the key as one row), and the PDF can carry a second QR code, for suggesting an activity.
+  - 1.17: Greek and Cyrillic text prints. When a month holds either, the whole page is drawn in another font. The PNG is laid out like the PDF (centred title, grey header, a Notes column, a Weekends table, the key as one row), and the PDF can carry a second QR code, for suggesting an activity.
   - 1.16: The QR code is only on the PDF and PNG of a published month; a month that is not published no longer carries it.
   - 1.15: The uniform key and the notes table are always drawn below the whole grid; with a closure early in the month they used to be drawn on top of the nights after it.
   - 1.14: A crowded month is drawn smaller so that everything fits on the one page, instead of running off the bottom.

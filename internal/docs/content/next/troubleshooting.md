@@ -5,7 +5,7 @@ summary: What the messages mean and what to do.
 since: 1.0
 audience: user
 changed:
-  - next: Greek and Cyrillic no longer print as question marks.
+  - 1.17: Greek and Cyrillic no longer print as question marks.
   - 1.16: Added the messages about an account switched off by a move, and the account move refusals.
   - 1.15: Added the calendar rate-limit message.
   - 1.9: Error pages show a reference to quote.

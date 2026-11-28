@@ -5,7 +5,7 @@ summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 audience: user
 changed:
-  - next: Activity suggestions (names only) are stored, with a public form behind a secret link; sessions record when they were last used.
+  - 1.17: Activity suggestions (names only) are stored, with a public form behind a secret link; sessions record when they were last used.
   - 1.16: Time off is stored and shown to the squadron; a login can move between squadrons with an owner's acceptance; the site fetches the government's bank holiday list.
   - 1.16: The Turnstile human check also covers accepting an invite, the one other form that creates an account.
   - 1.14: An owner can make a one-month public link that shows the months an editor has published (calendar and PDF), with no cadet names.
