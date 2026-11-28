@@ -85,6 +85,9 @@ type Options struct {
 	// calendar feed to a phone, with CalendarExpires as the date the link stops.
 	CalendarURL     string
 	CalendarExpires time.Time
+	// SuggestURL, when set, is printed as a QR code that opens the form for suggesting an
+	// activity to the squadron.
+	SuggestURL string
 }
 
 // RenderWith is Render with the optional extras.
@@ -115,7 +118,7 @@ func renderFit(sq *programme.Squadron, fp *programme.FullProgramme, opts Options
 			return nil, r, err
 		}
 		need := endY + footerRoom*r
-		if opts.CalendarURL != "" {
+		if opts.CalendarURL != "" || opts.SuggestURL != "" {
 			need += qrRoom * r
 		}
 		limit := pageHeight * r
@@ -152,9 +155,17 @@ func renderAt(sq *programme.Squadron, fp *programme.FullProgramme, opts Options,
 	}
 
 	// Re-encode all user text for the single-byte core fonts (smart quotes,
-	// dashes and accented letters survive; anything else prints as "?").
+	// dashes and accented letters survive; anything else prints as "?"). If the text
+	// holds more than that (Greek, Cyrillic and so on), the whole page uses a Unicode
+	// font in the same place instead.
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
 	text := pdfText(tr)
+	if needsUnicode(sq, fp, text) {
+		useUnicodeFont(pdf)
+		unicodeDocs.Store(pdf, true)
+		defer unicodeDocs.Delete(pdf)
+		text = unicodeText
+	}
 	sq, fp = mapStrings(sq, text), mapStrings(fp, text)
 
 	pageW, _ := pdf.GetPageSize()
@@ -352,7 +363,10 @@ func wrapLineCount(pdf *fpdf.Fpdf, text string, w float64) int {
 	if strings.TrimSpace(text) == "" {
 		return 1
 	}
-	lines := pdf.SplitText(byteRunes(text), w-2*cellPad)
+	if _, unicode := unicodeDocs.Load(pdf); !unicode {
+		text = byteRunes(text) // the built-in fonts' text is Windows-1252 bytes
+	}
+	lines := pdf.SplitText(text, w-2*cellPad)
 	if len(lines) < 1 {
 		return 1
 	}
@@ -851,15 +865,12 @@ func hexToRGB(hex string) (int, int, int) {
 	return r, g, b
 }
 
-// drawCalendarQR prints the calendar QR code and a short note under the grid,
-// as large as the space left on the page allows (up to 18 mm). It is skipped
-// if there is not room for a code that can still be scanned (10 mm).
+// drawCalendarQR prints the QR codes under the grid: the calendar's, and the one for
+// suggesting an activity if the squadron chose it. They sit side by side, each as large as
+// the space left on the page allows (up to 18 mm) and skipped if there is not room for a
+// code that can still be scanned (10 mm).
 func drawCalendarQR(pdf *fpdf.Fpdf, opts Options, r float64) {
-	if opts.CalendarURL == "" {
-		return
-	}
-	png, err := qrcode.Encode(opts.CalendarURL, qrcode.Medium, 256)
-	if err != nil {
+	if opts.CalendarURL == "" && opts.SuggestURL == "" {
 		return
 	}
 	left, _, _, _ := pdf.GetMargins()
@@ -869,17 +880,38 @@ func drawCalendarQR(pdf *fpdf.Fpdf, opts Options, r float64) {
 	if size < 10*r {
 		return
 	}
-	pdf.RegisterImageOptionsReader("calendar-qr", fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(png))
-	pdf.ImageOptions("calendar-qr", left, y, size, size, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
-	pdf.SetFont("Helvetica", "B", 7*r)
-	pdf.SetXY(left+size+3*r, y+r)
-	pdf.CellFormat(100*r, 3.5*r, "Add this programme to your calendar", "0", 1, "L", false, 0, "")
-	pdf.SetFont("Helvetica", "", 6*r)
-	pdf.SetX(left + size + 3*r)
-	pdf.CellFormat(100*r, 3*r, "Scan the code with your phone. New parade nights appear as they are published.", "0", 1, "L", false, 0, "")
-	if !opts.CalendarExpires.IsZero() {
-		pdf.SetX(left + size + 3*r)
-		pdf.CellFormat(100*r, 3*r, "This link works until "+opts.CalendarExpires.In(programme.Local).Format("2 January 2006")+".", "0", 1, "L", false, 0, "")
+	const blockW = 97.0 // mm: a code, its text and a gap
+	x := left
+	if opts.CalendarURL != "" {
+		lines := []string{"Scan the code with your phone. New parade nights appear as they are published."}
+		if !opts.CalendarExpires.IsZero() {
+			lines = append(lines, "This link works until "+opts.CalendarExpires.In(programme.Local).Format("2 January 2006")+".")
+		}
+		drawQRBlock(pdf, x, y, size, r, "calendar-qr", opts.CalendarURL, "Add this programme to your calendar", lines, blockW)
+		x += blockW * r
+	}
+	if opts.SuggestURL != "" {
+		drawQRBlock(pdf, x, y, size, r, "suggest-qr", opts.SuggestURL, "Suggest an activity",
+			[]string{"Scan the code and type the name of something you would like us to do."}, blockW)
 	}
 	pdf.SetXY(left, y+size)
+}
+
+// drawQRBlock draws one QR code at x, y with a bold title and short lines of text beside it.
+func drawQRBlock(pdf *fpdf.Fpdf, x, y, size, r float64, name, url, title string, lines []string, blockW float64) {
+	png, err := qrcode.Encode(url, qrcode.Medium, 256)
+	if err != nil {
+		return
+	}
+	pdf.RegisterImageOptionsReader(name, fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(png))
+	pdf.ImageOptions(name, x, y, size, size, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
+	textX, textW := x+size+3*r, (blockW-18-3-3)*r
+	pdf.SetFont("Helvetica", "B", 7*r)
+	pdf.SetXY(textX, y+r)
+	pdf.MultiCell(textW, 3.5*r, title, "0", "L", false)
+	pdf.SetFont("Helvetica", "", 6*r)
+	for _, l := range lines {
+		pdf.SetX(textX)
+		pdf.MultiCell(textW, 3*r, l, "0", "L", false)
+	}
 }

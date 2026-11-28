@@ -5,6 +5,7 @@ summary: Things the planner cannot do yet, so you do not waste time looking for 
 since: 1.0
 audience: user
 changed:
+  - 1.17: Uniform colours can be edited, activities have a list to choose from, and the PDF prints Greek and Cyrillic; the limits for those are corrected.
   - 1.13: Removed two entries that were wrong: the help is public, and a squadron can be deleted from squadron settings.
   - 1.9: Two-step sign-in exists for the master admin only.
   - 1.9: A month can be reset to blank; months are deliberately never deleted.
@@ -31,16 +32,14 @@ These are not mistakes in how you are using the planner.
   existing month can be ticked or unticked one by one.
 - Renaming or reordering classifications does not move the text already typed:
   it stays in the same column position.
-- Uniform colours and their names cannot be edited in the app.
-- Activities are free text. There is no saved list of activities to choose from.
+- Activities are free text with a [list of suggestions](activities); the boxes never force a choice.
 - The [instructor list](instructors) holds only a name and a rank: there is no
-  contact detail, availability or duty rota.
+  contact detail or duty rota. [Time off](time-off) is recorded separately, and nothing warns when one person is on two things at once.
 
 **Output**
-- The PDF is one A4 page. There is no calendar file or other export.
+- The PDF is one A4 page. Besides it there is a PNG picture and a [calendar feed](public-sharing).
 - No squadron crest or logo image on the PDF (a website address can be shown).
-- Characters outside Western European text (for example Greek, Cyrillic or
-  Chinese) print as a question mark on the PDF.
+- Greek and Cyrillic print on the PDF, but Chinese, Japanese, Korean, Arabic, Hebrew and emoji print as a question mark.
 
 **Site**
 - Problem reports are emailed, not kept in the planner: there is no list of past reports and no status to follow.

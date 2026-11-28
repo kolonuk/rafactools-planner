@@ -17,6 +17,17 @@ version-footer feature itself) were pushed directly to `main`, not through
 PRs, so they have no PR number to key off — summarized below as a single
 baseline instead of per-entry.
 
+## 1.17
+
+- **chore**: the short fuzz run in CI (and the test it ran) is removed: it covered one small function and cost about a minute on every change.
+- **feat**: activity suggestions. An owner makes a suggestion link (with a QR code) under Squadron; anyone with it can type the name of an activity (nothing else is collected; the form is rate limited and has a hidden trap field). Editors see the suggestions on the Activities page and can add one as an activity: the button then goes and the row shows the activity's name. The QR code can be printed on the PDF, beside the calendar one (a squadron option).
+- **feat**: the history says what changed in each version ("Changed uniform for 17 Nov from Blue to Working dress", "Added closure 22 Dec to 26 Dec"); requirement entries are counted, never named.
+- **feat**: owners can edit uniform colours: names and colours, add new ones, remove unused ones. Nights follow a renamed or recoloured colour.
+- **feat**: an owner can send a pending invitation again (a fresh seven days), and the invitations list shows when each was last sent. The list of places you are signed in shows when each was last used.
+- **feat**: each night is a card on every screen (date, Parade tick and uniform on a line, a box per class, then notes), not only on a phone; on a phone the top bar is two short lines that scroll away instead of covering the page.
+- **feat**: the PDF prints Greek and Cyrillic (the page switches to a Unicode font when a month needs it); the PNG is laid out like the PDF (centred title, grey header, a Notes column, a Weekends table, the key as one row).
+- **fix**: unticking a night that has nothing in it removes its empty rows and its second part; a night with text keeps it for when it is ticked again.
+
 ## 1.16
 
 - **feat**: UK bank holidays. Every month a squadron makes gets a one-day closure for each bank holiday in it, from the government's list, which is kept in the database and fetched about once a month (every year it lists); when it changes, the current and later months of every squadron are brought into line. An owner chooses England and Wales, Scotland, Northern Ireland or none under Squadron. A closure can be edited (then it is the squadron's own) or deleted (then it stays deleted). `BANK_HOLIDAYS_URL` sets or turns off the fetching.

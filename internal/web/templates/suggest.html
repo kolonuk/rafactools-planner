@@ -1,0 +1,14 @@
+{{define "content"}}
+<h1>Suggest an activity</h1>
+<p>Is there something you would like {{.SquadronName}} to do on a parade night? Type the name of the activity below.</p>
+<p class="muted">Only the activity's name is sent: please don't type your own or anyone else's name or contact details. The staff read the suggestions and choose what to plan, so there is no reply.</p>
+{{if .Thanks}}<p class="flash" role="status">Thank you: your suggestion has been sent. You can send another.</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+<form method="post" action="{{url "/suggest/" .Token}}" class="card">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label>Activity <input type="text" name="name" required minlength="2" maxlength="120" placeholder="Kayaking" autocomplete="off"></label>
+  <div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+  {{template "turnstile" .}}
+  <button type="submit">Send</button>
+</form>
+{{end}}

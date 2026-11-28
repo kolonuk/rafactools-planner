@@ -5,6 +5,7 @@ summary: What runs on every change, and what to do when one fails.
 since: 1.0
 audience: dev
 changed:
+  - 1.17: The short fuzz run is gone: it covered one small function and cost about a minute on every change.
   - 1.15: The checks run side by side (the web tests in two halves), the image is built alongside them and pushed only when everything passed, a change that only edits notes skips the heavy jobs, and the analysis tools and the browser download are kept between runs.
   - 1.13: Added the browser tests and a Releases section.
   - 1.9: Added staticcheck, gosec, CSS and HTML linting, workflow linting, secret and configuration scanning, fuzzing, operational tests and the documentation check.
@@ -26,7 +27,6 @@ For people changing the code. Every push and pull request runs these in GitHub.
 | Script rules | Fails on inline scripts, inline event handlers or `javascript:` links in the templates (the security policy refuses them). When the site has its own JavaScript or TypeScript, type-checks it strictly, and checks that committed compiled TypeScript is up to date. |
 | actionlint | Mistakes in the workflow files. |
 | Docs check | Embedded docs are valid, links resolve, and user-visible code changes come with a docs change. |
-| Fuzzing | A short random-input run against the claim-email checker (its own job). |
 
 On a push to the deployment branches the image is also built, started and
 checked at `/health`, scanned for vulnerabilities, and published.

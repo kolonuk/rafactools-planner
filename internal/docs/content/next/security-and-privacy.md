@@ -5,6 +5,7 @@ summary: What the planner stores, how it is protected and what it does not do.
 since: 1.0
 audience: user
 changed:
+  - 1.17: Activity suggestions (names only) are stored, with a public form behind a secret link; sessions record when they were last used.
   - 1.16: Time off is stored and shown to the squadron; a login can move between squadrons with an owner's acceptance; the site fetches the government's bank holiday list.
   - 1.16: The Turnstile human check also covers accepting an invite, the one other form that creates an account.
   - 1.14: An owner can make a one-month public link that shows the months an editor has published (calendar and PDF), with no cadet names.
@@ -36,6 +37,8 @@ changed:
 | Problem reports | **Not stored.** A report you send is emailed to the site's operators, and the server briefly remembers your last 20 requests (method, path and result code only, in memory) so that a report can include them. See [report a problem](report-a-problem). |
 | Names | The name each person chooses to display (optional), and your squadron's instructor list: a name and a rank each, no contact details. |
 | Programmes | Everything you type: activities, instructor names, notes, closures, weekend notes. |
+| Activity suggestions | The name of each activity a cadet typed into the squadron's suggestion form, and when. No name, address or other detail of the sender is kept or asked for. The form sits behind a long secret link the owner can replace or turn off, is rate limited and refuses a filled-in trap field. See [activities](activities). |
+| Sessions | Also when each was last used, updated at most every five minutes. |
 | Time off | A name, dates and an optional note for each period an instructor is away, and who typed it in. Every member of the squadron can see it. It is never in the PDF, the PNG or the calendar. See [time off](time-off). |
 | Your squadron's activities | A list of activity titles, shown to your squadron only. |
 | Moves between squadrons | Who asked, which two squadrons, the role chosen and how it ended, with a hash of the link emailed to the person. Both squadrons' security logs record each step: see [moving your login](account-transfer). |

@@ -47,6 +47,37 @@
   </form>
 </section>
 
+<section class="card" id="suggestions">
+  <h2>Suggestions</h2>
+  <p class="muted">Activities that cadets have suggested through the squadron's suggestion link{{if not .SuggestOn}} (the link is off: an owner can make it under Squadron){{end}}. Only the name is collected. <strong>Add as activity</strong> puts it in your squadron's list above, so it is offered in the grid.</p>
+  {{if .Suggestions}}
+  <table class="list">
+    <thead><tr><th scope="col">Suggestion</th><th scope="col">Sent</th><th scope="col">Activity</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {{range .Suggestions}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td>{{.CreatedAt.UTC.Format "2 Jan 2006"}}</td>
+        <td>{{if .Added}}Added as the activity <strong>{{.ActivityTitle}}</strong>{{else}}<span class="muted">not added</span>{{end}}</td>
+        <td>
+          {{if not .Added}}
+          <form method="post" action="{{url "/activities/suggestions/" .ID "/add"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" aria-label="Add {{.Name}} as an activity">Add as activity</button>
+          </form>
+          {{end}}
+          <form method="post" action="{{url "/activities/suggestions/" .ID "/delete"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button" aria-label="Delete the suggestion {{.Name}}">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">No suggestions yet.</p>{{end}}
+</section>
+
 <section class="card">
   <h2>Built-in activities</h2>
   <p class="muted">These are offered to every squadron and cannot be changed. If you add one of your own with the same name, it is not needed and is removed.</p>

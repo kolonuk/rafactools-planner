@@ -5,6 +5,7 @@ summary: What the messages mean and what to do.
 since: 1.0
 audience: user
 changed:
+  - 1.17: Greek and Cyrillic no longer print as question marks.
   - 1.16: Added the messages about an account switched off by a move, and the account move refusals.
   - 1.15: Added the calendar rate-limit message.
   - 1.9: Error pages show a reference to quote.
@@ -45,7 +46,7 @@ changed:
 | `(reference ...)` after an error | A short code for that request. | Quote it when you report the problem, or tell whoever runs the site: it finds the matching line in the server log. |
 | `Please describe what went wrong.` | The report needs a description. | Type what happened, then send again. |
 | Closure dates rejected | Dates must be real, in order, and at most 366 days apart. | Check the dates: see [programmes](programmes). |
-| Question marks in the PDF | Characters outside Western European text, such as Greek, Cyrillic or Chinese. | Use Latin letters: see [PDF export](pdf-export). |
+| Question marks in the PDF | Characters neither PDF font has, such as Chinese, Japanese, Arabic or emoji (Greek and Cyrillic are fine). | Use Latin letters: see [PDF export](pdf-export). |
 
 ## The page says "Not found"
 

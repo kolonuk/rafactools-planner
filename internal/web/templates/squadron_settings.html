@@ -47,6 +47,68 @@
   </form>
 </section>
 
+<section class="card" id="uniforms">
+  <h2>Uniform colours</h2>
+  <p class="muted">The colours offered for a night's uniform, and shown in the key at the foot of the PDF. Change a name or colour and every night that wears it follows. A colour that a night still wears can't be removed. The grey <em>Closure</em> colour is for closed days and stays.</p>
+  <form method="post" action="{{url "/squadron/uniforms"}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <table class="list">
+      <thead><tr><th scope="col">Name</th><th scope="col">Colour</th><th scope="col">Used on</th><th scope="col">Remove</th></tr></thead>
+      <tbody>
+      {{range .UniformRows}}
+        <tr>
+          <td><input type="text" name="label_{{.Key}}" value="{{.Label}}" maxlength="30" required aria-label="Name of the colour {{.Label}}"></td>
+          <td><input type="color" name="hex_{{.Key}}" value="{{.Hex}}" aria-label="Colour for {{.Label}}"></td>
+          <td>{{if .Nights}}{{.Nights}} night{{if ne .Nights 1}}s{{end}}{{else}}<span class="muted">no nights</span>{{end}}</td>
+          <td>{{if .Removable}}<label class="checkbox"><input type="checkbox" name="remove_{{.Key}}" value="1" aria-label="Remove {{.Label}}"> Remove</label>{{end}}</td>
+        </tr>
+      {{end}}
+        <tr>
+          <td><input type="text" name="new_label" maxlength="30" placeholder="New colour name" aria-label="Name of a new colour"></td>
+          <td><input type="color" name="new_hex" value="#2e7d32" aria-label="Colour for the new colour"></td>
+          <td colspan="2"><span class="muted">Add a colour: type its name and choose it.</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="submit">Save colours</button>
+  </form>
+</section>
+
+<section class="card" id="suggestions">
+  <h2>Activity suggestions</h2>
+  <p class="muted">Cadets can suggest an activity: they scan a QR code on the printed programme (or use the link) and type its name. Nothing else is collected. Editors see the suggestions on the <a href="{{url "/activities#suggestions"}}">Activities</a> page and can add one as an activity.</p>
+  {{if .Suggest.HasToken}}
+    <p>Suggestion link:</p>
+    <p><input type="text" readonly value="{{.SuggestURL}}" class="wide" aria-label="Suggestion link"></p>
+    <p><img src="{{url "/squadron/suggest-qr.png"}}" width="140" height="140" alt="QR code for the suggestion link"></p>
+    <p>{{.Suggest.Pending}} suggestion{{if ne .Suggest.Pending 1}}s{{end}} waiting.</p>
+    <form method="post" action="{{url "/squadron/suggest"}}">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="pdf">
+      <label class="checkbox"><input type="checkbox" name="qr_on_pdf" value="1" {{if .Suggest.QROnPDF}}checked{{end}}> Print this QR code at the foot of the PDF</label>
+      <button type="submit">Save</button>
+    </form>
+    <form method="post" action="{{url "/squadron/suggest"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="new">
+      <button type="submit" class="link-button">Make a new link</button>
+    </form>
+    <form method="post" action="{{url "/squadron/suggest"}}" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="off">
+      <button type="submit" class="link-button">Turn the link off</button>
+    </form>
+    <p class="muted">A new link stops the old one at once (and changes the QR code, so reprint any programme that carries the old one).</p>
+  {{else}}
+    <p class="muted">There is no suggestion link yet.</p>
+    <form method="post" action="{{url "/squadron/suggest"}}">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="new">
+      <button type="submit">Make the suggestion link</button>
+    </form>
+  {{end}}
+</section>
+
 <section class="card" id="planning">
   <h2>Bank holidays and reminders</h2>
   <form method="post" action="{{url "/squadron/planning"}}" >
@@ -206,16 +268,20 @@
   {{else}}<p class="muted">Nobody is moving away.</p>{{end}}
 </section>
 
-<section class="card">
+<section class="card" id="invites">
   <h2>Pending invites</h2>
   {{if .Invites}}
   <table class="list">
-    <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Expires</th><th scope="col"></th></tr></thead>
+    <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Last sent</th><th scope="col">Expires</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .Invites}}
       <tr>
-        <td data-private>{{.Email}}</td><td>{{.Role}}</td><td>{{.ExpiresAt}}</td>
+        <td data-private>{{.Email}}</td><td>{{.Role}}</td><td>{{.SentAt}}</td><td>{{.ExpiresAt}}</td>
         <td>
+          <form method="post" action="{{url "/squadron/invites/" .Token "/resend"}}" class="inline">
+            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+            <button type="submit" class="link-button" aria-label="Send the invitation to {{.Email}} again">Send again</button>
+          </form>
           <form method="post" action="{{url "/squadron/invites/" .Token "/revoke"}}" class="inline">
             <input type="hidden" name="csrf" value="{{$.CSRF}}">
             <button type="submit" class="link-button" aria-label="Revoke the invitation for {{.Email}}">Revoke</button>
