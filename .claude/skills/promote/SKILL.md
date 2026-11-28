@@ -61,7 +61,7 @@ and deletions. `enforce_admins` is off.
 ## What CI does (so you know what to expect)
 
 Jobs run side by side. "Build, vet, test" is the aggregate required check: it passes when build/vet/format,
-both halves of the web tests, the other tests, the coverage run and the fuzz run passed. A change that
+both halves of the web tests, the other tests, and the coverage run passed. A change that
 only edits notes (`TODO.md`, `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE`, `CLAUDE.md`,
 `.claude/`) skips the heavy jobs; they show as skipped, which counts as passed. On a push the image is
 built and checked alongside the tests and only pushed once everything passed. A PR that edits the

@@ -26,8 +26,14 @@ func (s *server) renderActivities(w http.ResponseWriter, r *http.Request, status
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
+	suggestions, err := s.Store.ListSuggestions(u.SquadronID)
+	if err != nil {
+		log.Printf("list suggestions: %v", err)
+	}
+	set, _ := s.Store.GetSuggestSettings(u.SquadronID)
 	s.render(w, r, "activities", "Activities", map[string]any{
 		"Defaults": programme.DefaultActivities(), "Custom": custom, "Error": errMsg,
+		"Suggestions": suggestions, "SuggestOn": set.HasToken,
 	})
 }
 

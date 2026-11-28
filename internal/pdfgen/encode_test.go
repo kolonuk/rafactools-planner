@@ -97,3 +97,48 @@ func TestEmojiInEveryKindOfTextRendersWithoutBreakingThePDF(t *testing.T) {
 		t.Error("raw emoji bytes were written into the PDF")
 	}
 }
+
+func TestGreekAndCyrillicTextIsDrawnWithAUnicodeFont(t *testing.T) {
+	plain := render(t, testSquadron(), testProgramme())
+	if bytes.Contains(plain, []byte("/Type0")) {
+		t.Fatal("a Latin-only month used the Unicode font")
+	}
+	for _, note := range []string{"Ελληνικά: άσκηση", "Тренировка"} {
+		sq, fp := testSquadron(), testProgramme()
+		fp.Days[0].Notes = note
+		out := render(t, sq, fp)
+		if !bytes.Contains(out, []byte("/Type0")) {
+			t.Errorf("%q: the page was not drawn with a Unicode font", note)
+		}
+		if !bytes.Contains(render(t, sq, fp), []byte("%PDF-")) {
+			t.Error("not a PDF")
+		}
+	}
+	// Chinese is not in the Go fonts: the page stays on the built-in font and shows "?".
+	sq, fp := testSquadron(), testProgramme()
+	fp.Days[0].Notes = "日本語"
+	if bytes.Contains(render(t, sq, fp), []byte("/Type0")) {
+		t.Error("a month with only Chinese text switched fonts for nothing")
+	}
+	// A crowded month with Greek text still fits on the page.
+	sq, fp = testSquadron(), testProgramme()
+	for i := range fp.Days {
+		fp.Days[i].Notes = "Ελληνικά ελληνικά ελληνικά ελληνικά ελληνικά ελληνικά ελληνικά"
+	}
+	if len(render(t, sq, fp)) == 0 {
+		t.Error("empty PDF")
+	}
+}
+
+func TestUnicodeTextKeepsWhatTheFontHasAndMarksTheRest(t *testing.T) {
+	for in, want := range map[string]string{
+		"Zoë’s café – Ελληνικά": "Zoë’s café – Ελληνικά",
+		"日本語 and Тест":          "? and Тест",
+		"Fun 😀🎉 night":          "Fun ? night",
+		"a\u200db":              "ab",
+	} {
+		if got := unicodeText(in); got != want {
+			t.Errorf("unicodeText(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

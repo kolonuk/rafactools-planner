@@ -5,6 +5,7 @@ summary: Creating a month and filling in the grid, closures, weekend notes and t
 since: 1.0
 audience: user
 changed:
+  - 1.17: Every night is a card on every screen, not only on a phone. History says what changed in each version. Unticking a night with nothing in it removes its empty rows.
   - 1.16: A Copy button copies the uniform, activities and instructors of an earlier month into this one. New months get a closure for each UK bank holiday. Activity boxes suggest the built-in and your own activities, and an Instructor box turns red when that person is away.
   - 1.14: The month page has a breadcrumb and a menu bar (Export, History, Publish or Unpublish, Instructors, More) and a Parade nights | All nights switch. The grid is a lighter timetable with one line per night (the activity over the instructor in each class's box), a colour dot for the uniform and cards on a phone. Closures, weekend notes and tracker entries can be edited in place with a tick or a cross. Months can be published to the public link.
   - 1.10: A closure locks the dates it covers in the grid.
@@ -71,8 +72,9 @@ As you type in an **Instructor** box the browser suggests **All Staff**, the peo
 your [instructor list](instructors) and each member of your squadron. They are only
 suggestions: you can type any name.
 
-On a phone or other narrow screen each night becomes a small card with its labels above the
-boxes, so you do not have to scroll sideways. The dot beside the date follows the **Uniform**
+Each night is a card: the date, the **Parade** tick and the uniform on the first line, then a box
+for each class (side by side on a wide screen, two to a row on a phone, so you never scroll
+sideways), then the notes. The dot beside the date follows the **Uniform**
 dropdown as you change it. Boxes show their outline when you point at them or click into them.
 
 ### The menu bar
@@ -204,6 +206,8 @@ every time the programme is saved, reset, restored, or changed in any other way 
 notes, the tracker, second halves and so on). Select **History** in a programme's menu bar to see the
 newest first: the version number, the date and time (UTC), who made the change and what it was.
 Identical consecutive versions are kept once, and the newest 200 are kept.
+
+Each version lists what it changed from the one before, in words, for example "Changed uniform for 17 Nov from Blue to Working dress", "Changed activity on 10 Nov (First Class) from “Drill” to “Shooting”", "Added closure 22 Dec to 26 Dec" or "Added a second part on 10 Nov". A version with a lot of changes lists the first eight and says how many more there were. Requirement entries are counted, never named ("Changed the entries in “Fitness” (1 added, 0 removed)"), because everyone in the squadron can read the history.
 
 Editors and owners can **Restore** any version after a confirmation page. Restoring is itself saved as
 a new version, so it can be undone by restoring the one before. A restored programme is fitted to the

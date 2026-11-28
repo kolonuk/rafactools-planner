@@ -56,8 +56,12 @@ func (s *server) historyPage(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusInternalServerError, "History", "Could not load the history.")
 		return
 	}
+	changes, err := s.Store.HistoryChanges(u.SquadronID, id)
+	if err != nil {
+		log.Printf("history changes for programme %d: %v", id, err)
+	}
 	extra := map[string]any{
-		"ProgrammeID": id, "MonthName": monthNames[fp.Month], "Year": fp.Year,
+		"Changes": changes, "ProgrammeID": id, "MonthName": monthNames[fp.Month], "Year": fp.Year,
 		"Versions": versions, "CanEdit": u.CanEdit(),
 	}
 	if r.URL.Query().Get("restored") != "" {

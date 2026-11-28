@@ -14,6 +14,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"strings"
 	"time"
 
@@ -42,6 +43,8 @@ const (
 	fontSize = 22.0
 	smallFnt = 19.0
 	dateW    = 120.0
+	notesW   = 220.0     // the Notes column, as on the PDF
+	greyHead = "#e6e6e6" // the PDF's header grey
 )
 
 var (
@@ -91,27 +94,39 @@ func Render(sq *programme.Squadron, fp *programme.FullProgramme, opts Options) (
 }
 
 func drawTitle(dc *gg.Context, sq *programme.Squadron, fp *programme.FullProgramme, y float64) float64 {
-	dc.SetColor(color.Black)
-	dc.SetFontFace(face(bold, 38))
-	dc.DrawString(sq.Name, margin, y+38)
-	y += 52
-	dc.SetFontFace(face(regular, 24))
-	if sq.Subtitle != "" {
-		dc.DrawString(sq.Subtitle, margin, y+24)
-		y += 34
+	centre := func(s string, size float64, f *truetype.Font, underline bool) {
+		dc.SetFontFace(face(f, size))
+		w, _ := dc.MeasureString(s)
+		x := (width - w) / 2
+		dc.DrawString(s, x, y+size)
+		if underline {
+			dc.SetLineWidth(2)
+			dc.DrawLine(x, y+size+5, x+w, y+size+5)
+			dc.Stroke()
+		}
+		y += size + 12
 	}
-	dc.SetFontFace(face(bold, 30))
-	month := time.Month(fp.Month).String() + " " + fmt.Sprint(fp.Year) + " programme"
-	dc.DrawString(month, margin, y+30)
-	return y + 50
+	setColour(dc, "#000000")
+	if sq.ProtectiveMarking != "" {
+		dc.SetFontFace(face(regular, 16))
+		w, _ := dc.MeasureString(sq.ProtectiveMarking)
+		dc.DrawString(sq.ProtectiveMarking, (width-w)/2, y+14)
+		y += 24
+	}
+	centre(sq.Name, 38, bold, false)
+	if sq.Subtitle != "" {
+		centre(sq.Subtitle, 24, regular, false)
+	}
+	centre(time.Month(fp.Month).String()+" "+fmt.Sprint(fp.Year), 30, bold, true)
+	return y + 14
 }
 
-// column layout: a date cell, then one cell per classification.
+// column layout: a date cell, one cell per classification, then the notes.
 func columnWidths(n int) (date, class float64) {
 	if n < 1 {
 		n = 1
 	}
-	return dateW, (width - 2*margin - dateW) / float64(n)
+	return dateW, (width - 2*margin - dateW - notesW) / float64(n)
 }
 
 func drawTable(dc *gg.Context, sq *programme.Squadron, fp *programme.FullProgramme, y float64) float64 {
@@ -123,7 +138,7 @@ func drawTable(dc *gg.Context, sq *programme.Squadron, fp *programme.FullProgram
 
 	// Header.
 	rowH := 40.0
-	fillRect(dc, margin, y, width-2*margin, rowH, "#dde3ee")
+	fillRect(dc, margin, y, width-2*margin, rowH, greyHead)
 	dc.SetFontFace(face(bold, fontSize))
 	setColour(dc, "#000000")
 	drawCentred(dc, "Date", margin, y, dateCol, rowH)
@@ -131,6 +146,8 @@ func drawTable(dc *gg.Context, sq *programme.Squadron, fp *programme.FullProgram
 		x := margin + dateCol + float64(i)*classCol
 		drawCentred(dc, name, x, y, classCol, rowH)
 	}
+	notesX := margin + dateCol + float64(len(sq.Classifications))*classCol
+	drawCentred(dc, "Notes", notesX, y, notesW, rowH)
 	strokeRect(dc, margin, y, width-2*margin, rowH)
 	y += rowH
 
@@ -193,6 +210,10 @@ func drawTable(dc *gg.Context, sq *programme.Squadron, fp *programme.FullProgram
 			h = 56
 		}
 
+		notes := wrap(dc, d.Notes, notesW-2*pad)
+		if need := float64(len(notes))*(fontSize+4) + 2*pad; need > h {
+			h = need
+		}
 		fill := colour[d.UniformKey]
 		if fill == "" {
 			fill = "#ffffff"
@@ -230,52 +251,83 @@ func drawTable(dc *gg.Context, sq *programme.Squadron, fp *programme.FullProgram
 			}
 			strokeRect(dc, x, y, classCol, h)
 		}
+		// The night's notes, in the last column.
+		fillRect(dc, notesX, y, notesW, h, "#ffffff")
+		dc.SetFontFace(face(regular, smallFnt))
+		setColour(dc, "#000000")
+		ny := y + pad
+		for _, l := range wrap(dc, d.Notes, notesW-2*pad) {
+			if ny+fontSize > y+h {
+				break
+			}
+			ny += fontSize + 4
+			dc.DrawString(l, notesX+pad, ny-4)
+		}
+		strokeRect(dc, notesX, y, notesW, h)
 		strokeRect(dc, margin, y, dateCol, h)
 		y += h
 	}
 	return y + 24
 }
 
+// drawWeekend lists the weekend notes as a small table headed "Weekends", like the PDF's column.
 func drawWeekend(dc *gg.Context, fp *programme.FullProgramme, y float64) float64 {
 	if len(fp.WeekendNotes) == 0 {
 		return y
 	}
+	const rowH = 40.0
+	dateCol := 190.0
+	fillRect(dc, margin, y, width-2*margin, rowH, greyHead)
+	dc.SetFontFace(face(bold, fontSize))
 	setColour(dc, "#000000")
-	dc.SetFontFace(face(bold, fontSize+2))
-	dc.DrawString("Weekend events", margin, y+fontSize)
-	y += fontSize + 14
-	dc.SetFontFace(face(regular, fontSize))
+	drawCentred(dc, "Weekends", margin, y, width-2*margin, rowH)
+	strokeRect(dc, margin, y, width-2*margin, rowH)
+	y += rowH
 	for _, n := range fp.WeekendNotes {
 		label := n.Date
 		if t, err := time.Parse("2006-01-02", n.Date); err == nil {
 			label = t.Format("Mon 2 Jan")
 		}
-		for _, l := range wrap(dc, label+": "+n.Text, width-2*margin) {
-			dc.DrawString(l, margin, y+fontSize)
-			y += fontSize + 6
+		dc.SetFontFace(face(regular, fontSize))
+		lines := wrap(dc, n.Text, width-2*margin-dateCol-2*pad)
+		h := math.Max(rowH, float64(len(lines))*(fontSize+4)+2*pad)
+		dc.SetFontFace(face(bold, fontSize))
+		setColour(dc, "#000000")
+		drawCentred(dc, label, margin, y, dateCol, h)
+		dc.SetFontFace(face(regular, fontSize))
+		ty := y + pad
+		for _, l := range lines {
+			ty += fontSize + 4
+			dc.DrawString(l, margin+dateCol+pad, ty-4)
 		}
+		strokeRect(dc, margin, y, dateCol, h)
+		strokeRect(dc, margin+dateCol, y, width-2*margin-dateCol, h)
+		y += h
 	}
-	return y + 18
+	return y + 24
 }
 
+// drawKey draws the uniform key as one row: a "Uniform Key" cell, then a swatch per colour, as on the PDF.
 func drawKey(dc *gg.Context, sq *programme.Squadron, y float64) float64 {
 	if len(sq.UniformColours) == 0 {
 		return y
 	}
+	const h = 44.0
+	labelW := dateW + 40
 	setColour(dc, "#000000")
 	dc.SetFontFace(face(bold, fontSize))
-	dc.DrawString("Uniform key", margin, y+fontSize)
-	y += fontSize + 12
-	w := (width - 2*margin) / float64(len(sq.UniformColours))
+	drawCentred(dc, "Uniform Key", margin, y, labelW, h)
+	strokeRect(dc, margin, y, labelW, h)
+	w := (width - 2*margin - labelW) / float64(len(sq.UniformColours))
 	dc.SetFontFace(face(regular, smallFnt))
 	for i, c := range sq.UniformColours {
-		x := margin + float64(i)*w
-		fillRect(dc, x, y, w, 40, c.Hex)
+		x := margin + labelW + float64(i)*w
+		fillRect(dc, x, y, w, h, c.Hex)
 		setColour(dc, textOn(c.Hex))
-		drawCentred(dc, c.Label, x, y, w, 40)
-		strokeRect(dc, x, y, w, 40)
+		drawCentred(dc, c.Label, x, y, w, h)
+		strokeRect(dc, x, y, w, h)
 	}
-	return y + 40 + 24
+	return y + h + 24
 }
 
 func drawFooter(dc *gg.Context, opts Options, y float64) float64 {
