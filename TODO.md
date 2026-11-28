@@ -23,15 +23,6 @@ human" or "later" are blocked on someone else or on a decision, whatever their t
   and the `.claude/skills` notes for wording that assumes a private project or a particular
   host, and make them neutral. Edit the `next` docs; released snapshots stay as published.
 
-- [ ] **[P4 nicety]** **Check what the fuzz test is for, and whether to keep it.** "Fuzz (short)" in CI runs Go's
-  built-in fuzzing for 20 seconds (about a minute of job time including set-up): it feeds a stream of
-  random and mutated strings to one function, `ParseClaimEmail` in `internal/auth` (the check that decides
-  whether an address like `snco.1234@domain` may claim a squadron), and fails if it crashes or gives an
-  answer that breaks its rules. It is a safety net for odd input, not a test of behaviour. Decide: keep
-  it as is; point it at other code that takes text from outside (the help pages' front matter and Markdown,
-  the calendar builder, the closure and weekend-note dates, form fields) where a crash or hang would
-  matter more; shorten it or run it only on pushes to `test` and `main`; or drop it. Whichever, say in
-  the docs what it covers.
 - [ ] **[P3 usability]** **Lift the JavaScript restriction and review reactive features.** The
   README still says "no JS framework" and "pages should still work without script where
   reasonable". Remove that restriction (keep the CSP `script-src 'self'`, no inline script, no

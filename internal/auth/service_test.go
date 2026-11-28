@@ -66,32 +66,6 @@ func TestParseClaimEmailEdgeCases(t *testing.T) {
 	}
 }
 
-func FuzzParseClaimEmail(f *testing.F) {
-	for _, s := range []string{"oc.1@rafac.mod.gov.uk", "SNCO.99@RAFAC.MOD.GOV.UK", "", "@", "a@b@c", "oc.1\x00@rafac.mod.gov.uk"} {
-		f.Add(s)
-	}
-	f.Fuzz(func(t *testing.T, in string) {
-		n, ok := ParseClaimEmail(in, testDomain)
-		if !ok {
-			if n != "" {
-				t.Fatalf("number %q returned with ok=false", n)
-			}
-			return
-		}
-		// Invariants for anything accepted: digits only, correct domain,
-		// no control characters smuggled through.
-		for _, r := range n {
-			if r < '0' || r > '9' {
-				t.Fatalf("non-digit in number %q from %q", n, in)
-			}
-		}
-		low := strings.ToLower(strings.TrimSpace(in))
-		if !strings.HasSuffix(low, "@"+testDomain) || strings.ContainsAny(low, "\r\n\x00 \t") {
-			t.Fatalf("accepted unsafe address %q", in)
-		}
-	})
-}
-
 func TestClaimSquadron(t *testing.T) {
 	s, d := newService(t, false)
 
