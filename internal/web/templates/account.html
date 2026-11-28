@@ -95,12 +95,13 @@
 <h2>Where you are signed in</h2>
 <section class="card">
   <table class="list">
-    <thead><tr><th scope="col">Browser</th><th scope="col">Signed in (UTC)</th><th scope="col">Expires (UTC)</th><th scope="col"></th></tr></thead>
+    <thead><tr><th scope="col">Browser</th><th scope="col">Signed in (UTC)</th><th scope="col">Last used (UTC)</th><th scope="col">Expires (UTC)</th><th scope="col"></th></tr></thead>
     <tbody>
     {{range .Sessions}}
       <tr>
         <td>{{.Device}}{{if .Current}} <strong>(this browser)</strong>{{end}}</td>
         <td>{{.CreatedAt.UTC.Format "2 Jan 2006 15:04"}}</td>
+        <td>{{if .LastUsed.IsZero}}<span class="muted">not recorded</span>{{else}}{{.LastUsed.UTC.Format "2 Jan 2006 15:04"}}{{end}}</td>
         <td>{{.ExpiresAt.UTC.Format "2 Jan 2006 15:04"}}</td>
         <td>
           {{if not .Current}}

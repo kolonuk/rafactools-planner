@@ -28,7 +28,7 @@ For everyone with a login: owners, editors and viewers.
 | [Programmes](programmes) | Creating a month, the grid, closures, weekend notes, the requirements tracker, history |
 | [Instructors](instructors) | The instructor list, and setting your own name |
 | [Time off](time-off) | When instructors are away, and the red warning in the grid |
-| [Activities](activities) | The built-in and your own activities offered in the grid |
+| [Activities](activities) | The built-in and your own activities offered in the grid, and suggestions from cadets |
 | [Moving your login](account-transfer) | Moving a login with a personal email address to another squadron |
 | [PDF export](pdf-export) | What the PDF contains and its limits |
 | [Security and privacy](security-and-privacy) | What is stored, for how long, and who can see it |

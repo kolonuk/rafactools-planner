@@ -20,7 +20,7 @@
       <td>{{$v.Version}}{{if eq $i 0}} <span class="muted">(latest)</span>{{end}}</td>
       <td>{{$v.At.UTC.Format "2 Jan 2006 15:04:05"}}</td>
       <td data-private>{{if $v.UserEmail}}{{$v.UserEmail}}{{else}}<span class="muted">the system</span>{{end}}</td>
-      <td>{{$v.Action}}</td>
+      <td>{{$v.Action}}{{with index $.Changes $v.Version}}<ul class="changes">{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}</td>
       {{if $.CanEdit}}<td>{{if ne $i 0}}<a href="{{url "/programmes/" $.ProgrammeID "/history/" $v.Version "/restore"}}" aria-label="Restore version {{$v.Version}}">Restore</a>{{end}}</td>{{end}}
     </tr>
   {{end}}

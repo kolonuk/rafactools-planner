@@ -99,6 +99,7 @@ type Invite struct {
 	Email      string
 	Role       string
 	ExpiresAt  time.Time
+	SentAt     time.Time // when it was last emailed
 	Accepted   bool
 }
 
@@ -321,7 +322,7 @@ func (s *Service) AcceptInvite(token, password string) (userID int64, squadronID
 // PendingInvites lists unaccepted, unexpired invites for a squadron's admin UI.
 func (s *Service) PendingInvites(squadronID int64) ([]Invite, error) {
 	rows, err := s.db.Query(`
-		SELECT token, squadron_id, email, role, expires_at FROM invites
+		SELECT token, squadron_id, email, role, expires_at, sent_at, created_at FROM invites
 		WHERE squadron_id = ? AND accepted_at IS NULL AND expires_at > CURRENT_TIMESTAMP
 		ORDER BY created_at DESC`, squadronID)
 	if err != nil {
@@ -332,12 +333,58 @@ func (s *Service) PendingInvites(squadronID int64) ([]Invite, error) {
 	var out []Invite
 	for rows.Next() {
 		var inv Invite
-		if err := rows.Scan(&inv.Token, &inv.SquadronID, &inv.Email, &inv.Role, &inv.ExpiresAt); err != nil {
+		var sent sql.NullTime
+		var created time.Time
+		if err := rows.Scan(&inv.Token, &inv.SquadronID, &inv.Email, &inv.Role, &inv.ExpiresAt, &sent, &created); err != nil {
 			return nil, err
+		}
+		inv.SentAt = created
+		if sent.Valid {
+			inv.SentAt = sent.Time
 		}
 		out = append(out, inv)
 	}
 	return out, rows.Err()
+}
+
+// ErrInviteTooSoon is returned when an invitation is sent again too soon after the last time.
+var ErrInviteTooSoon = errors.New("that invitation was sent a few minutes ago: wait a little before sending it again")
+
+// resendWait is how long must pass before an invitation can be sent again.
+const resendWait = 10 * time.Minute
+
+// ResendInvite starts a pending invitation of the squadron afresh: the same link, a new seven
+// days, and a new "sent" time. It returns the invite for the caller to email.
+func (s *Service) ResendInvite(squadronID int64, token string) (*Invite, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	var inv Invite
+	var sent sql.NullTime
+	var created time.Time
+	err = tx.QueryRow(`SELECT token, squadron_id, email, role, sent_at, created_at FROM invites
+		WHERE token = ? AND squadron_id = ? AND accepted_at IS NULL`, token, squadronID).
+		Scan(&inv.Token, &inv.SquadronID, &inv.Email, &inv.Role, &sent, &created)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrInviteInvalid
+	} else if err != nil {
+		return nil, err
+	}
+	last := created
+	if sent.Valid {
+		last = sent.Time
+	}
+	if time.Since(last) < resendWait {
+		return nil, ErrInviteTooSoon
+	}
+	now := time.Now().UTC()
+	inv.ExpiresAt, inv.SentAt = now.Add(inviteTTL), now
+	if _, err := tx.Exec(`UPDATE invites SET sent_at = ?, expires_at = ? WHERE token = ?`, now, inv.ExpiresAt, token); err != nil {
+		return nil, err
+	}
+	return &inv, tx.Commit()
 }
 
 // RevokeInvite deletes a pending invite, scoped to the squadron so one
@@ -580,6 +627,7 @@ func (s *Service) UserBySession(token string) (*User, error) {
 		_ = s.DeleteSession(token)
 		return nil, nil
 	}
+	s.touchSession(token)
 	// Only the master admin can have an acting squadron, and while they look
 	// at another squadron they are a viewer there: every handler that scopes
 	// by u.SquadronID and checks u.Role then shows that squadron read-only,

@@ -292,3 +292,45 @@ func TestTheKeyAndNotesAreBelowTheWholeGridEvenWithAnEarlyClosure(t *testing.T) 
 		t.Error("the key overlaps the grid without a closure too")
 	}
 }
+
+func TestSuggestionQRIsPrintedOnlyWhenAskedForAndSitsBesideTheCalendarOne(t *testing.T) {
+	sq, fp := testSquadron(), testProgramme()
+	compressOutput = false
+	defer func() { compressOutput = true }()
+	render := func(o Options) string {
+		t.Helper()
+		b, err := RenderWith(sq, fp, o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n := strings.Count(string(b), "/Type /Page\n"); n != 1 {
+			t.Errorf("%d pages, want 1", n)
+		}
+		return string(b)
+	}
+	if out := render(Options{}); strings.Contains(out, "Suggest an activity") {
+		t.Error("a suggestion QR code was printed without being asked for")
+	}
+	only := render(Options{SuggestURL: "https://example.test/suggest/tok"})
+	if !strings.Contains(only, "Suggest an activity") || strings.Contains(only, "Add this programme to your calendar") {
+		t.Error("the suggestion code alone is wrong")
+	}
+	both := render(Options{CalendarURL: "webcal://example.test/share/tok/calendar.ics", SuggestURL: "https://example.test/suggest/tok"})
+	for _, want := range []string{"Add this programme to your calendar", "Suggest an activity"} {
+		if !strings.Contains(both, want) {
+			t.Errorf("missing %q with both codes", want)
+		}
+	}
+	if n := strings.Count(both, "/Subtype /Image"); n != 2 {
+		t.Errorf("%d QR images, want 2", n)
+	}
+	// A crowded month still fits with both.
+	hsq, hfp := heavyMonth(4, 2, true, 3)
+	b, err := RenderWith(hsq, hfp, Options{CalendarURL: "webcal://x", SuggestURL: "https://x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Count(string(b), "/Type /Page\n"); n != 1 {
+		t.Errorf("a crowded month made %d pages", n)
+	}
+}

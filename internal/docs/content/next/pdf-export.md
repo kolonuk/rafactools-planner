@@ -5,6 +5,7 @@ summary: What the exported programme looks like.
 since: 1.0
 audience: user
 changed:
+  - next: Greek and Cyrillic text prints. When a month holds either, the whole page is drawn in another font. The PNG is laid out like the PDF (centred title, grey header, a Notes column, a Weekends table, the key as one row), and the PDF can carry a second QR code, for suggesting an activity.
   - 1.16: The QR code is only on the PDF and PNG of a published month; a month that is not published no longer carries it.
   - 1.15: The uniform key and the notes table are always drawn below the whole grid; with a closure early in the month they used to be drawn on top of the nights after it.
   - 1.14: A crowded month is drawn smaller so that everything fits on the one page, instead of running off the bottom.
@@ -43,8 +44,10 @@ the editor before exporting.
 - The page is fixed at one page. Very long text makes the rows taller; there is
   no second page.
 - The built-in font covers Western European characters, including curly quotes,
-  dashes and accented letters copied from a word processor. Characters outside
-  that (for example Greek, Cyrillic or Chinese) and emoji print as a question mark. They are saved and shown correctly on screen.
+  dashes and accented letters copied from a word processor. If a month also holds Greek
+  or Cyrillic text, the whole page is drawn in a different font that has them (the lettering
+  looks a little different). Characters neither font has (Chinese, Japanese, Korean, Arabic,
+  Hebrew) and emoji print as a question mark. They are saved and shown correctly on screen.
 
 ## QR code for the calendar, and the PNG
 
@@ -52,6 +55,10 @@ If the squadron has a [public link](public-sharing) and the month is published, 
 squadron's calendar to a phone, with the date the link stops. **Export › PNG picture** in the month's menu bar gives the month as
 a picture instead of a PDF. It shows the same information except the requirements tracker, and is laid
 out as one tall image for sending in a message.
+
+## QR code for suggesting an activity
+
+An owner can choose, under **Activity suggestions** in [squadron settings](squadron-settings), to print a second QR code beside the calendar one, headed "Suggest an activity". Cadets who scan it get a form where they type the name of an activity: see [activities](activities). It is printed on every month's PDF (published or not) while the option is on; the PNG does not carry it. Making a new link changes the code, so reprint programmes that carry the old one.
 
 ## A crowded month
 

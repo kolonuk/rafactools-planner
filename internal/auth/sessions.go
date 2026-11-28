@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -28,6 +29,7 @@ type SessionInfo struct {
 	Device    string
 	CreatedAt time.Time
 	ExpiresAt time.Time
+	LastUsed  time.Time // zero if it has not been used since this was recorded
 	Current   bool
 }
 
@@ -60,10 +62,21 @@ func (s *Service) CreateSessionFor(userID int64, userAgent string) (token string
 	return token, expiresAt, err
 }
 
+// lastUsedEvery is how often a session's "last used" time is written: a write on every
+// page would be needless work.
+const lastUsedEvery = 5 * time.Minute
+
+// touchSession records that the session was used, at most once every few minutes.
+func (s *Service) touchSession(token string) {
+	now := time.Now().UTC()
+	_, _ = s.db.Exec(`UPDATE sessions SET last_used_at = ? WHERE token = ? AND (last_used_at IS NULL OR last_used_at < ?)`,
+		now, token, now.Add(-lastUsedEvery))
+}
+
 // ListSessions returns the user's live sessions, newest first. currentToken
 // marks the one making the request.
 func (s *Service) ListSessions(userID int64, currentToken string) ([]SessionInfo, error) {
-	rows, err := s.db.Query(`SELECT token, user_agent, created_at, expires_at FROM sessions
+	rows, err := s.db.Query(`SELECT token, user_agent, created_at, expires_at, last_used_at FROM sessions
 		WHERE user_id = ? AND expires_at > ? ORDER BY created_at DESC, rowid DESC`, userID, time.Now())
 	if err != nil {
 		return nil, err
@@ -73,9 +86,11 @@ func (s *Service) ListSessions(userID int64, currentToken string) ([]SessionInfo
 	for rows.Next() {
 		var tok, ua string
 		var si SessionInfo
-		if err := rows.Scan(&tok, &ua, &si.CreatedAt, &si.ExpiresAt); err != nil {
+		var used sql.NullTime
+		if err := rows.Scan(&tok, &ua, &si.CreatedAt, &si.ExpiresAt, &used); err != nil {
 			return nil, err
 		}
+		si.LastUsed = used.Time
 		si.ID = sessionID(tok)
 		si.Device = DeviceLabel(ua)
 		si.Current = subtle.ConstantTimeCompare([]byte(tok), []byte(currentToken)) == 1

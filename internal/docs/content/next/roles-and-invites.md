@@ -5,6 +5,7 @@ summary: What owners, editors and viewers can do, and how to invite people.
 since: 1.0
 audience: admin
 changed:
+  - next: An invitation can be sent again.
   - 1.16: A login with a personal email address can move to another squadron: see moving your login.
   - 1.10: The invitation page has an optional Your name box.
   - 1.9: Editors and owners can keep an instructor list; everyone can set a displayed name.
@@ -48,7 +49,7 @@ changes. To bring someone who already has a login into your squadron, ask them t
 
 ## Pending invites
 
-Squadron settings lists invites that have not been used or expired. **Revoke**
+Squadron settings lists invites that have not been used or expired, with when each was last emailed. **Send again** emails the same link again and gives it a fresh 7 days, which helps when the first email was missed or the link was about to run out (it can be sent again once every 10 minutes). **Revoke**
 cancels one; the link stops working at once.
 
 ## Changing or removing people

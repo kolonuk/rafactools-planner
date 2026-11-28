@@ -58,11 +58,11 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type inviteRow struct {
-		Token, Email, Role, ExpiresAt string
+		Token, Email, Role, ExpiresAt, SentAt string
 	}
 	var inviteRows []inviteRow
 	for _, inv := range invites {
-		inviteRows = append(inviteRows, inviteRow{inv.Token, inv.Email, inv.Role, inv.ExpiresAt.Format("2006-01-02")})
+		inviteRows = append(inviteRows, inviteRow{inv.Token, inv.Email, inv.Role, inv.ExpiresAt.Format("2006-01-02"), inv.SentAt.In(programme.Local).Format("2 Jan 15:04")})
 	}
 
 	share, err := s.Store.GetShare(u.SquadronID)
@@ -87,6 +87,21 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	shareData["PublishedMonths"] = publishedMonths
 
+	inUse, _ := s.Store.UniformColoursInUse(u.SquadronID)
+	type uniformRow struct {
+		Key, Label, Hex string
+		Removable       bool
+		Nights          int
+	}
+	var uniformRows []uniformRow
+	for _, c := range sq.UniformColours {
+		uniformRows = append(uniformRows, uniformRow{c.Key, c.Label, c.Hex, !isClosureColour(c) && inUse[c.Key] == 0, inUse[c.Key]})
+	}
+	suggest, _ := s.Store.GetSuggestSettings(u.SquadronID)
+	suggestURL := ""
+	if suggest.HasToken {
+		suggestURL = s.suggestURL(suggest.Token)
+	}
 	canMove := map[int64]bool{}
 	for _, m := range members {
 		canMove[m.ID] = m.ID != u.ID && m.Active && s.Auth.MovableReason(m.ID) == nil
@@ -97,6 +112,9 @@ func (s *server) squadronSettings(w http.ResponseWriter, r *http.Request) {
 	reminder, _ := s.Store.ReminderDays(u.SquadronID)
 	s.render(w, r, "squadron_settings", "Squadron settings", map[string]any{
 		"CanMove":             canMove,
+		"Suggest":             suggest,
+		"SuggestURL":          suggestURL,
+		"UniformRows":         uniformRows,
 		"Incoming":            s.transferViews(incoming, inErr),
 		"Outgoing":            s.transferViews(outgoing, outErr),
 		"HolidayRegion":       region,
@@ -490,4 +508,76 @@ func (s *server) squadronPlanning(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, s.url("/squadron#planning"), http.StatusSeeOther)
+}
+
+// uniformsSave saves the squadron's uniform colours: the name and colour of each, any
+// that are ticked for removal, and one new one.
+func (s *server) uniformsSave(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	sq, err := s.Store.GetSquadron(u.SquadronID)
+	if err != nil {
+		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not load squadron.")
+		return
+	}
+	var colours []programme.UniformColour
+	for _, c := range sq.UniformColours {
+		if r.FormValue("remove_"+c.Key) == "1" {
+			continue
+		}
+		label, hex := r.FormValue("label_"+c.Key), r.FormValue("hex_"+c.Key)
+		if label == "" && hex == "" { // the form had no row for it: leave it as it is
+			label, hex = c.Label, c.Hex
+		}
+		colours = append(colours, programme.UniformColour{Key: c.Key, Label: label, Hex: hex})
+	}
+	if label := strings.TrimSpace(r.FormValue("new_label")); label != "" {
+		colours = append(colours, programme.UniformColour{Label: label, Hex: r.FormValue("new_hex")})
+	}
+	if err := s.Store.SetUniformColours(u.SquadronID, colours); err != nil {
+		if errors.Is(err, programme.ErrInvalidInput) {
+			s.renderError(w, r, http.StatusBadRequest, "Squadron settings", errorText(err))
+			return
+		}
+		log.Printf("save uniform colours: %v", err)
+		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not save.")
+		return
+	}
+	s.audit(r, u.SquadronID, auth.AuditSquadronEdit, "uniform colours")
+	http.Redirect(w, r, s.url("/squadron#uniforms"), http.StatusSeeOther)
+}
+
+// inviteResend emails a pending invitation again, with a fresh seven days (owners only).
+func (s *server) inviteResend(w http.ResponseWriter, r *http.Request) {
+	if !s.checkCSRF(r) {
+		s.renderError(w, r, http.StatusBadRequest, "Squadron settings", "Form expired, try again.")
+		return
+	}
+	u := userFrom(r.Context())
+	inv, err := s.Auth.ResendInvite(u.SquadronID, r.PathValue("token"))
+	switch {
+	case errors.Is(err, auth.ErrInviteTooSoon):
+		s.renderError(w, r, http.StatusTooManyRequests, "Squadron settings", err.Error())
+		return
+	case errors.Is(err, auth.ErrInviteInvalid):
+		s.renderError(w, r, http.StatusNotFound, "Not found", "That invitation isn't pending any more.")
+		return
+	case err != nil:
+		log.Printf("resend invite: %v", err)
+		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "Could not send that again. Try again.")
+		return
+	}
+	squadronName := "your squadron"
+	if sq, err := s.Store.GetSquadron(u.SquadronID); err == nil {
+		squadronName = sq.Name
+	}
+	s.audit(r, u.SquadronID, auth.AuditInviteSent, "sent again: "+inv.Email+" as "+inv.Role)
+	if err := s.Mail.SendInvite(inv.Email, s.Cfg.BaseURL, inv.Token, squadronName, u.Email); err != nil {
+		s.renderError(w, r, http.StatusInternalServerError, "Squadron settings", "The invitation was renewed, but the email failed to send.")
+		return
+	}
+	http.Redirect(w, r, s.url("/squadron#invites"), http.StatusSeeOther)
 }

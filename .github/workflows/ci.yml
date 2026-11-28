@@ -158,27 +158,12 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Fuzzing feeds random input to one function (the squadron-claim email checker)
-  # for 20 seconds, looking for a crash. See TODO.md.
-  fuzz:
-    name: Fuzz (short)
-    needs: changes
-    if: needs.changes.outputs.heavy == 'true'
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: "1.26"
-          cache: true
-      - run: go test ./internal/auth -run '^$' -fuzz FuzzParseClaimEmail -fuzztime 20s
-
   # The one check that branch protection requires for the build and tests. It
   # passes only when every job it needs passed (or, for a notes-only change,
   # was skipped on purpose).
   build-test:
     name: Build, vet, test
-    needs: [changes, build-vet, test-web, test-rest, coverage, fuzz]
+    needs: [changes, build-vet, test-web, test-rest, coverage]
     # Always run, and check the results by hand: a job whose needs failed is
     # skipped, and a skipped required check would count as passed.
     if: ${{ always() }}

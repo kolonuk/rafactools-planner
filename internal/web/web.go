@@ -88,7 +88,7 @@ type server struct {
 // since html/template keeps a single flat namespace per set.
 var pageNames = []string{
 	"claim", "login", "check_email", "invite_accept", "forgot", "reset",
-	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "copy_month", "activities", "account_transfer", "transfer_link", "confirm_reset_programme",
+	"dashboard", "squadron_settings", "programme_edit", "confirm_remove_half", "time_off", "copy_month", "activities", "account_transfer", "transfer_link", "suggest", "confirm_reset_programme",
 	"docs_page", "docs_compare", "instructors", "account", "report", "report_sent", "privacy", "admin_mail", "instructor_edit", "force_password", "email_confirm", "history", "confirm_restore",
 }
 
@@ -143,6 +143,8 @@ func NewRouter(d *Deps) http.Handler {
 	// signing in, so they get a tighter limit of their own.
 	reportLimiter := newIPLimiter(5, 10*time.Minute)
 	shareLimiter := newIPLimiter(120, 5*time.Minute)
+	// A public form: a person needs a few tries at most, a script needs many.
+	suggestLimiter := newIPLimiter(10, 10*time.Minute)
 
 	mux := http.NewServeMux()
 
@@ -186,11 +188,16 @@ func NewRouter(d *Deps) http.Handler {
 
 	// Public sharing: no sign-in, a secret link instead (see share.go).
 	mux.HandleFunc("GET /share/{token}/{file}", shareLimiter.rateLimited(s.shareFile))
+	mux.HandleFunc("GET /suggest/{token}", shareLimiter.rateLimited(s.withUserOptional(s.suggestForm)))
+	mux.HandleFunc("POST /suggest/{token}", suggestLimiter.rateLimited(s.withUserOptional(s.suggestSubmit)))
 	mux.HandleFunc("POST /squadron/share", s.requireOwner(s.shareRenew))
 	mux.HandleFunc("POST /programmes/{id}/publish", s.requireEditor(s.programmePublish))
 
 	mux.HandleFunc("GET /squadron", s.requireOwner(s.squadronSettings))
 	mux.HandleFunc("POST /squadron", s.requireOwner(s.squadronSave))
+	mux.HandleFunc("POST /squadron/uniforms", s.requireOwner(s.uniformsSave))
+	mux.HandleFunc("POST /squadron/suggest", s.requireOwner(s.suggestSettings))
+	mux.HandleFunc("GET /squadron/suggest-qr.png", s.requireOwner(s.suggestQR))
 	mux.HandleFunc("POST /squadron/planning", s.requireOwner(s.squadronPlanning))
 	mux.HandleFunc("POST /squadron/members/{memberID}/transfer", authLimiter.rateLimited(s.requireOwner(s.memberTransfer)))
 	mux.HandleFunc("POST /squadron/transfers/{id}/{action}", s.requireOwner(s.transferDecide))
@@ -203,6 +210,7 @@ func NewRouter(d *Deps) http.Handler {
 	mux.HandleFunc("POST /squadron/delete", authLimiter.rateLimited(s.requireOwner(s.squadronDelete)))
 	mux.HandleFunc("POST /squadron/invites", s.requireOwner(s.inviteCreate))
 	mux.HandleFunc("POST /squadron/invites/{token}/revoke", s.requireOwner(s.inviteRevoke))
+	mux.HandleFunc("POST /squadron/invites/{token}/resend", s.requireOwner(s.inviteResend))
 	mux.HandleFunc("POST /squadron/members/{memberID}/role", s.requireOwner(s.memberSetRole))
 	mux.HandleFunc("POST /squadron/members/{memberID}/active", s.requireOwner(s.memberSetActive))
 	mux.HandleFunc("POST /squadron/members/{memberID}/temp-password", authLimiter.rateLimited(s.requireOwner(s.memberTempPassword)))
@@ -215,6 +223,7 @@ func NewRouter(d *Deps) http.Handler {
 
 	mux.HandleFunc("GET /activities", s.requireEditor(s.activitiesPage))
 	mux.HandleFunc("POST /activities", s.requireEditor(s.activityAdd))
+	mux.HandleFunc("POST /activities/suggestions/{id}/{action}", s.requireEditor(s.suggestionAction))
 	mux.HandleFunc("POST /activities/{id}/edit", s.requireEditor(s.activityEdit))
 	mux.HandleFunc("POST /activities/{id}/delete", s.requireEditor(s.activityDelete))
 
